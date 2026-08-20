@@ -132,7 +132,11 @@ export function useLiveMatch() {
     if (!state.ko || !matchId || finishing.current) return;
     finishing.current = true;
     const timer = window.setTimeout(async () => {
-      await supabase.rpc("finish_match", { p_match: matchId, p_winner: state.ko as string });
+      try {
+        await finishMatch({ data: { matchId, winner: state.ko as Side } });
+      } catch {
+        /* another client may have closed the match first */
+      }
       void loadMatch();
       void loadLeaders();
     }, KO_HOLD_MS);
