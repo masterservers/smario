@@ -132,7 +132,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     <div className="absolute inset-0 overflow-hidden bg-background">
       <video
         ref={videoRef}
-        src="/media/arena-fight.mp4"
+        src="/media/arena-fight.webm"
         muted
         playsInline
         preload="auto"
