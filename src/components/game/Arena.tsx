@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import fightVideo from "@/assets/arena-fight.mp4.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
@@ -133,7 +132,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     <div className="absolute inset-0 overflow-hidden bg-background">
       <video
         ref={videoRef}
-        src={fightVideo.url}
+        src="/media/arena-fight.mp4"
         muted
         playsInline
         preload="auto"
