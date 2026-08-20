@@ -108,20 +108,23 @@ function BattlePage() {
         </div>
 
         {/* Ring: full frame, no cropping, fills remaining height */}
-        <div className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl border border-border bg-black">
-          <Arena
-            lang={lang}
-            events={events}
-            ko={state.ko}
-            combo={state.combo}
-            comboSide={state.comboSide}
-          />
-          {showBoard && (
-            <div className="absolute right-2 top-2 z-20 w-full max-w-[15rem]">
-              <Leaderboard lang={lang} rows={leaders} />
-            </div>
-          )}
+        <div className="flex min-h-[34dvh] w-full flex-1 justify-center">
+          <div className="relative aspect-[1176/960] h-full max-w-full overflow-hidden rounded-xl border border-border bg-black">
+            <Arena
+              lang={lang}
+              events={events}
+              ko={state.ko}
+              combo={state.combo}
+              comboSide={state.comboSide}
+            />
+            {showBoard && (
+              <div className="absolute right-2 top-2 z-20 w-full max-w-[15rem]">
+                <Leaderboard lang={lang} rows={leaders} />
+              </div>
+            )}
+          </div>
         </div>
+
 
         {/* Chat + gifts below the ring */}
         <div className="flex shrink-0 flex-col gap-2">
