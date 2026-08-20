@@ -24,6 +24,8 @@ function NotFoundComponent() {
         <div className="mt-6">
           <Link
             to="/"
+            search={{ lang: "en" }}
+
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Go home
@@ -77,16 +79,28 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Putin vs Trump — Live Gift Battle Arena" },
+      {
+        name: "description",
+        content:
+          "Live gift-powered wrestling battle: Russia vs USA, with a multilingual ring commentator.",
+      },
+      { property: "og:title", content: "Putin vs Trump — Live Gift Battle Arena" },
+      {
+        property: "og:description",
+        content:
+          "Live gift-powered wrestling battle: Russia vs USA, with a multilingual ring commentator.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;800&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,
@@ -94,6 +108,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
