@@ -48,15 +48,17 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   const names = SIDE_NAME[lang];
 
   useEffect(() => {
+    if (!primed.current) {
+      if (events.length === 0) return;
+      for (const event of events) seen.current.add(event.id);
+      primed.current = true;
+      return;
+    }
     const fresh: GiftEvent[] = [];
     for (const event of events) {
       if (seen.current.has(event.id)) continue;
       seen.current.add(event.id);
       fresh.push(event);
-    }
-    if (!primed.current) {
-      primed.current = true;
-      return;
     }
     queue.current.push(...fresh.slice(-5));
   }, [events]);
