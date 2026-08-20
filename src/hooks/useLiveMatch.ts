@@ -36,10 +36,13 @@ export function useLiveMatch() {
   }, []);
 
   const loadMatch = useCallback(async () => {
-    const { data, error } = await supabase.rpc("current_match");
-    if (error || !data) return;
-    const match = Array.isArray(data) ? data[0] : data;
-    if (!match) return;
+    let match: { id: string; round: number };
+    try {
+      match = await getCurrentMatch();
+    } catch {
+      return;
+    }
+    if (!match?.id) return;
     setMatchId(match.id);
     setRound(match.round ?? 1);
     const { data: rows } = await supabase
