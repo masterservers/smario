@@ -141,9 +141,10 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
           event.currentTarget.currentTime = 4.4;
         }}
         onTimeUpdate={handleTimeUpdate}
-        className={`absolute inset-0 size-full object-cover transition-transform duration-300 ${attacker === "ru" ? "-scale-x-100" : "scale-x-100"}`}
+        className={`absolute inset-0 size-full object-contain transition-transform duration-300 ${attacker === "ru" ? "-scale-x-100" : "scale-x-100"}`}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-background/45" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-background/25" />
+
 
       {impact && (
         <div className="pointer-events-none absolute inset-0 animate-arena-impact">
