@@ -462,9 +462,9 @@
 @keyframes df-flip {
   0% { transform: translateX(0) translateY(0) rotate(0deg); }
   30% { transform: translateX(calc(var(--dir) * 18%)) translateY(-14%) rotate(calc(var(--dir) * 60deg)); }
-  50% { transform: translateX(calc(var(--dir) * 12%)) translateY(-6%) rotate(calc(var(--dir) * 96deg)); }
-  62% { transform: translateX(calc(var(--dir) * 14%)) translateY(4%) rotate(calc(var(--dir) * 88deg)); }
-  74% { transform: translateX(calc(var(--dir) * 14%)) translateY(2%) rotate(calc(var(--dir) * 86deg)); }
+  50% { transform: translateX(calc(var(--dir) * -10%)) translateY(-6%) rotate(calc(var(--dir) * 96deg)); }
+  62% { transform: translateX(calc(var(--dir) * -20%)) translateY(4%) rotate(calc(var(--dir) * 88deg)); }
+  74% { transform: translateX(calc(var(--dir) * -20%)) translateY(2%) rotate(calc(var(--dir) * 86deg)); }
   90% { transform: translateX(calc(var(--dir) * 12%)) translateY(0) rotate(calc(var(--dir) * 30deg)); }
   100% { transform: translateX(0) translateY(0) rotate(0deg); }
 }
@@ -473,9 +473,9 @@
   0% { transform: translateX(0) translateY(0) rotate(0deg); }
   30% { transform: translateX(calc(var(--dir) * -6%)) translateY(-22%) rotate(calc(var(--dir) * 40deg)); }
   45% { transform: translateX(calc(var(--dir) * 2%)) translateY(-28%) rotate(calc(var(--dir) * 130deg)); }
-  60% { transform: translateX(calc(var(--dir) * -16%)) translateY(6%) rotate(calc(var(--dir) * -84deg)); }
-  68% { transform: translateX(calc(var(--dir) * -16%)) translateY(1%) rotate(calc(var(--dir) * -86deg)); }
-  76% { transform: translateX(calc(var(--dir) * -16%)) translateY(5%) rotate(calc(var(--dir) * -84deg)); }
+  60% { transform: translateX(calc(var(--dir) * -34%)) translateY(6%) rotate(calc(var(--dir) * -84deg)); }
+  68% { transform: translateX(calc(var(--dir) * -34%)) translateY(1%) rotate(calc(var(--dir) * -86deg)); }
+  76% { transform: translateX(calc(var(--dir) * -34%)) translateY(5%) rotate(calc(var(--dir) * -84deg)); }
   92% { transform: translateX(calc(var(--dir) * 6%)) translateY(0) rotate(calc(var(--dir) * 34deg)); }
   100% { transform: translateX(0) translateY(0) rotate(0deg); }
 }
@@ -484,9 +484,9 @@
   0% { transform: translateX(0) translateY(0) rotate(0deg); }
   28% { transform: translateX(calc(var(--dir) * -4%)) translateY(-26%) rotate(calc(var(--dir) * 70deg)); }
   44% { transform: translateX(calc(var(--dir) * 8%)) translateY(-32%) rotate(calc(var(--dir) * 200deg)); }
-  58% { transform: translateX(calc(var(--dir) * 6%)) translateY(6%) rotate(calc(var(--dir) * 276deg)); }
-  66% { transform: translateX(calc(var(--dir) * 6%)) translateY(-4%) rotate(calc(var(--dir) * 272deg)); }
-  74% { transform: translateX(calc(var(--dir) * 6%)) translateY(5%) rotate(calc(var(--dir) * 276deg)); }
+  58% { transform: translateX(calc(var(--dir) * -26%)) translateY(6%) rotate(calc(var(--dir) * 276deg)); }
+  66% { transform: translateX(calc(var(--dir) * -26%)) translateY(-4%) rotate(calc(var(--dir) * 272deg)); }
+  74% { transform: translateX(calc(var(--dir) * -26%)) translateY(5%) rotate(calc(var(--dir) * 276deg)); }
   92% { transform: translateX(calc(var(--dir) * 16%)) translateY(0) rotate(calc(var(--dir) * 80deg)); }
   100% { transform: translateX(0) translateY(0) rotate(0deg); }
 }
