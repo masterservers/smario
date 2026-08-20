@@ -67,86 +67,82 @@ function BattlePage() {
     state.scoreRu === state.scoreUs ? null : state.scoreRu > state.scoreUs ? "ru" : "us";
 
   return (
-    <main className="relative h-[100dvh] w-full overflow-hidden bg-black">
+    <main className="relative flex h-[100dvh] w-full justify-center overflow-hidden bg-black">
       <h1 className="sr-only">
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
-      {/* Full-screen ring */}
-      <Arena
-        lang={lang}
-        events={events}
-        ko={state.ko}
-        combo={state.combo}
-        comboSide={state.comboSide}
-      />
+      {/* Stage: TikTok-style vertical column, ring always fully visible */}
+      <div className="relative flex h-full w-full max-w-[560px] flex-col gap-2 overflow-hidden bg-background p-2 shadow-2xl sm:p-3">
+        <Scoreboard
+          lang={lang}
+          round={round}
+          viewers={viewers}
+          scoreRu={state.scoreRu}
+          scoreUs={state.scoreUs}
+          hpRu={state.hpRu}
+          hpUs={state.hpUs}
+          leader={leader}
+        />
 
-      {/* Top HUD */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 p-2 sm:p-3">
-        <div className="pointer-events-auto mx-auto flex w-full max-w-4xl flex-col gap-2">
-          <Scoreboard
-            lang={lang}
-            round={round}
-            viewers={viewers}
-            scoreRu={state.scoreRu}
-            scoreUs={state.scoreUs}
-            hpRu={state.hpRu}
-            hpUs={state.hpUs}
-            leader={leader}
-          />
-          <div className="flex items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <CommentaryBar
-                lang={lang}
-                lines={lines}
-                muted={muted}
-                onToggleMute={() => setMuted((m) => !m)}
-              />
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <LangPicker lang={lang} onChange={setLang} />
-              <button
-                type="button"
-                onClick={() => setShowBoard((s) => !s)}
-                aria-label={t.leaderboard}
-                className="rounded-full border border-border bg-black/50 px-3 py-1.5 text-sm backdrop-blur-md transition-colors hover:bg-accent"
-              >
-                🔥
-              </button>
-            </div>
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <CommentaryBar
+              lang={lang}
+              lines={lines}
+              muted={muted}
+              onToggleMute={() => setMuted((m) => !m)}
+            />
           </div>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <LangPicker lang={lang} onChange={setLang} />
+            <button
+              type="button"
+              onClick={() => setShowBoard((s) => !s)}
+              aria-label={t.leaderboard}
+              className="rounded-full border border-border bg-black/50 px-3 py-1.5 text-sm backdrop-blur-md transition-colors hover:bg-accent"
+            >
+              🔥
+            </button>
+          </div>
+        </div>
+
+        {/* Ring: full frame, no cropping */}
+        <div className="relative w-full shrink-0 overflow-hidden rounded-xl border border-border">
+          <div className="aspect-[1176/960] w-full" />
+          <Arena
+            lang={lang}
+            events={events}
+            ko={state.ko}
+            combo={state.combo}
+            comboSide={state.comboSide}
+          />
           {showBoard && (
-            <div className="ml-auto w-full max-w-xs">
+            <div className="absolute right-2 top-2 z-20 w-full max-w-[15rem]">
               <Leaderboard lang={lang} rows={leaders} />
             </div>
           )}
         </div>
-      </div>
 
-      {/* Bottom HUD: live chat left, gifts right */}
-      <div className="absolute inset-x-0 bottom-0 z-20 flex items-end justify-between gap-2 p-2 sm:p-3">
-        <div className="flex h-[38dvh] w-full max-w-sm flex-col justify-end sm:h-[42dvh]">
-          <ChatPanel
-            lang={lang}
-            events={events}
-            nickname={nickname}
-            overlay
-            disabled={!ready || !!state.ko}
-            onSend={(side, gift, message) => handleSend(side, gift, message)}
-          />
+        {/* Chat + gifts below the ring */}
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <div className="grid shrink-0 grid-cols-2 gap-2">
+            <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
+            <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col justify-end">
+            <ChatPanel
+              lang={lang}
+              events={events}
+              nickname={nickname}
+              overlay
+              disabled={!ready || !!state.ko}
+              onSend={(side, gift, message) => handleSend(side, gift, message)}
+            />
+          </div>
         </div>
-
-        <div className="hidden w-full max-w-[19rem] flex-col gap-2 sm:flex">
-          <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
-          <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
-        </div>
-      </div>
-
-      {/* Compact gift row for phones */}
-      <div className="absolute inset-x-0 bottom-[calc(38dvh+0.75rem)] z-20 flex flex-col gap-1.5 px-2 sm:hidden">
-        <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
-        <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
       </div>
     </main>
   );
 }
+
