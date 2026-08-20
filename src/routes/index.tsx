@@ -85,7 +85,7 @@ function BattlePage() {
           leader={leader}
         />
 
-        <div className="flex items-start gap-2">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-start">
           <div className="min-w-0 flex-1">
             <CommentaryBar
               lang={lang}
@@ -94,7 +94,8 @@ function BattlePage() {
               onToggleMute={() => setMuted((m) => !m)}
             />
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex shrink-0 items-center justify-end gap-2 sm:flex-col sm:items-end">
+
             <LangPicker lang={lang} onChange={setLang} />
             <button
               type="button"
