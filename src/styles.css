@@ -391,3 +391,114 @@
   }
 }
 
+
+/* ---- Realistic fight choreography ------------------------------------
+ * Each fighter carries --dir: +1 when it must travel right, -1 when left.
+ * Attacker moves have three beats: approach, impact, return to corner.
+ */
+
+@keyframes mv-jab {
+  0% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); }
+  25% { transform: translateX(calc(var(--dir) * 30%)) translateY(-1%) rotate(calc(var(--dir) * 3deg)) scale(1.02); }
+  40% { transform: translateX(calc(var(--dir) * 44%)) translateY(0) rotate(calc(var(--dir) * 9deg)) scale(1.05); }
+  55% { transform: translateX(calc(var(--dir) * 38%)) translateY(0) rotate(calc(var(--dir) * 4deg)) scale(1.03); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); }
+}
+
+@keyframes mv-kick {
+  0% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); }
+  18% { transform: translateX(calc(var(--dir) * 14%)) translateY(-4%) rotate(calc(var(--dir) * -6deg)) scale(1.02); }
+  40% { transform: translateX(calc(var(--dir) * 46%)) translateY(-16%) rotate(calc(var(--dir) * 22deg)) scale(1.07); }
+  52% { transform: translateX(calc(var(--dir) * 50%)) translateY(-8%) rotate(calc(var(--dir) * 16deg)) scale(1.05); }
+  72% { transform: translateX(calc(var(--dir) * 26%)) translateY(0) rotate(calc(var(--dir) * 4deg)) scale(1); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); }
+}
+
+@keyframes mv-clothesline {
+  0% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); }
+  30% { transform: translateX(calc(var(--dir) * 34%)) translateY(-2%) rotate(calc(var(--dir) * 6deg)) scale(1.04); }
+  45% { transform: translateX(calc(var(--dir) * 52%)) translateY(-3%) rotate(calc(var(--dir) * 14deg)) scale(1.08); }
+  62% { transform: translateX(calc(var(--dir) * 46%)) translateY(0) rotate(calc(var(--dir) * 6deg)) scale(1.04); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); }
+}
+
+@keyframes mv-slam {
+  0% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); }
+  22% { transform: translateX(calc(var(--dir) * 38%)) translateY(0) rotate(0deg) scale(1.03); }
+  38% { transform: translateX(calc(var(--dir) * 48%)) translateY(-6%) rotate(calc(var(--dir) * -8deg)) scale(1.08); }
+  52% { transform: translateX(calc(var(--dir) * 50%)) translateY(-9%) rotate(calc(var(--dir) * -12deg)) scale(1.1); }
+  66% { transform: translateX(calc(var(--dir) * 46%)) translateY(2%) rotate(calc(var(--dir) * 18deg)) scale(1.04); }
+  80% { transform: translateX(calc(var(--dir) * 30%)) translateY(0) rotate(calc(var(--dir) * 6deg)) scale(1); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); }
+}
+
+@keyframes mv-powerbomb {
+  0% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); }
+  18% { transform: translateX(calc(var(--dir) * 34%)) translateY(0) rotate(0deg) scale(1.04); }
+  34% { transform: translateX(calc(var(--dir) * 50%)) translateY(-10%) rotate(calc(var(--dir) * -6deg)) scale(1.12); }
+  50% { transform: translateX(calc(var(--dir) * 52%)) translateY(-14%) rotate(calc(var(--dir) * -14deg)) scale(1.14); }
+  64% { transform: translateX(calc(var(--dir) * 48%)) translateY(3%) rotate(calc(var(--dir) * 22deg)) scale(1.06); }
+  82% { transform: translateX(calc(var(--dir) * 24%)) translateY(0) rotate(calc(var(--dir) * 5deg)) scale(1); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); }
+}
+
+/* Defender reactions. --dir points away from the attacker. */
+
+@keyframes df-recoil {
+  0% { transform: translateX(0) translateY(0) rotate(0deg); }
+  30% { transform: translateX(calc(var(--dir) * 12%)) translateY(-2%) rotate(calc(var(--dir) * 12deg)); }
+  55% { transform: translateX(calc(var(--dir) * 6%)) translateY(0) rotate(calc(var(--dir) * 5deg)); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg); }
+}
+
+@keyframes df-stagger {
+  0% { transform: translateX(0) translateY(0) rotate(0deg); }
+  25% { transform: translateX(calc(var(--dir) * 22%)) translateY(-6%) rotate(calc(var(--dir) * 26deg)); }
+  45% { transform: translateX(calc(var(--dir) * 26%)) translateY(0) rotate(calc(var(--dir) * 16deg)); }
+  70% { transform: translateX(calc(var(--dir) * 14%)) translateY(-2%) rotate(calc(var(--dir) * 8deg)); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg); }
+}
+
+@keyframes df-flip {
+  0% { transform: translateX(0) translateY(0) rotate(0deg); }
+  30% { transform: translateX(calc(var(--dir) * 18%)) translateY(-14%) rotate(calc(var(--dir) * 60deg)); }
+  50% { transform: translateX(calc(var(--dir) * -10%)) translateY(-6%) rotate(calc(var(--dir) * 96deg)); }
+  62% { transform: translateX(calc(var(--dir) * -20%)) translateY(4%) rotate(calc(var(--dir) * 88deg)); }
+  74% { transform: translateX(calc(var(--dir) * -20%)) translateY(2%) rotate(calc(var(--dir) * 86deg)); }
+  90% { transform: translateX(calc(var(--dir) * 12%)) translateY(0) rotate(calc(var(--dir) * 30deg)); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg); }
+}
+
+@keyframes df-slammed {
+  0% { transform: translateX(0) translateY(0) rotate(0deg); }
+  30% { transform: translateX(calc(var(--dir) * -6%)) translateY(-22%) rotate(calc(var(--dir) * 40deg)); }
+  45% { transform: translateX(calc(var(--dir) * 2%)) translateY(-28%) rotate(calc(var(--dir) * 130deg)); }
+  60% { transform: translateX(calc(var(--dir) * -34%)) translateY(6%) rotate(calc(var(--dir) * -84deg)); }
+  68% { transform: translateX(calc(var(--dir) * -34%)) translateY(1%) rotate(calc(var(--dir) * -86deg)); }
+  76% { transform: translateX(calc(var(--dir) * -34%)) translateY(5%) rotate(calc(var(--dir) * -84deg)); }
+  92% { transform: translateX(calc(var(--dir) * 6%)) translateY(0) rotate(calc(var(--dir) * 34deg)); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg); }
+}
+
+@keyframes df-launched {
+  0% { transform: translateX(0) translateY(0) rotate(0deg); }
+  28% { transform: translateX(calc(var(--dir) * -4%)) translateY(-26%) rotate(calc(var(--dir) * 70deg)); }
+  44% { transform: translateX(calc(var(--dir) * 8%)) translateY(-32%) rotate(calc(var(--dir) * 200deg)); }
+  58% { transform: translateX(calc(var(--dir) * -26%)) translateY(6%) rotate(calc(var(--dir) * 276deg)); }
+  66% { transform: translateX(calc(var(--dir) * -26%)) translateY(-4%) rotate(calc(var(--dir) * 272deg)); }
+  74% { transform: translateX(calc(var(--dir) * -26%)) translateY(5%) rotate(calc(var(--dir) * 276deg)); }
+  92% { transform: translateX(calc(var(--dir) * 16%)) translateY(0) rotate(calc(var(--dir) * 80deg)); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg); }
+}
+
+@keyframes mat-dust {
+  0% { opacity: 0; transform: translateX(-50%) scaleX(0.4) scaleY(0.6); }
+  25% { opacity: 0.85; transform: translateX(-50%) scaleX(1.1) scaleY(1); }
+  100% { opacity: 0; transform: translateX(-50%) scaleX(1.9) scaleY(0.5); }
+}
+
+@keyframes speed-line {
+  0% { opacity: 0; transform: scaleX(0.2); }
+  30% { opacity: 0.9; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1.4); }
+}

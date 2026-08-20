@@ -7,10 +7,11 @@ type Props = {
   events: GiftEvent[];
   nickname: string;
   disabled?: boolean;
+  overlay?: boolean;
   onSend: (side: Side, gift: GiftId, message: string) => void;
 };
 
-export function ChatPanel({ lang, events, nickname, disabled, onSend }: Props) {
+export function ChatPanel({ lang, events, nickname, disabled, overlay, onSend }: Props) {
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
   const [value, setValue] = useState("");
@@ -38,7 +39,13 @@ export function ChatPanel({ lang, events, nickname, disabled, onSend }: Props) {
   const recent = events.slice(-40);
 
   return (
-    <div className="panel flex h-full min-h-0 flex-col rounded-2xl p-3">
+    <div
+      className={
+        overlay
+          ? "flex h-full min-h-0 flex-col justify-end gap-1"
+          : "panel flex h-full min-h-0 flex-col rounded-2xl p-3"
+      }
+    >
       <div ref={listRef} className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
         {recent.map((e) => {
           const gift = GIFT_BY_ID[e.gift];
@@ -48,7 +55,8 @@ export function ChatPanel({ lang, events, nickname, disabled, onSend }: Props) {
               key={e.id}
               className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm"
               style={{
-                background: isRu ? "oklch(0.58 0.22 25 / 0.16)" : "oklch(0.55 0.2 258 / 0.16)",
+                background: isRu ? "oklch(0.32 0.14 25 / 0.7)" : "oklch(0.3 0.12 258 / 0.7)",
+                backdropFilter: "blur(4px)",
                 borderLeft: `3px solid ${isRu ? "var(--ru)" : "var(--us)"}`,
                 animation: "ticker-in 0.25s ease-out",
               }}
@@ -69,7 +77,9 @@ export function ChatPanel({ lang, events, nickname, disabled, onSend }: Props) {
         })}
       </div>
 
-      <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{t.hint}</p>
+      {!overlay && (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{t.hint}</p>
+      )}
 
       <form onSubmit={submit} className="mt-1.5 flex gap-1.5">
         <input
