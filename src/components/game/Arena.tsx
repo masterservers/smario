@@ -105,7 +105,7 @@ export function Arena({ lang, lastEvent, ko, combo, comboSide }: Props) {
         width={640}
         height={1024}
         loading="lazy"
-        className="absolute bottom-[16%] left-1/2 h-[34%] -translate-x-1/2 object-contain opacity-95 drop-shadow-[0_10px_20px_rgba(0,0,0,0.7)]"
+        className="absolute bottom-[16%] left-1/2 h-[34%] w-[18%] -translate-x-1/2 object-contain object-bottom opacity-95 drop-shadow-[0_10px_20px_rgba(0,0,0,0.7)]"
         style={{ animation: "ref-wave 3.4s ease-in-out infinite" }}
       />
 
@@ -115,7 +115,7 @@ export function Arena({ lang, lastEvent, ko, combo, comboSide }: Props) {
         alt={names.ru}
         width={768}
         height={1024}
-        className="absolute bottom-[8%] left-[4%] h-[62%] origin-bottom object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.75)]"
+        className="absolute bottom-[8%] left-[4%] h-[62%] w-[34%] origin-bottom object-contain object-bottom drop-shadow-[0_18px_28px_rgba(0,0,0,0.75)]"
         style={{ animation: fighterAnim("ru") }}
       />
       <img
@@ -123,7 +123,7 @@ export function Arena({ lang, lastEvent, ko, combo, comboSide }: Props) {
         alt={names.us}
         width={768}
         height={1024}
-        className="absolute bottom-[8%] right-[4%] h-[62%] origin-bottom object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.75)]"
+        className="absolute bottom-[8%] right-[4%] h-[62%] w-[34%] origin-bottom object-contain object-bottom drop-shadow-[0_18px_28px_rgba(0,0,0,0.75)]"
         style={{ animation: fighterAnim("us") }}
       />
 
