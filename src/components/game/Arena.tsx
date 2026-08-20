@@ -68,7 +68,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
       const event = queue.current.shift();
       if (!event) return;
 
-      const sequence = SEQUENCES[event.gift] ?? SEQUENCES.rose;
+      const sequence = SEQUENCES[event.gift] ?? SEQUENCES['rose'];
       if (!sequence) return;
       const gift = GIFT_BY_ID[event.gift];
       currentEvent.current = event;
@@ -97,7 +97,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     const video = videoRef.current;
     const event = currentEvent.current;
     if (!video || !event || !playing.current) return;
-    const sequence = SEQUENCES[event.gift] ?? SEQUENCES.rose;
+    const sequence = SEQUENCES[event.gift] ?? SEQUENCES['rose'];
     if (!sequence) return;
 
     if (!impacted.current && video.currentTime >= impactAt.current) {
