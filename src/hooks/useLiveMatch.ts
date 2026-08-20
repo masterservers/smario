@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { finishMatch, getCurrentMatch } from "@/lib/match.functions";
 import {
   reduceEvents,
   randomNickname,
@@ -36,10 +37,13 @@ export function useLiveMatch() {
   }, []);
 
   const loadMatch = useCallback(async () => {
-    const { data, error } = await supabase.rpc("current_match");
-    if (error || !data) return;
-    const match = Array.isArray(data) ? data[0] : data;
-    if (!match) return;
+    let match: { id: string; round: number };
+    try {
+      match = await getCurrentMatch();
+    } catch {
+      return;
+    }
+    if (!match?.id) return;
     setMatchId(match.id);
     setRound(match.round ?? 1);
     const { data: rows } = await supabase
@@ -128,7 +132,11 @@ export function useLiveMatch() {
     if (!state.ko || !matchId || finishing.current) return;
     finishing.current = true;
     const timer = window.setTimeout(async () => {
-      await supabase.rpc("finish_match", { p_match: matchId, p_winner: state.ko as string });
+      try {
+        await finishMatch({ data: { matchId, winner: state.ko as Side } });
+      } catch {
+        /* another client may have closed the match first */
+      }
       void loadMatch();
       void loadLeaders();
     }, KO_HOLD_MS);
