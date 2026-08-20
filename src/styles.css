@@ -502,3 +502,30 @@
   30% { opacity: 0.9; transform: scaleX(1); }
   100% { opacity: 0; transform: scaleX(1.4); }
 }
+
+@keyframes arena-impact {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-7px, 3px, 0); }
+  40% { transform: translate3d(6px, -4px, 0); }
+  60% { transform: translate3d(-4px, 2px, 0); }
+}
+
+@utility animate-arena-impact {
+  animation: arena-impact 0.45s ease-out;
+}
+
+@utility animate-pop-damage {
+  animation: pop-damage 0.9s ease-out forwards;
+}
+
+@utility animate-float-gift {
+  animation: float-gift 2.3s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-arena-impact,
+  .animate-pop-damage,
+  .animate-float-gift {
+    animation: none;
+  }
+}
