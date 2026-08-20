@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { finishMatch, getCurrentMatch } from "@/lib/match.functions";
 import {
   reduceEvents,
   randomNickname,
