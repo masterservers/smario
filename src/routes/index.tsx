@@ -108,7 +108,7 @@ function BattlePage() {
         </div>
 
         {/* Ring: full frame, no cropping, fills remaining height */}
-        <div className="relative min-h-[38dvh] w-full flex-1 overflow-hidden rounded-xl border border-border bg-black">
+        <div className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl border border-border bg-black">
           <Arena
             lang={lang}
             events={events}
@@ -129,7 +129,7 @@ function BattlePage() {
             <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
             <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
           </div>
-          <div className="flex max-h-[26dvh] flex-col justify-end">
+          <div className="flex max-h-[22dvh] min-h-0 flex-col justify-end overflow-hidden">
 
             <ChatPanel
               lang={lang}
