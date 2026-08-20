@@ -132,6 +132,54 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+/* ---- Arena design system -------------------------------------------- */
+
+:root {
+  --background: oklch(0.16 0.03 265);
+  --foreground: oklch(0.97 0.01 250);
+  --card: oklch(0.21 0.035 265);
+  --card-foreground: oklch(0.97 0.01 250);
+  --popover: oklch(0.19 0.035 265);
+  --popover-foreground: oklch(0.97 0.01 250);
+  --primary: oklch(0.78 0.17 85);
+  --primary-foreground: oklch(0.18 0.04 265);
+  --secondary: oklch(0.27 0.04 265);
+  --secondary-foreground: oklch(0.97 0.01 250);
+  --muted: oklch(0.25 0.035 265);
+  --muted-foreground: oklch(0.72 0.03 260);
+  --accent: oklch(0.3 0.05 265);
+  --accent-foreground: oklch(0.97 0.01 250);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.78 0.17 85);
+
+  --ru: oklch(0.58 0.22 25);
+  --ru-glow: oklch(0.68 0.24 25);
+  --us: oklch(0.55 0.2 258);
+  --us-glow: oklch(0.68 0.2 255);
+  --gold: oklch(0.83 0.16 88);
+  --hp-good: oklch(0.72 0.19 145);
+  --hp-warn: oklch(0.8 0.17 80);
+  --hp-bad: oklch(0.62 0.23 27);
+
+  --font-display: "Bebas Neue", "Arial Narrow", sans-serif;
+  --font-body: "Barlow", system-ui, sans-serif;
+
+  --shadow-panel: 0 18px 45px -18px oklch(0 0 0 / 0.85);
+  --shadow-glow-ru: 0 0 28px -4px var(--ru-glow);
+  --shadow-glow-us: 0 0 28px -4px var(--us-glow);
+}
+
+@theme inline {
+  --color-ru: var(--ru);
+  --color-ru-glow: var(--ru-glow);
+  --color-us: var(--us);
+  --color-us-glow: var(--us-glow);
+  --color-gold: var(--gold);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
@@ -140,5 +188,206 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-body);
+    overscroll-behavior-y: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  .display {
+    font-family: var(--font-display);
+    letter-spacing: 0.03em;
   }
 }
+
+@layer utilities {
+  .text-outline {
+    text-shadow:
+      0 2px 0 oklch(0 0 0 / 0.6),
+      0 0 18px oklch(0 0 0 / 0.7);
+  }
+
+  .panel {
+    background: linear-gradient(180deg, oklch(0.24 0.04 265 / 0.92), oklch(0.16 0.03 265 / 0.94));
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-panel);
+    backdrop-filter: blur(6px);
+  }
+}
+
+@keyframes fighter-idle {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-1.2%) scale(1.01);
+  }
+}
+
+@keyframes attack-right {
+  0% {
+    transform: translateX(0) rotate(0deg);
+  }
+  35% {
+    transform: translateX(38%) rotate(9deg) scale(1.06);
+  }
+  60% {
+    transform: translateX(30%) rotate(5deg) scale(1.04);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+@keyframes attack-left {
+  0% {
+    transform: translateX(0) rotate(0deg);
+  }
+  35% {
+    transform: translateX(-38%) rotate(-9deg) scale(1.06);
+  }
+  60% {
+    transform: translateX(-30%) rotate(-5deg) scale(1.04);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+@keyframes recoil-right {
+  0% {
+    transform: translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateX(16%) rotate(11deg);
+  }
+  55% {
+    transform: translateX(6%) rotate(4deg);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+@keyframes recoil-left {
+  0% {
+    transform: translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateX(-16%) rotate(-11deg);
+  }
+  55% {
+    transform: translateX(-6%) rotate(-4deg);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+@keyframes ko-fall-left {
+  to {
+    transform: translateX(-14%) translateY(22%) rotate(-82deg);
+    filter: grayscale(0.5) brightness(0.75);
+  }
+}
+
+@keyframes ko-fall-right {
+  to {
+    transform: translateX(14%) translateY(22%) rotate(82deg);
+    filter: grayscale(0.5) brightness(0.75);
+  }
+}
+
+@keyframes arena-shake {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(-6px, 3px, 0);
+  }
+  40% {
+    transform: translate3d(5px, -4px, 0);
+  }
+  60% {
+    transform: translate3d(-4px, -2px, 0);
+  }
+  80% {
+    transform: translate3d(3px, 3px, 0);
+  }
+}
+
+@keyframes float-gift {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-12px) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-150px) scale(0.9);
+  }
+}
+
+@keyframes pop-damage {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.7);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.25);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-52px) scale(1);
+  }
+}
+
+@keyframes impact-burst {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.3) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9) rotate(25deg);
+  }
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes ticker-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ref-wave {
+  0%,
+  100% {
+    transform: rotate(-3deg) translateY(0);
+  }
+  50% {
+    transform: rotate(3deg) translateY(-5px);
+  }
+}
+
