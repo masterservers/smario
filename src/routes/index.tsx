@@ -43,6 +43,7 @@ function BattlePage() {
   const { lang } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [muted, setMuted] = useState(true);
+  const [showBoard, setShowBoard] = useState(false);
 
   const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch();
   const lines = useCommentary(lang, events, state, muted);
@@ -66,65 +67,86 @@ function BattlePage() {
     state.scoreRu === state.scoreUs ? null : state.scoreRu > state.scoreUs ? "ru" : "us";
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-3 p-3 sm:p-5">
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="display text-2xl leading-none sm:text-4xl">
-          <span style={{ color: "var(--ru-glow)" }}>{names.ru}</span>{" "}
-          <span className="text-gold">VS</span>{" "}
-          <span style={{ color: "var(--us-glow)" }}>{names.us}</span>
-        </h1>
-        <LangPicker lang={lang} onChange={setLang} />
-      </header>
+    <main className="relative h-[100dvh] w-full overflow-hidden bg-black">
+      <h1 className="sr-only">
+        {names.ru} vs {names.us} — {t.live}
+      </h1>
 
-      <Scoreboard
+      {/* Full-screen ring */}
+      <Arena
         lang={lang}
-        round={round}
-        viewers={viewers}
-        scoreRu={state.scoreRu}
-        scoreUs={state.scoreUs}
-        hpRu={state.hpRu}
-        hpUs={state.hpUs}
-        leader={leader}
+        events={events}
+        ko={state.ko}
+        combo={state.combo}
+        comboSide={state.comboSide}
       />
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-3">
-          <Arena
+      {/* Top HUD */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 p-2 sm:p-3">
+        <div className="pointer-events-auto mx-auto flex w-full max-w-4xl flex-col gap-2">
+          <Scoreboard
             lang={lang}
-            lastEvent={events[events.length - 1]}
-            ko={state.ko}
-            combo={state.combo}
-            comboSide={state.comboSide}
+            round={round}
+            viewers={viewers}
+            scoreRu={state.scoreRu}
+            scoreUs={state.scoreUs}
+            hpRu={state.hpRu}
+            hpUs={state.hpUs}
+            leader={leader}
           />
-          <CommentaryBar
-            lang={lang}
-            lines={lines}
-            muted={muted}
-            onToggleMute={() => setMuted((m) => !m)}
-          />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <GiftDock lang={lang} side="ru" disabled={!ready || !!state.ko} onSend={handleSend} />
-            <GiftDock lang={lang} side="us" disabled={!ready || !!state.ko} onSend={handleSend} />
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <CommentaryBar
+                lang={lang}
+                lines={lines}
+                muted={muted}
+                onToggleMute={() => setMuted((m) => !m)}
+              />
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <LangPicker lang={lang} onChange={setLang} />
+              <button
+                type="button"
+                onClick={() => setShowBoard((s) => !s)}
+                aria-label={t.leaderboard}
+                className="rounded-full border border-border bg-black/50 px-3 py-1.5 text-sm backdrop-blur-md transition-colors hover:bg-accent"
+              >
+                🔥
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div className="flex min-h-[420px] flex-col gap-3 lg:min-h-0">
-          <div className="min-h-[300px] flex-1">
-            <ChatPanel
-              lang={lang}
-              events={events}
-              nickname={nickname}
-              disabled={!ready || !!state.ko}
-              onSend={(side, gift, message) => handleSend(side, gift, message)}
-            />
-          </div>
-          <Leaderboard lang={lang} rows={leaders} />
+          {showBoard && (
+            <div className="ml-auto w-full max-w-xs">
+              <Leaderboard lang={lang} rows={leaders} />
+            </div>
+          )}
         </div>
       </div>
 
-      <p className="pb-2 text-center text-xs text-muted-foreground">
-        {t.you}: {nickname} · {t.hint}
-      </p>
+      {/* Bottom HUD: live chat left, gifts right */}
+      <div className="absolute inset-x-0 bottom-0 z-20 flex items-end justify-between gap-2 p-2 sm:p-3">
+        <div className="flex h-[38dvh] w-full max-w-sm flex-col justify-end sm:h-[42dvh]">
+          <ChatPanel
+            lang={lang}
+            events={events}
+            nickname={nickname}
+            overlay
+            disabled={!ready || !!state.ko}
+            onSend={(side, gift, message) => handleSend(side, gift, message)}
+          />
+        </div>
+
+        <div className="hidden w-full max-w-[19rem] flex-col gap-2 sm:flex">
+          <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
+          <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
+        </div>
+      </div>
+
+      {/* Compact gift row for phones */}
+      <div className="absolute inset-x-0 bottom-[calc(38dvh+0.75rem)] z-20 flex flex-col gap-1.5 px-2 sm:hidden">
+        <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
+        <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
+      </div>
     </main>
   );
 }
