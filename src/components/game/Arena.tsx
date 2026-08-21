@@ -137,8 +137,8 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         playsInline
         preload="auto"
         aria-label={`${names.ru} versus ${names.us}`}
-        onLoadedMetadata={(event) => {
-          event.currentTarget.currentTime = 8.2;
+        onLoadedData={(event) => {
+          if (event.currentTarget.currentTime < 8) event.currentTarget.currentTime = 8.2;
         }}
         onTimeUpdate={handleTimeUpdate}
         className={`absolute inset-0 size-full object-cover transition-transform duration-300 ${attacker === "ru" ? "-scale-x-100" : "scale-x-100"}`}
