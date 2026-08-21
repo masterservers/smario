@@ -104,22 +104,50 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
   }, [beat]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const hostRef = useRef<HTMLDivElement | null>(null);
-  // The reel is letterboxed 16:9 inside this box, so Bean must live in the same
-  // fitted rectangle — otherwise his feet land in the black bars on wide screens.
-  const [fit, setFit] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  // The reel is `object-contain`, so the picture is letterboxed inside its
+  // element. Bean has to live in the *painted* rectangle of that video — not
+  // the element box — otherwise his feet land in the black bars when the
+  // device is rotated.
+  const [fit, setFit] = useState<{ w: number; h: number; x: number; y: number }>({
+    w: 0,
+    h: 0,
+    x: 0,
+    y: 0,
+  });
   useLayoutEffect(() => {
     const el = hostRef.current;
     if (!el) return;
     const measure = () => {
-      const { width, height } = el.getBoundingClientRect();
-      if (!width || !height) return;
-      const w = Math.min(width, (height * 16) / 9);
-      setFit({ w, h: (w * 9) / 16 });
+      const host = el.getBoundingClientRect();
+      if (!host.width || !host.height) return;
+      const video = document.querySelector<HTMLVideoElement>("video.arena-video");
+      const box = video?.getBoundingClientRect();
+      const ar =
+        video && video.videoWidth && video.videoHeight
+          ? video.videoWidth / video.videoHeight
+          : 16 / 9;
+      if (box && box.width && box.height) {
+        // Replicate object-fit: contain inside the video element box.
+        const w = Math.min(box.width, box.height * ar);
+        const h = w / ar;
+        setFit({ w, h, x: box.left + (box.width - w) / 2 - host.left, y: box.top + (box.height - h) / 2 - host.top });
+        return;
+      }
+      const w = Math.min(host.width, host.height * ar);
+      const h = w / ar;
+      setFit({ w, h, x: (host.width - w) / 2, y: (host.height - h) / 2 });
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
+    const onResize = () => measure();
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
   }, [run?.id]);
 
   if (!run || counting) return null;
@@ -128,15 +156,13 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
   const takesHit = run.gag === "hit" || run.gag === "stray";
 
   return (
-    // The reel is 16:9 and letterboxed, so Bean lives inside the same box — he
-    // always stands on the mat, never down in the black bars.
     <div
       ref={hostRef}
-      className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
     >
       <div
-        style={{ width: fit.w, height: fit.h }}
-        className={`relative ${debug ? "outline outline-1 outline-sky-400/80" : ""}`}
+        style={{ width: fit.w, height: fit.h, left: fit.x, top: fit.y }}
+        className={`absolute ${debug ? "outline outline-1 outline-sky-400/80" : ""}`}
       >
         <div
           key={`${run.id}-${struck}`}
