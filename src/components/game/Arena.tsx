@@ -587,8 +587,8 @@ export function Arena({
 
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
-  // Live outfit state (suit / ring gear), shared with the admin console.
-  const outfits = useOutfits();
+
+
 
   const seek = (video: HTMLVideoElement, time: number) => {
     video.currentTime = time;
