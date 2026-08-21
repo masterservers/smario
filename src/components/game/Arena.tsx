@@ -154,6 +154,7 @@ function drawLRU<T extends { id: string }>(
   recent: string[],
   cooldowns?: Map<string, number>,
   cooldownMs = 0,
+  prefer?: (item: T) => boolean,
 ): T {
   const unique = enabled(Array.from(new Map(pool.map((item) => [item.id, item])).values()));
   // Everything with the lowest weighted usage is still "unplayed" in this cycle.
@@ -170,6 +171,12 @@ function drawLRU<T extends { id: string }>(
     const cool = list.filter((item) => now - (cooldowns.get(item.id) ?? -Infinity) >= cooldownMs);
     if (cool.length > 0) list = cool;
   }
+  // Continuity: among the eligible scenes, favour the ones that carry on from
+  // where the picture is right now, so the cut reads as one continuous action.
+  if (prefer) {
+    const smooth = list.filter(prefer);
+    if (smooth.length > 0) list = smooth;
+  }
   const chosen = list[Math.floor(Math.random() * list.length)]!;
   // Weighted cost: a heavier scene "ages" more slowly and returns sooner.
   usage.set(chosen.id, cost(chosen.id) + 1 / Math.max(0.25, weightOf(chosen.id)));
@@ -179,8 +186,19 @@ function drawLRU<T extends { id: string }>(
   return chosen;
 }
 
-function drawIdle(usage: Map<string, number>, recent: string[]): IdleScene {
-  return drawLRU(IDLE_SCENES, usage, recent);
+function drawIdle(
+  usage: Map<string, number>,
+  recent: string[],
+  from?: number,
+): IdleScene {
+  return drawLRU(
+    IDLE_SCENES,
+    usage,
+    recent,
+    undefined,
+    0,
+    from === undefined ? undefined : (scene) => Math.abs(scene.start - from) < 2.5,
+  );
 }
 
 /**
