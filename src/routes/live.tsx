@@ -9,6 +9,7 @@ import { DifficultyPicker } from "@/components/game/DifficultyPicker";
 import { useHudHeight } from "@/hooks/useHudHeight";
 import { loadDifficulty, saveDifficulty, type Difficulty } from "@/lib/difficulty";
 import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
+import { useRemoteConfig } from "@/lib/useRemoteConfig";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Subtitles } from "@/components/game/Subtitles";
@@ -50,6 +51,7 @@ export const Route = createFileRoute("/live")({
 
 function LiveRoute() {
   const { lang } = Route.useSearch();
+  useRemoteConfig();
   return (
     <GameErrorBoundary lang={lang}>
       <LivePage />

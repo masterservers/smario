@@ -16,6 +16,7 @@ import { loadSubtitlesOn, saveSubtitlesOn } from "@/lib/subtitles";
 import { getGiftConfig } from "@/lib/giftConfig";
 import { MatchSummary } from "@/components/game/MatchSummary";
 import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
+import { useRemoteConfig } from "@/lib/useRemoteConfig";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Leaderboard } from "@/components/game/Leaderboard";
 import { Scoreboard } from "@/components/game/Scoreboard";
@@ -57,6 +58,7 @@ export const Route = createFileRoute("/")({
 
 function BattleRoute() {
   const { lang } = Route.useSearch();
+  useRemoteConfig();
   return (
     <GameErrorBoundary lang={lang}>
       <BattlePage />
