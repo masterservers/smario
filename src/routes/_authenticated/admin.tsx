@@ -127,7 +127,30 @@ function AdminPage() {
     [loadAudit],
   );
 
+  /** Gift → blow mapping; saved immediately so the arena picks it up live. */
+  const patchHit = (id: GiftId, patch: Partial<GiftHitRule>) => {
+    setHits((current) => {
+      const next: HitConfig = {
+        ...current,
+        gifts: { ...current.gifts, [id]: { ...current.gifts[id], ...patch } },
+      };
+      saveHitConfig(next);
+      return next;
+    });
+    record("hits", `gift ${id}`, patch);
+  };
+
+  const patchReferee = (patch: Partial<RefereeRules>) => {
+    setHits((current) => {
+      const next: HitConfig = { ...current, referee: { ...current.referee, ...patch } };
+      saveHitConfig(next);
+      return next;
+    });
+    record("hits", "referee rules", patch);
+  };
+
   const update = (id: GiftId, patch: Partial<GiftConfig[GiftId]>) => {
+
     setConfig((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
     setSaved(false);
     record("gifts", `edit ${id}`, patch as Record<string, unknown>);
