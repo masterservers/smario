@@ -92,6 +92,7 @@ let speaking = false;
 let speakingPriority = -1;
 let lastEndAt = 0;
 let drainTimer = 0;
+let laneGeneration = 0;
 const MIN_GAP_MS = 320;
 const MAX_QUEUE = 2;
 
