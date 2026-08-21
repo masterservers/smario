@@ -138,12 +138,9 @@ function BattlePage() {
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
-      {/* Fixed wide ring stage. On phones it is centred in the clear space
-          between the compact HUD rows, never pushed down by controls. */}
-      <div
-        className="absolute inset-x-0 top-11 bg-background [@media(min-width:768px)_and_(min-height:520px)]:inset-0 [@media(min-width:768px)_and_(min-height:520px)]:bottom-0!"
-        style={{ bottom: "var(--hud)" }}
-      >
+      {/* The ring always uses the whole screen; HUD rows float over it so the
+          fight never shrinks in landscape or gets pushed down in portrait. */}
+      <div className="absolute inset-0 bg-background">
         <Arena
           difficulty={difficulty}
           lang={lang}
@@ -159,7 +156,7 @@ function BattlePage() {
       </div>
 
       {/* Slim HUD strip on top — scoreboard only */}
-      <div className="absolute inset-x-0 top-0 z-10">
+      <div className="absolute inset-x-0 top-0 z-10 px-[max(0.5rem,env(safe-area-inset-left))]">
         <Scoreboard
           lang={lang}
           round={round}
@@ -184,7 +181,7 @@ function BattlePage() {
               events={events}
               nickname={nickname}
               overlay
-              disabled={!ready || !!state.ko || referee.count > 0}
+              disabled={!ready}
               onSend={(side, gift, message) => handleSend(side, gift, message)}
             />
           </div>
@@ -250,14 +247,14 @@ function BattlePage() {
             lang={lang}
             side="ru"
             overlay
-            disabled={!ready || !!state.ko || referee.count > 0}
+            disabled={!ready}
             onSend={handleSend}
           />
           <GiftDock
             lang={lang}
             side="us"
             overlay
-            disabled={!ready || !!state.ko || referee.count > 0}
+            disabled={!ready}
             onSend={handleSend}
           />
         </div>

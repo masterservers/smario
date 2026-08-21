@@ -83,7 +83,7 @@ function LivePage() {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  const busy = !ready || !!state.ko || (referee.count > 0 && !referee.koConfirmed);
+  const busy = !ready;
   const handleSend = (side: Side, gift: GiftId, message?: string) => {
     void sendGift(side, gift, message);
   };
@@ -100,10 +100,7 @@ function LivePage() {
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
-      <div
-        className="absolute inset-x-0 top-11 [@media(min-width:768px)_and_(min-height:520px)]:inset-0 [@media(min-width:768px)_and_(min-height:520px)]:bottom-0!"
-        style={{ bottom: "var(--hud)" }}
-      >
+      <div className="absolute inset-0 bg-background">
         <Arena
           difficulty={difficulty}
           lang={lang}
@@ -117,7 +114,7 @@ function LivePage() {
         <RefereeCount lang={lang} referee={referee} />
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 px-[max(0.5rem,env(safe-area-inset-left))]">
         <Scoreboard
           lang={lang}
           round={round}

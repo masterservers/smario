@@ -150,7 +150,8 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
 
   const sendGift = useCallback(
     async (side: Side, gift: GiftId, message?: string) => {
-      if (!matchId || state.ko) return;
+      // Unlimited gifting: no throttle, no lockout — even during the KO hold.
+      if (!matchId) return;
       const t = UI_TEXT[lang];
 
       // No throttling: a viewer may tap a gift as often as they want.
@@ -179,7 +180,7 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
         );
       }
     },
-    [matchId, nickname, state.ko, lang, log],
+    [matchId, nickname, lang, log],
   );
 
   return { matchId, round, events, state, leaders, viewers, nickname, ready, sendGift };

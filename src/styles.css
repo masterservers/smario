@@ -547,3 +547,12 @@
   }
 }
 
+
+/* Portrait phones: the wide ring shot is width-limited, so zoom it slightly and
+   lift it out of the dead space between the scoreboard and the gift dock. */
+@media (orientation: portrait) {
+  .arena-video {
+    transform: scale(1.42) translateY(-4%);
+    transform-origin: center center;
+  }
+}
