@@ -299,6 +299,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
       const defender: Side = event.side === "ru" ? "us" : "ru";
       const gift = GIFT_BY_ID[event.gift];
       setImpact({ id: event.id, side: defender, label: move.label });
+      cheer(move.tier >= 4 ? 1.5 : 1);
       setDamages((previous) => [
         ...previous.slice(-3),
         { id: event.id, side: defender, amount: gift?.damage ?? 4 },
@@ -315,9 +316,10 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
       currentEvent.current = null;
       currentMove.current = null;
       idleScene.current = pick(IDLE_SCENES);
-      video.currentTime = idleScene.current.start;
+      seek(video, idleScene.current.start);
       video.playbackRate = idleScene.current.rate;
       void video.play();
+
       window.setTimeout(
         () => setFloats((previous) => previous.filter((item) => item.id !== event.id)),
         900,
