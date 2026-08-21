@@ -18,6 +18,9 @@ import { announceHit, announceScene, useCommentary } from "@/hooks/useCommentary
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
 import { useTopBanner } from "@/hooks/useTopBanner";
+import { useRoundSummary } from "@/hooks/useRoundSummary";
+import { RoundSummaryCard } from "@/components/game/RoundSummaryCard";
+import { SpectatorChat } from "@/components/game/SpectatorChat";
 import type { GiftId, Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 import { useBroadcastLang, useControlBus, type ControlMessage } from "@/lib/control";
@@ -99,8 +102,8 @@ function LivePage() {
     muted,
   });
 
+  const summary = useRoundSummary(matchId, round, events, lang);
   const t = UI_TEXT[lang];
-  const names = SIDE_NAME[lang];
 
   useEffect(() => {
     document.documentElement.lang = lang;
