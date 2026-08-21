@@ -166,7 +166,7 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
       >
         <div
           key={`${run.id}-${struck}`}
-          className={`bean-ref absolute bottom-[4%] top-[46%] flex flex-col items-center justify-end ${
+          className={`bean-ref absolute bottom-[7%] top-[46%] flex flex-col items-center justify-end ${
             debug ? "outline outline-1 outline-lime-400/90" : ""
           } ${
             run.from === "left"
