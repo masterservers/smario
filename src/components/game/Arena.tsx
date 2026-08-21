@@ -573,15 +573,22 @@ export function Arena({
   paused = false,
   koConfirmed = true,
   onLog,
+  onHit,
 }: Props) {
   const logRef = useRef(onLog);
   logRef.current = onLog;
+  const hitRef = useRef(onHit);
+  hitRef.current = onHit;
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
   const activeLayerRef = useRef(0);
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
   const switchingRef = useRef(false);
   const switchTokenRef = useRef(0);
   const seen = useRef<Set<string>>(new Set());
+  /** Gift ids whose hit has already landed — the exactly-once guarantee. */
+  const delivered = useRef<Set<string>>(new Set());
+  /** When each gift entered the queue, used by the reconciliation pass. */
+  const queuedAt = useRef<Map<string, number>>(new Map());
   const queue = useRef<GiftEvent[]>([]);
   const playing = useRef(false);
   const stopAt = useRef(0);
