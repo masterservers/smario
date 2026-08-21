@@ -138,12 +138,9 @@ function BattlePage() {
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
-      {/* Fixed wide ring stage. On phones it is centred in the clear space
-          between the compact HUD rows, never pushed down by controls. */}
-      <div
-        className="absolute inset-x-0 top-11 bg-background [@media(min-width:768px)_and_(min-height:520px)]:inset-0 [@media(min-width:768px)_and_(min-height:520px)]:bottom-0!"
-        style={{ bottom: "var(--hud)" }}
-      >
+      {/* The ring always uses the whole screen; HUD rows float over it so the
+          fight never shrinks in landscape or gets pushed down in portrait. */}
+      <div className="absolute inset-0 bg-background">
         <Arena
           difficulty={difficulty}
           lang={lang}
