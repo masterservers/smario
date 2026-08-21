@@ -21,7 +21,7 @@ type Search = { lang: Lang };
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): Search => ({
-    lang: isLang(search['lang']) ? search['lang'] : "en",
+    lang: isLang(search["lang"]) ? search["lang"] : "en",
   }),
   head: () => ({
     meta: [
@@ -70,10 +70,12 @@ function BattlePage() {
     ]);
   }, []);
 
-  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(lang, pushLog);
+  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(
+    lang,
+    pushLog,
+  );
   const referee = useReferee(state.hpRu, state.hpUs, state.ko);
   useCommentary(lang, events, state, muted, referee);
-
 
   // Gift/chat commands land in the trace as soon as they arrive over the wire.
   const loggedGifts = useRef<Set<string>>(new Set());
@@ -87,7 +89,10 @@ function BattlePage() {
 
   useEffect(() => {
     if (referee.count > 0 && referee.side) {
-      pushLog("ref", `count ${referee.count}${referee.final ? "/10" : "/8"} · ${referee.side.toUpperCase()} down`);
+      pushLog(
+        "ref",
+        `count ${referee.count}${referee.final ? "/10" : "/8"} · ${referee.side.toUpperCase()} down`,
+      );
     }
   }, [referee.count, referee.side, referee.final, pushLog]);
 
@@ -187,8 +192,20 @@ function BattlePage() {
           </div>
         )}
         <div className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1.5 opacity-90">
-          <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko || referee.count > 0} onSend={handleSend} />
-          <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko || referee.count > 0} onSend={handleSend} />
+          <GiftDock
+            lang={lang}
+            side="ru"
+            overlay
+            disabled={!ready || !!state.ko || referee.count > 0}
+            onSend={handleSend}
+          />
+          <GiftDock
+            lang={lang}
+            side="us"
+            overlay
+            disabled={!ready || !!state.ko || referee.count > 0}
+            onSend={handleSend}
+          />
         </div>
       </div>
 
@@ -256,6 +273,3 @@ function BattlePage() {
     </main>
   );
 }
-
-
-

@@ -4,7 +4,12 @@ import { COMMENTARY, LANG_META, REFEREE_LINES, SIDE_NAME, type Lang } from "@/li
 
 export type CommentaryLine = { id: string; text: string; tone: "hit" | "big" | "ko" | "idle" };
 
-type RefereeInput = { side: "ru" | "us" | null; count: number; final: boolean; koConfirmed: boolean };
+type RefereeInput = {
+  side: "ru" | "us" | null;
+  count: number;
+  final: boolean;
+  koConfirmed: boolean;
+};
 
 const IDLE_MS = 9000;
 const MAX_LINES = 6;
@@ -129,14 +134,12 @@ export function useCommentary(
       push(pick(c.idle)(names.ru, names.us), "idle");
     }, IDLE_MS);
     return () => window.clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Round intro whenever the language changes or the fight resets.
   useEffect(() => {
     const names = SIDE_NAME[lang];
     push(pick(COMMENTARY[lang].roundStart)(names.ru, names.us), "idle");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
 
   useEffect(() => {
@@ -150,4 +153,4 @@ export function useCommentary(
 
 // Hook signatures change often during development; a partial HMR patch would
 // keep stale refs/state and break the Hook order. Force a full reload instead.
-if (import.meta.hot) import.meta.hot.decline();
+if (import.meta.hot) import.meta.hot.accept(() => import.meta.hot?.invalidate());

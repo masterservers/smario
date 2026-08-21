@@ -3,13 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { UI_TEXT, type Lang } from "@/lib/i18n";
 import { finishMatch, getCurrentMatch } from "@/lib/match.functions";
-import {
-  reduceEvents,
-  randomNickname,
-  type GiftEvent,
-  type GiftId,
-  type Side,
-} from "@/lib/battle";
+import { reduceEvents, randomNickname, type GiftEvent, type GiftId, type Side } from "@/lib/battle";
 
 type LeaderRow = { sender: string; total: number; side: Side };
 
@@ -181,7 +175,9 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
         return;
       }
       if (tokens.current <= 0) {
-        log(`blocked · ${gift} → ${side.toUpperCase()} · bucket empty (${BUCKET_SIZE}/${REFILL_MS}ms, client)`);
+        log(
+          `blocked · ${gift} → ${side.toUpperCase()} · bucket empty (${BUCKET_SIZE}/${REFILL_MS}ms, client)`,
+        );
         toast.warning(t.tooFast);
         return;
       }
@@ -215,7 +211,11 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
                 : reason || "unknown server rejection";
         log(`rejected · ${gift} → ${side.toUpperCase()} · ${label} (server)`);
         if (reason.includes("sender_cap")) toast.warning(t.capReached);
-        else if (reason.includes("rate_limited") || reason.includes("too_fast") || reason.includes("match_flood"))
+        else if (
+          reason.includes("rate_limited") ||
+          reason.includes("too_fast") ||
+          reason.includes("match_flood")
+        )
           toast.warning(t.tooFast);
         else toast.error(t.tooFast);
         return;
@@ -227,7 +227,9 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
         return;
       }
       if (data) {
-        setEvents((prev) => (prev.some((e) => e.id === data.id) ? prev : [...prev, data as GiftEvent]));
+        setEvents((prev) =>
+          prev.some((e) => e.id === data.id) ? prev : [...prev, data as GiftEvent],
+        );
       }
     },
     [matchId, nickname, state.ko, lang, log],
@@ -238,4 +240,4 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
 
 // Hook signatures change often during development; a partial HMR patch would
 // keep stale refs/state and break the Hook order. Force a full reload instead.
-if (import.meta.hot) import.meta.hot.decline();
+if (import.meta.hot) import.meta.hot.accept(() => import.meta.hot?.invalidate());

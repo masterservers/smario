@@ -18,7 +18,7 @@ type Search = { lang: Lang };
 
 export const Route = createFileRoute("/live")({
   validateSearch: (search: Record<string, unknown>): Search => ({
-    lang: isLang(search['lang']) ? search['lang'] : "en",
+    lang: isLang(search["lang"]) ? search["lang"] : "en",
   }),
   head: () => ({
     meta: [
@@ -130,7 +130,10 @@ function LivePage() {
       </div>
 
       <div className="fight-controls absolute right-1.5 top-12 z-20 flex items-center gap-1 md:bottom-1/2 md:right-2 md:top-auto md:translate-y-1/2 md:flex-col md:gap-2">
-        <LangPicker lang={lang} onChange={(next) => void navigate({ search: { lang: next }, replace: true })} />
+        <LangPicker
+          lang={lang}
+          onChange={(next) => void navigate({ search: { lang: next }, replace: true })}
+        />
         <Button
           type="button"
           onClick={() => setMuted((m) => !m)}

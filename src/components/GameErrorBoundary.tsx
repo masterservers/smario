@@ -70,7 +70,7 @@ export class GameErrorBoundary extends Component<Props, State> {
 
   override render() {
     if (this.state.error) {
-      return <GameErrorScreen lang={this.props.lang} error={this.state.error} />;
+      return <GameErrorScreen lang={this.props.lang ?? "en"} error={this.state.error} />;
     }
     return this.props.children;
   }
