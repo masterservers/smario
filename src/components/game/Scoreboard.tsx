@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { MAX_HP, type Side } from "@/lib/battle";
 import { UI_TEXT, type Lang } from "@/lib/i18n";
-import { sideNames, useAdminConfig, useMatchTitle } from "@/lib/adminConfig";
+import { sideNames, useAdminConfig, useMatchTitle, useTitleScale } from "@/lib/adminConfig";
 
 type Props = {
   lang: Lang;
@@ -96,6 +96,7 @@ export function Scoreboard({
     const left = words.pop() ?? head;
     return { lead: words.join(" "), left, right: m[2] ?? "" };
   })();
+  const titleScale = useTitleScale();
   const { time, elapsed } = useRoundClock(matchId, round, ko);
 
   // Referee calls and gift ticker — driven by useTopBanner, which speaks the
@@ -173,6 +174,7 @@ export function Scoreboard({
       <div
         key={`${matchId ?? "match"}-${round}`}
         className="match-title display mx-auto mt-1 flex w-full max-w-full items-center justify-center gap-2 overflow-hidden whitespace-nowrap text-center font-bold uppercase leading-tight text-gold"
+        style={{ "--title-scale": titleScale } as CSSProperties}
         role="status"
         aria-live="polite"
         aria-atomic="true"

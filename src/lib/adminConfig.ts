@@ -27,6 +27,9 @@ export type AdminConfig = {
   liveSession: string;
   /** Approved match title used on every page and notification. */
   matchTitle: string;
+  /** Font scale of the public match title (1 = base size). */
+  titleScale: number;
+
 };
 
 export function newSessionId(): string {
@@ -42,6 +45,8 @@ export function defaultAdminConfig(): AdminConfig {
     tiktok: { username: "", liveUrl: "", webhookUrl: "", enabled: false },
     liveSession: "arena",
     matchTitle: DEFAULT_TITLE,
+    titleScale: 3,
+
   };
 }
 
@@ -73,6 +78,8 @@ function normalize(raw: unknown): AdminConfig {
   }
   base.liveSession = str(parsed.liveSession, base.liveSession);
   base.matchTitle = normalizeTitle(parsed.matchTitle ?? base.matchTitle);
+  base.titleScale = clampScale(parsed.titleScale ?? base.titleScale);
+
   return base;
 }
 
@@ -137,4 +144,16 @@ export function matchTitle(): string {
 /** Reactive approved match title for components and page heads. */
 export function useMatchTitle(): string {
   return normalizeTitle(useAdminConfig().matchTitle);
+}
+
+/** Keeps the title scale inside a readable range (50% – 500%). */
+export function clampScale(raw: unknown): number {
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(n)) return 3;
+  return Math.min(5, Math.max(0.5, Math.round(n * 20) / 20));
+}
+
+/** Reactive font scale of the match title. */
+export function useTitleScale(): number {
+  return clampScale(useAdminConfig().titleScale);
 }
