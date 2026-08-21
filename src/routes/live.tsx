@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Arena } from "@/components/game/Arena";
+import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
 import { ChatPanel } from "@/components/game/ChatPanel";
 import { GiftDock } from "@/components/game/GiftDock";
 import { LangPicker } from "@/components/game/LangPicker";
@@ -17,7 +18,7 @@ type Search = { lang: Lang };
 
 export const Route = createFileRoute("/live")({
   validateSearch: (search: Record<string, unknown>): Search => ({
-    lang: isLang(search['lang']) ? search['lang'] : "en",
+    lang: isLang(search["lang"]) ? search["lang"] : "en",
   }),
   head: () => ({
     meta: [
@@ -36,8 +37,18 @@ export const Route = createFileRoute("/live")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: LivePage,
+  component: LiveRoute,
+  errorComponent: ({ error }) => <GameErrorScreen error={error} />,
 });
+
+function LiveRoute() {
+  const { lang } = Route.useSearch();
+  return (
+    <GameErrorBoundary lang={lang}>
+      <LivePage />
+    </GameErrorBoundary>
+  );
+}
 
 /** Watch-only view: same real-time feed, no controls over the ring. */
 function LivePage() {
@@ -119,7 +130,10 @@ function LivePage() {
       </div>
 
       <div className="fight-controls absolute right-1.5 top-12 z-20 flex items-center gap-1 md:bottom-1/2 md:right-2 md:top-auto md:translate-y-1/2 md:flex-col md:gap-2">
-        <LangPicker lang={lang} onChange={(next) => void navigate({ search: { lang: next }, replace: true })} />
+        <LangPicker
+          lang={lang}
+          onChange={(next) => void navigate({ search: { lang: next }, replace: true })}
+        />
         <Button
           type="button"
           onClick={() => setMuted((m) => !m)}

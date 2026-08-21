@@ -3,13 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { UI_TEXT, type Lang } from "@/lib/i18n";
 import { finishMatch, getCurrentMatch } from "@/lib/match.functions";
-import {
-  reduceEvents,
-  randomNickname,
-  type GiftEvent,
-  type GiftId,
-  type Side,
-} from "@/lib/battle";
+import { reduceEvents, randomNickname, type GiftEvent, type GiftId, type Side } from "@/lib/battle";
 
 type LeaderRow = { sender: string; total: number; side: Side };
 
@@ -31,7 +25,13 @@ function readNickname(): string {
   return nick;
 }
 
-export function useLiveMatch(lang: Lang = "en") {
+type LogFn = (kind: "gift" | "ref" | "ko", text: string) => void;
+
+export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
+  // Keep the logger in a ref so re-renders never rebuild sendGift.
+  const logRef = useRef<LogFn | undefined>(onLog);
+  logRef.current = onLog;
+  const log = useCallback((text: string) => logRef.current?.("gift", text), []);
   const [matchId, setMatchId] = useState<string | null>(null);
   const [round, setRound] = useState(1);
   const [events, setEvents] = useState<GiftEvent[]>([]);
@@ -169,7 +169,15 @@ export function useLiveMatch(lang: Lang = "en") {
         tokens.current = Math.min(BUCKET_SIZE, tokens.current + refilled);
         lastRefill.current = now;
       }
-      if (now - lastSend.current < MIN_GAP_MS || tokens.current <= 0) {
+      if (now - lastSend.current < MIN_GAP_MS) {
+        log(`blocked · ${gift} → ${side.toUpperCase()} · min gap ${MIN_GAP_MS}ms (client)`);
+        toast.warning(t.tooFast);
+        return;
+      }
+      if (tokens.current <= 0) {
+        log(
+          `blocked · ${gift} → ${side.toUpperCase()} · bucket empty (${BUCKET_SIZE}/${REFILL_MS}ms, client)`,
+        );
         toast.warning(t.tooFast);
         return;
       }
@@ -192,23 +200,44 @@ export function useLiveMatch(lang: Lang = "en") {
 
       if (error) {
         const reason = error.message ?? "";
+        const label = reason.includes("sender_cap")
+          ? "sender cap 1200 dmg/match"
+          : reason.includes("too_fast")
+            ? "duplicate gift < 700ms"
+            : reason.includes("match_flood")
+              ? "match flood 120/5s"
+              : reason.includes("rate_limited")
+                ? "rate limit 8/10s or 40/min"
+                : reason || "unknown server rejection";
+        log(`rejected · ${gift} → ${side.toUpperCase()} · ${label} (server)`);
         if (reason.includes("sender_cap")) toast.warning(t.capReached);
-        else if (reason.includes("rate_limited") || reason.includes("too_fast") || reason.includes("match_flood"))
+        else if (
+          reason.includes("rate_limited") ||
+          reason.includes("too_fast") ||
+          reason.includes("match_flood")
+        )
           toast.warning(t.tooFast);
         else toast.error(t.tooFast);
         return;
       }
 
       if (data?.flagged) {
+        log(`fraud · ${gift} → ${side.toUpperCase()} · both sides within 5s, excluded from score`);
         toast.warning(t.fraudFlagged);
         return;
       }
       if (data) {
-        setEvents((prev) => (prev.some((e) => e.id === data.id) ? prev : [...prev, data as GiftEvent]));
+        setEvents((prev) =>
+          prev.some((e) => e.id === data.id) ? prev : [...prev, data as GiftEvent],
+        );
       }
     },
-    [matchId, nickname, state.ko, lang],
+    [matchId, nickname, state.ko, lang, log],
   );
 
   return { matchId, round, events, state, leaders, viewers, nickname, ready, sendGift };
 }
+
+// Hook signatures change often during development; a partial HMR patch would
+// keep stale refs/state and break the Hook order. Force a full reload instead.
+if (import.meta.hot) import.meta.hot.accept(() => import.meta.hot?.invalidate());

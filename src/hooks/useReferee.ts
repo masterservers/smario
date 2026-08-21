@@ -78,3 +78,7 @@ export function useReferee(hpRu: number, hpUs: number, ko: Side | null): Referee
 
   return state;
 }
+
+// Hook signatures change often during development; a partial HMR patch would
+// keep stale refs/state and break the Hook order. Force a full reload instead.
+if (import.meta.hot) import.meta.hot.accept(() => import.meta.hot?.invalidate());

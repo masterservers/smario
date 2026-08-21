@@ -4,6 +4,7 @@ import { Arena } from "@/components/game/Arena";
 import { ChatPanel } from "@/components/game/ChatPanel";
 import { GiftDock } from "@/components/game/GiftDock";
 import { EventLog, type LogEntry, type LogKind } from "@/components/game/EventLog";
+import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
 import { LangPicker } from "@/components/game/LangPicker";
 import { MatchSummary } from "@/components/game/MatchSummary";
 import { RefereeCount } from "@/components/game/RefereeCount";
@@ -20,7 +21,7 @@ type Search = { lang: Lang };
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): Search => ({
-    lang: isLang(search['lang']) ? search['lang'] : "en",
+    lang: isLang(search["lang"]) ? search["lang"] : "en",
   }),
   head: () => ({
     meta: [
@@ -40,8 +41,18 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: BattlePage,
+  component: BattleRoute,
+  errorComponent: ({ error }) => <GameErrorScreen error={error} />,
 });
+
+function BattleRoute() {
+  const { lang } = Route.useSearch();
+  return (
+    <GameErrorBoundary lang={lang}>
+      <BattlePage />
+    </GameErrorBoundary>
+  );
+}
 
 function BattlePage() {
   const { lang } = Route.useSearch();
@@ -52,16 +63,19 @@ function BattlePage() {
   const [showLog, setShowLog] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
 
-  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(lang);
-  const referee = useReferee(state.hpRu, state.hpUs, state.ko);
-  useCommentary(lang, events, state, muted, referee);
-
   const pushLog = useCallback((kind: LogKind, text: string) => {
     setLog((prev) => [
       ...prev.slice(-59),
       { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, kind, text, at: Date.now() },
     ]);
   }, []);
+
+  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(
+    lang,
+    pushLog,
+  );
+  const referee = useReferee(state.hpRu, state.hpUs, state.ko);
+  useCommentary(lang, events, state, muted, referee);
 
   // Gift/chat commands land in the trace as soon as they arrive over the wire.
   const loggedGifts = useRef<Set<string>>(new Set());
@@ -75,7 +89,10 @@ function BattlePage() {
 
   useEffect(() => {
     if (referee.count > 0 && referee.side) {
-      pushLog("ref", `count ${referee.count}${referee.final ? "/10" : "/8"} · ${referee.side.toUpperCase()} down`);
+      pushLog(
+        "ref",
+        `count ${referee.count}${referee.final ? "/10" : "/8"} · ${referee.side.toUpperCase()} down`,
+      );
     }
   }, [referee.count, referee.side, referee.final, pushLog]);
 
@@ -175,8 +192,20 @@ function BattlePage() {
           </div>
         )}
         <div className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1.5 opacity-90">
-          <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko || referee.count > 0} onSend={handleSend} />
-          <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko || referee.count > 0} onSend={handleSend} />
+          <GiftDock
+            lang={lang}
+            side="ru"
+            overlay
+            disabled={!ready || !!state.ko || referee.count > 0}
+            onSend={handleSend}
+          />
+          <GiftDock
+            lang={lang}
+            side="us"
+            overlay
+            disabled={!ready || !!state.ko || referee.count > 0}
+            onSend={handleSend}
+          />
         </div>
       </div>
 
@@ -244,6 +273,3 @@ function BattlePage() {
     </main>
   );
 }
-
-
-
