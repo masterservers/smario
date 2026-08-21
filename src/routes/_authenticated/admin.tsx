@@ -727,6 +727,15 @@ function AdminPage() {
           </div>
         </details>
 
+        <ConfigManager
+          onApplied={() => {
+            setScenes(getSceneConfig());
+            setHits(getHitConfig());
+          }}
+          record={record}
+        />
+
+
 
         {(["move", "follow", "idle"] as const).map((group) => (
           <div key={group} className="mt-3">
