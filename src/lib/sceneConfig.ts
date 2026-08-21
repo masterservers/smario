@@ -55,16 +55,16 @@ function parse(raw: unknown): SceneConfig {
   if (!raw || typeof raw !== "object") return base;
   const value = raw as Partial<SceneConfig>;
   const known = new Set(ALL_SCENES.map((scene) => scene.id));
-  const disabled = Array.isArray(value.disabled)
-    ? value.disabled.filter((id): id is string => typeof id === "string" && known.has(id))
+  const disabled = Array.isArray(value['disabled'])
+    ? value['disabled'].filter((id): id is string => typeof id === "string" && known.has(id))
     : [];
   const weights: Record<string, number> = {};
-  if (value.weights && typeof value.weights === "object") {
-    for (const [id, weight] of Object.entries(value.weights)) {
+  if (value['weights'] && typeof value['weights'] === "object") {
+    for (const [id, weight] of Object.entries(value['weights'])) {
       if (known.has(id)) weights[id] = clamp(weight, 0.25, 4, 1);
     }
   }
-  const t: Partial<TransitionRules> = value.transitions ?? {};
+  const t: Partial<TransitionRules> = value['transitions'] ?? {};
   return {
     disabled,
     weights,
@@ -157,7 +157,7 @@ export function importSceneConfig(raw: string): ImportResult {
   const value = parsed as Record<string, unknown>;
 
   // Raw SceneConfig shape.
-  if (Array.isArray(value.disabled) || value.weights) {
+  if (Array.isArray(value['disabled']) || value['weights']) {
     const config = parse(value);
     saveSceneConfig(config);
     return {
@@ -168,7 +168,7 @@ export function importSceneConfig(raw: string): ImportResult {
   }
 
   // Export shape with a scenes array.
-  if (!Array.isArray(value.scenes)) {
+  if (!Array.isArray(value['scenes'])) {
     return { ok: false, message: 'Missing the "scenes" list or the "disabled"/"weights" fields.' };
   }
 
@@ -178,7 +178,7 @@ export function importSceneConfig(raw: string): ImportResult {
   let matched = 0;
   let skipped = 0;
 
-  for (const entry of value.scenes as unknown[]) {
+  for (const entry of value['scenes'] as unknown[]) {
     if (!entry || typeof entry !== "object") continue;
     const scene = entry as { id?: unknown; active?: unknown; weight?: unknown };
     if (typeof scene.id !== "string" || !known.has(scene.id)) {
@@ -200,7 +200,7 @@ export function importSceneConfig(raw: string): ImportResult {
     weights,
     transitions: {
       ...current.transitions,
-      ...((value.transitions as Partial<TransitionRules> | undefined) ?? {}),
+      ...((value['transitions'] as Partial<TransitionRules> | undefined) ?? {}),
     },
   });
   saveSceneConfig(next);
