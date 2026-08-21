@@ -10,6 +10,8 @@ export type AuditEntry = {
   action: string;
   /** Human-readable summary of the values that changed. */
   details: string;
+  /** Caller IP recorded server-side (proxy header), when available. */
+  ip: string | null;
   created_at: string;
 };
 
@@ -46,13 +48,16 @@ export const logAdminChange = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context;
     const email = (claims as { email?: string } | null)?.email ?? null;
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const forwarded = getRequestHeader("x-forwarded-for") ?? getRequestHeader("cf-connecting-ip");
+    const ip = forwarded ? forwarded.split(",")[0]!.trim().slice(0, 64) : null;
     // RLS keeps this insert to admins/moderators writing under their own id.
     const { error } = await supabase.from("admin_audit_log").insert({
       actor_id: userId,
       actor_email: email,
       section: data.section,
       action: data.action,
-      details: { text: data.details },
+      details: { text: data.details, ip },
     });
     if (error) throw new Error("Unable to record the change");
     return { ok: true };
@@ -74,8 +79,13 @@ export const listAuditLog = createServerFn({ method: "POST" })
         raw && typeof raw === "object" && typeof raw.text === "string"
           ? raw.text
           : JSON.stringify(row.details ?? {});
+      const ip =
+        raw && typeof raw === "object" && typeof (raw as { ip?: unknown }).ip === "string"
+          ? ((raw as { ip: string }).ip)
+          : null;
       return {
         id: row.id,
+        ip,
         actor_email: row.actor_email,
         section: row.section,
         action: row.action,
