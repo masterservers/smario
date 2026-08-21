@@ -239,6 +239,35 @@ export function useCommentary(
   };
 
 
+  /**
+   * Calls waiting for their impact. The arena confirms the exact frame of
+   * contact through `announceHit`; if that confirmation never arrives (tab in
+   * the background, dropped scene), a fallback fires the call anyway — but only
+   * once per gift id, so a hit is never commented twice.
+   */
+  const pendingCalls = useRef<Map<string, { run: () => void; timer: number }>>(new Map());
+  const spokenHits = useRef<Set<string>>(new Set());
+
+  const flushCall = (eventId: string, suffix?: string) => {
+    const pending = pendingCalls.current.get(eventId);
+    if (!pending) return;
+    pendingCalls.current.delete(eventId);
+    window.clearTimeout(pending.timer);
+    if (spokenHits.current.has(eventId)) return;
+    spokenHits.current.add(eventId);
+    if (spokenHits.current.size > 200) spokenHits.current.clear();
+    pending.run();
+    if (suffix) publishSubtitle(suffix, "hit", 2200);
+  };
+
+  useEffect(() => {
+    hitAnnouncer = (hit) => flushCall(hit.eventId, hit.label);
+    return () => {
+      hitAnnouncer = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Reacts to each incoming gift.
   useEffect(() => {
     const last = events[events.length - 1];
@@ -265,7 +294,9 @@ export function useCommentary(
         push(pick(c.hit)(attacker, defender), "hit");
       }
     };
-    const impactTimer = window.setTimeout(call, IMPACT_DELAY_MS);
+    // Fallback well after the usual impact delay, in case no confirmation comes.
+    const timer = window.setTimeout(() => flushCall(last.id), IMPACT_DELAY_MS + 3200);
+    pendingCalls.current.set(last.id, { run: call, timer });
 
     const leader: Side | null =
       state.scoreRu === state.scoreUs ? null : state.scoreRu > state.scoreUs ? "ru" : "us";
@@ -275,9 +306,32 @@ export function useCommentary(
       const o = leader === "ru" ? names.us : names.ru;
       window.setTimeout(() => push(pick(c.lead)(l, o), "hit"), 1400);
     }
-    return () => window.clearTimeout(impactTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, lang]);
+
+  // KNOCKDOWN: announced the moment the fighter hits the mat, in the selected
+  // language, with the caption published on the same beat.
+  const knockdownFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!referee?.side || referee.count <= 0) {
+      if (!referee?.side) knockdownFor.current = null;
+      return;
+    }
+    const key = `${referee.side}-${referee.final ? "ko" : "kd"}`;
+    if (knockdownFor.current === key) return;
+    knockdownFor.current = key;
+    const names = sideVoiceNames(lang);
+    const fighter = referee.side === "ru" ? names.ru : names.us;
+    const text = `${UI_TEXT[lang].knockdown.toUpperCase()} — ${fighter}!`;
+    publishSubtitle(text, "ref", 2600);
+    setLines((prev) => [
+      ...prev.slice(-(MAX_LINES - 1)),
+      { id: `kd-${Date.now()}`, text, tone: referee.final ? "ko" : "big" },
+    ]);
+    if (!mutedRef.current) speak(text, lang, referee.final ? PRIORITY.ko : PRIORITY.big);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [referee?.side, referee?.final, referee?.count, lang]);
+
 
   // Referee count, spoken in the selected language and synced to each number.
   const lastCount = useRef(0);
