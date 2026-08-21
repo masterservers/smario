@@ -141,13 +141,18 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   const currentEvent = useRef<GiftEvent | null>(null);
   const currentMove = useRef<Move | null>(null);
   const recentMoves = useRef<string[]>([]);
+  const recentFollows = useRef<string[]>([]);
   const idleScene = useRef(IDLE_SCENES[0]!);
   const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
   const primed = useRef(false);
+  const cutTimer = useRef<number | null>(null);
 
   const [attacker, setAttacker] = useState<Side>("us");
+  const [cut, setCut] = useState(false);
+  const [crowd, setCrowd] = useState(0);
   const [impact, setImpact] = useState<{ id: string; side: Side; label: string } | null>(null);
   const [floats, setFloats] = useState<FloatItem[]>([]);
+
   const [damages, setDamages] = useState<DamageItem[]>([]);
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
