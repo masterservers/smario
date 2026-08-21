@@ -5,6 +5,9 @@
  * rotation and the admin panel all work from the same list.
  */
 
+import { CATALOG_ENTRIES } from "@/lib/moveCatalog";
+import type { HitKind } from "@/lib/hitConfig";
+
 export type Move = {
   id: string;
   start: number;
@@ -14,6 +17,8 @@ export type Move = {
   rate: number;
   /** 1 = light strike, 5 = finisher */
   tier: number;
+  /** Explicit physical reading of the move; falls back to the label heuristic. */
+  kind?: HitKind;
 };
 
 export type IdleScene = { id: string; start: number; end: number; rate: number; label: string };
@@ -701,15 +706,40 @@ const AMBIENT_CLIPS = [REEL_CLIPS[0]!, REEL_CLIPS[4]!, REEL_CLIPS[5]!, REEL_CLIP
 /** Victory pose: the winner stands over the ring with both hands raised. */
 export const CHAMPION_POSE = { start: 451.8, end: 454.2, rate: 0.7 };
 
-export const MOVES: Move[] = layout(
-  [...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES, ...VARIETY_MOVES],
-  LONG_CLIPS,
-);
+/**
+ * The full wrestling catalog (clotheslines, suplexes, dives, drivers,
+ * submissions, pins…) turned into playable scenes. Standing techniques run in
+ * the ring, mat techniques run as follow-ups on a downed opponent.
+ */
+const catalogMove = (entry: (typeof CATALOG_ENTRIES)[number]): Move => ({
+  id: entry.id,
+  start: 0,
+  end: entry.seconds,
+  impact: Number((entry.seconds * 0.78).toFixed(2)),
+  label: entry.label,
+  rate: entry.rate,
+  tier: entry.tier,
+  kind: entry.kind,
+});
 
-export const FOLLOW_UPS: Move[] = layout(
-  [...BASE_FOLLOW_UPS, ...EXTRA_FOLLOW_UPS, ...ROPE_FOLLOW_UPS, ...VARIETY_FOLLOW_UPS],
-  MAT_CLIPS,
-);
+const CATALOG_MOVES: Move[] = CATALOG_ENTRIES.filter((e) => !e.mat).map(catalogMove);
+const CATALOG_FOLLOW_UPS: Move[] = CATALOG_ENTRIES.filter((e) => e.mat).map(catalogMove);
+
+/** Keeps the first scene for any id that appears twice. */
+function unique<T extends { id: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => (seen.has(item.id) ? false : (seen.add(item.id), true)));
+}
+
+export const MOVES: Move[] = unique([
+  ...layout([...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES, ...VARIETY_MOVES], LONG_CLIPS),
+  ...layout(CATALOG_MOVES, REEL_CLIPS),
+]);
+
+export const FOLLOW_UPS: Move[] = unique([
+  ...layout([...BASE_FOLLOW_UPS, ...EXTRA_FOLLOW_UPS, ...ROPE_FOLLOW_UPS, ...VARIETY_FOLLOW_UPS], MAT_CLIPS),
+  ...layout(CATALOG_FOLLOW_UPS, MAT_CLIPS),
+]);
 
 export const IDLE_SCENES: IdleScene[] = layout(
   [...BASE_IDLE, ...EXTRA_IDLE, ...ROPE_IDLE, ...VARIETY_IDLE],
