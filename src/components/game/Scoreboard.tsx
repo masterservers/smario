@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { MAX_HP, type Side } from "@/lib/battle";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
@@ -10,7 +11,37 @@ type Props = {
   hpRu: number;
   hpUs: number;
   leader: Side | null;
+  /** Current match id — a new match restarts the round clock. */
+  matchId?: string | null;
+  /** Knockout side, if any — the clock freezes and resets on the next match. */
+  ko?: Side | null;
 };
+
+function clock(ms: number) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/** Round clock: starts with the match, freezes on KO, resets on the next one. */
+function useRoundClock(matchId: string | null | undefined, round: number, ko: Side | null | undefined) {
+  const startRef = useRef<number>(Date.now());
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    startRef.current = Date.now();
+    setElapsed(0);
+  }, [matchId, round]);
+
+  useEffect(() => {
+    if (ko) return;
+    const id = window.setInterval(() => setElapsed(Date.now() - startRef.current), 500);
+    return () => window.clearInterval(id);
+  }, [ko, matchId, round]);
+
+  return clock(elapsed);
+}
 
 function hpColor(hp: number) {
   if (hp > 55) return "var(--hp-good)";
@@ -42,9 +73,12 @@ export function Scoreboard({
   hpRu,
   hpUs,
   leader,
+  matchId,
+  ko,
 }: Props) {
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
+  const time = useRoundClock(matchId, round, ko);
 
   return (
     <div className="pointer-events-none mx-auto mt-1 w-full max-w-[44rem] rounded-full border border-border bg-background/55 px-3 py-1 backdrop-blur-md">
@@ -70,7 +104,8 @@ export function Scoreboard({
 
         <div className="flex flex-col items-center px-1 leading-none">
           <span className="display text-sm text-gold sm:text-base">VS</span>
-          <span className="mt-1 text-[8px] uppercase text-muted-foreground sm:text-[9px]">
+          <span className="display mt-0.5 text-xs tabular-nums text-gold sm:text-sm">{time}</span>
+          <span className="mt-0.5 text-[8px] uppercase text-muted-foreground sm:text-[9px]">
             {t.round} {round} · {viewers}
           </span>
         </div>

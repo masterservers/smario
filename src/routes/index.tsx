@@ -85,7 +85,7 @@ function BattlePage() {
     ]);
   }, []);
 
-  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(
+  const { matchId, round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(
     lang,
     pushLog,
   );
@@ -166,6 +166,8 @@ function BattlePage() {
           hpRu={state.hpRu}
           hpUs={state.hpUs}
           leader={leader}
+          matchId={matchId}
+          ko={state.ko}
         />
       </div>
 
