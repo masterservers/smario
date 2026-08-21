@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { GiftEvent, Side } from "@/lib/battle";
-import { BANNER, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
+import { BANNER, UI_TEXT, type Lang } from "@/lib/i18n";
+import { sideVoiceNames } from "@/lib/adminConfig";
 import { announce } from "@/hooks/useCommentary";
 import { publishSubtitle } from "@/lib/subtitles";
 import { getGiftConfig, giftLabel } from "@/lib/giftConfig";
@@ -94,7 +95,7 @@ export function useTopBanner({ lang, matchId, round, ko, koConfirmed, events, mu
     for (const event of events) {
       if (seen.current.has(event.id)) continue;
       seen.current.add(event.id);
-      const names = SIDE_NAME[lang];
+      const names = sideVoiceNames(lang);
       const copy = BANNER[lang];
       const giftName = giftLabel(getGiftConfig(), event.gift, lang);
       const team = event.side === "ru" ? names.ruTeam : names.usTeam;
