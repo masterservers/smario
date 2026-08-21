@@ -6,6 +6,8 @@ import { GiftDock } from "@/components/game/GiftDock";
 import { EventLog, type LogEntry, type LogKind } from "@/components/game/EventLog";
 import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
 import { FightControls } from "@/components/game/FightControls";
+import { DifficultyPicker } from "@/components/game/DifficultyPicker";
+import { loadDifficulty, saveDifficulty, type Difficulty } from "@/lib/difficulty";
 import { MatchSummary } from "@/components/game/MatchSummary";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Leaderboard } from "@/components/game/Leaderboard";
@@ -58,6 +60,17 @@ function BattlePage() {
   const { lang } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [muted, setMuted] = useState(true);
+  const [difficulty, setDifficulty] = useState<Difficulty>("normal");
+
+  useEffect(() => {
+    setDifficulty(loadDifficulty());
+  }, []);
+
+  const changeDifficulty = useCallback((value: Difficulty) => {
+    setDifficulty(value);
+    saveDifficulty(value);
+  }, []);
+
   const [showBoard, setShowBoard] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showLog, setShowLog] = useState(false);
@@ -124,6 +137,7 @@ function BattlePage() {
           between the compact HUD rows, never pushed down by controls. */}
       <div className="absolute inset-x-0 bottom-[9.75rem] top-11 bg-background md:inset-0">
         <Arena
+          difficulty={difficulty}
           lang={lang}
           events={events}
           ko={state.ko}
@@ -200,6 +214,7 @@ function BattlePage() {
           onChat={() => setShowChat((s) => !s)}
           className="mx-auto flex w-full max-w-2xl items-center justify-center gap-1.5 md:hidden"
         >
+          <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
           <Button
             type="button"
             onClick={() => setShowBoard((s) => !s)}
@@ -246,6 +261,7 @@ function BattlePage() {
         onChat={() => setShowChat((s) => !s)}
         className="fight-controls absolute right-2 top-14 z-20 hidden flex-col items-center gap-2 md:flex"
       >
+        <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
         <Button
           type="button"
           onClick={() => setShowBoard((s) => !s)}
