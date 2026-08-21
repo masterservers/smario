@@ -860,3 +860,18 @@
 [data-perf="lite"] .gift-float {
   contain: layout paint;
 }
+
+/* --- Compact HUD on short screens -----------------------------------
+   Landscape phones have very little vertical room: shrink the scoreboard
+   strip so the ring keeps every pixel it can, without hiding any data. */
+@media (max-height: 600px) {
+  .hud-panel {
+    margin-top: 0.125rem;
+    padding-block: 0.125rem;
+    max-width: 40rem;
+  }
+  .hud-panel .match-title {
+    margin-top: 0.125rem;
+    font-size: clamp(0.62rem, 1.6vw, 0.9rem);
+  }
+}
