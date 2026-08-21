@@ -645,6 +645,13 @@ export function Arena({
       currentEvent.current = null;
       currentMove.current = null;
       idleScene.current = pick(IDLE_SCENES);
+      // Between spots the fighters keep circling: drift the framing back.
+      setFrame({
+        x: (Math.random() - 0.5) * 5,
+        y: (Math.random() - 0.5) * 1.5,
+        scale: 1 + (Math.random() - 0.5) * 0.03,
+        rotate: (Math.random() - 0.5) * 0.8,
+      });
       seek(video, idleScene.current.start);
       video.playbackRate = idleScene.current.rate * cfgRef.current.speed;
       void video.play();
@@ -656,34 +663,62 @@ export function Arena({
     }
   };
 
+  const reactionClass =
+    !reaction || lite
+      ? ""
+      : reaction.kind === "punch"
+        ? "animate-hit-punch"
+        : reaction.kind === "kick"
+          ? "animate-hit-kick"
+          : reaction.kind === "grapple"
+            ? "animate-hit-grapple"
+            : "animate-hit-heavy";
+
   return (
     <div className="absolute inset-0 overflow-hidden bg-background">
-      <video
-        ref={videoRef}
-        src={FIGHT_VIDEO}
-        muted
-        autoPlay
-        loop
-        playsInline
-        preload="auto"
-        aria-label={`${names.ru} versus ${names.us}`}
-        onLoadedData={(event) => {
-          event.currentTarget.currentTime = IDLE_SCENES[0]!.start;
-          void event.currentTarget.play();
-        }}
-        onTimeUpdate={handleTimeUpdate}
-        disablePictureInPicture
+      {/* Framing layer: shifts the wide shot around the ring (left/right,
+          nearer/further, slight tilt) so the action never stays pinned. */}
+      <div
+        className="absolute inset-0 transition-transform duration-[900ms] ease-out"
         style={{
-          // Crowd/lighting: the arena lifts in brightness and contrast on every
-          // landed hit so the audience in the stands stays clearly readable.
-          filter: lite
-            ? "brightness(1.1) contrast(1.12) saturate(1.08)"
-            : `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
-          contain: "paint",
-          willChange: lite ? undefined : "filter",
+          transform: `translate3d(${frame.x}%, ${frame.y}%, 0) scale(${frame.scale}) rotate(${frame.rotate}deg)`,
         }}
-        className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter] duration-200"
-      />
+      >
+        {/* Reaction layer: per-hit physical response (jitter, step back, loss of
+            balance, recovery). */}
+        <div
+          className={`absolute inset-0 ${reactionClass}`}
+          style={{ ["--hit-dir" as string]: String(reaction?.dir ?? 1) }}
+        >
+          <video
+            ref={videoRef}
+            src={FIGHT_VIDEO}
+            muted
+            autoPlay
+            loop
+            playsInline
+            preload="auto"
+            aria-label={`${names.ru} versus ${names.us}`}
+            onLoadedData={(event) => {
+              event.currentTarget.currentTime = IDLE_SCENES[0]!.start;
+              void event.currentTarget.play();
+            }}
+            onTimeUpdate={handleTimeUpdate}
+            disablePictureInPicture
+            style={{
+              // Crowd/lighting: the arena lifts in brightness and contrast on every
+              // landed hit so the audience in the stands stays clearly readable.
+              filter: lite
+                ? "brightness(1.1) contrast(1.12) saturate(1.08)"
+                : `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
+              contain: "paint",
+              willChange: lite ? undefined : "filter",
+            }}
+            className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter] duration-200"
+          />
+        </div>
+      </div>
+
 
       {/* Impact state remains synchronized for commentary and logs, but visual
           labels and gift particles stay off the ring so both fighters remain
