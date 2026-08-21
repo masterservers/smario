@@ -56,10 +56,17 @@ const STATE: BattleState = {
   ko: null,
 };
 
+/** All lines ever emitted (the hook itself keeps only the last few). */
 let captured: CommentaryLine[] = [];
+const seenIds = new Set<string>();
 
 function Probe({ events }: { events: GiftEvent[] }) {
-  captured = useCommentary("en", events, STATE, false);
+  const lines = useCommentary("en", events, STATE, false);
+  for (const line of lines) {
+    if (seenIds.has(line.id)) continue;
+    seenIds.add(line.id);
+    captured.push(line);
+  }
   return null;
 }
 
@@ -85,6 +92,7 @@ async function settle(ms = 2400) {
 beforeEach(() => {
   spoken.length = 0;
   captured = [];
+  seenIds.clear();
   vi.useFakeTimers();
   installSpeechMock();
 });
