@@ -15,6 +15,7 @@ import {
   type VoiceTone,
 } from "@/lib/voice";
 import { crowdReact, duckCrowd } from "@/lib/crowd";
+import { dropCue, markCue, resolveCue, type CueKind } from "@/lib/syncMeter";
 
 export type CommentaryLine = { id: string; text: string; tone: "hit" | "big" | "ko" | "idle" };
 
@@ -79,7 +80,7 @@ function pickVoice(speechLang: string): SpeechSynthesisVoice | null {
   return neutral ?? pool[0] ?? null;
 }
 
-type Spoken = { text: string; lang: Lang; priority: number };
+type Spoken = { text: string; lang: Lang; priority: number; cue?: number };
 
 /**
  * Priority lanes for the commentator:
@@ -179,6 +180,7 @@ function drain() {
     // Already generated? Start on this frame, zero latency.
     const ready = peekVoiceClip(next.text, next.lang, tone);
     if (ready) {
+      resolveCue(next.cue, "cache");
       playVoiceClip(ready, done);
       return;
     }
@@ -189,9 +191,16 @@ function drain() {
       if (started || generation !== laneGeneration) return;
       started = true;
       window.clearTimeout(deadline);
-      if (url) playVoiceClip(url, done);
-      else if ("speechSynthesis" in window) speakFallback(next, done);
-      else done();
+      if (url) {
+        resolveCue(next.cue, "neural");
+        playVoiceClip(url, done);
+      } else if ("speechSynthesis" in window) {
+        resolveCue(next.cue, "local");
+        speakFallback(next, done);
+      } else {
+        resolveCue(next.cue, "silent");
+        done();
+      }
     };
     const deadline = window.setTimeout(() => start(null), VOICE_DEADLINE_MS);
     void getVoiceClip(next.text, next.lang, tone).then(start);
@@ -200,6 +209,7 @@ function drain() {
 
 function clearLane() {
   laneGeneration += 1;
+  for (const item of speechQueue) dropCue(item.cue);
   speechQueue.length = 0;
   window.clearTimeout(drainTimer);
   drainTimer = 0;
@@ -216,7 +226,7 @@ export function stopCommentary() {
 }
 
 
-function speak(text: string, lang: Lang, priority: number) {
+function speak(text: string, lang: Lang, priority: number, cue?: number) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
   // A more important call interrupts whatever is on air right now.
@@ -224,16 +234,20 @@ function speak(text: string, lang: Lang, priority: number) {
     clearLane();
     lastEndAt = 0;
   } else if (speaking && priority < speakingPriority && priority <= 0) {
+    dropCue(cue);
     return; // ambient filler never queues behind an important call
   } else {
     // Drop pending lines that matter less than the newcomer.
     for (let i = speechQueue.length - 1; i >= 0; i -= 1) {
-      if (speechQueue[i]!.priority < priority) speechQueue.splice(i, 1);
+      if (speechQueue[i]!.priority < priority) {
+        dropCue(speechQueue[i]!.cue);
+        speechQueue.splice(i, 1);
+      }
     }
-    if (speechQueue.length >= MAX_QUEUE) speechQueue.shift();
+    if (speechQueue.length >= MAX_QUEUE) dropCue(speechQueue.shift()?.cue);
   }
 
-  speechQueue.push({ text, lang, priority });
+  speechQueue.push({ text, lang, priority, cue });
   // Highest priority first, stable for equal lanes.
   speechQueue.sort((a, b) => b.priority - a.priority);
   drain();
@@ -244,8 +258,8 @@ function speak(text: string, lang: Lang, priority: number) {
  * Speak a top-bar announcement (referee call or gift ticker) in the selected
  * language, on the same voice lane as the commentary so the two never overlap.
  */
-export function announce(text: string, lang: Lang, priority = 2) {
-  speak(text, lang, priority);
+export function announce(text: string, lang: Lang, priority = 2, cueKind: CueKind = "count") {
+  speak(text, lang, priority, markCue(cueKind));
 }
 
 export type HitAnnouncement = {
@@ -334,7 +348,7 @@ export function useCommentary(
     if (tone === "ko") crowdReact("ko");
     else if (tone === "big") crowdReact("big");
     else if (tone === "hit") crowdReact("hit");
-    if (!mutedRef.current) speak(text, langRef.current, PRIORITY[tone]);
+    if (!mutedRef.current) speak(text, langRef.current, PRIORITY[tone], markCue(tone as CueKind));
   };
 
 
