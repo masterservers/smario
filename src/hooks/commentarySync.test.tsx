@@ -72,8 +72,10 @@ function Probe({ events }: { events: GiftEvent[] }) {
   return null;
 }
 
-function lastLine() {
-  return captured[captured.length - 1];
+function lastLine(): CommentaryLine {
+  const line = captured[captured.length - 1];
+  if (!line) throw new Error("no commentary line was emitted");
+  return line;
 }
 
 /** Every line the pack can produce for a family, with our two fighters. */
