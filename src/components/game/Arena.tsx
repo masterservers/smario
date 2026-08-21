@@ -406,6 +406,15 @@ export function Arena({
   const impacted = useRef(false);
   /** True while a spot is playing out its aftermath (landing, struggle). */
   const settling = useRef(false);
+  /**
+   * Animation lock. While it is held no new command — gift, idle scene, camera
+   * change or KO replay — may cut the current sequence. It is released only
+   * after the move, its impact, the landing and the recovery have all played.
+   */
+  const lockUntil = useRef(0);
+  const isLocked = () =>
+    playing.current || settling.current || switchingRef.current || performance.now() < lockUntil.current;
+
 
   const currentEvent = useRef<GiftEvent | null>(null);
   const currentMove = useRef<Move | null>(null);
@@ -467,12 +476,18 @@ export function Arena({
     video.currentTime = time;
   };
 
-  /** Decode the next scene off-screen before replacing the visible frame. */
-  const switchScene = (time: number, rate: number) => {
+  /**
+   * Decode the next scene off-screen before replacing the visible frame.
+   * `force` is reserved for sequences that own the lock (a move start, the KO
+   * replay); every other call is refused while the lock is held.
+   */
+  const switchScene = (time: number, rate: number, force = false) => {
+    if (!force && isLocked()) return false;
     const previous = activeVideoRef.current;
     const nextLayer = activeLayerRef.current === 0 ? 1 : 0;
     const next = videoRefs.current[nextLayer];
     if (!next || switchingRef.current) return false;
+
 
     switchingRef.current = true;
     const token = ++switchTokenRef.current;
@@ -537,7 +552,8 @@ export function Arena({
       return;
     }
     if (handledKo.current === ko) return;
-    if (playing.current) {
+    // Never cut a move: wait until the animation lock is fully released.
+    if (isLocked()) {
       pendingKo.current = ko;
       return;
     }
@@ -564,18 +580,18 @@ export function Arena({
 
     // Replay: rewind slightly before the finish and play it back in slow motion.
     video.playbackRate = 0.45;
-    switchScene(Math.max(0, finisher.impact - 1.2), 0.45);
+    switchScene(Math.max(0, finisher.impact - 1.2), 0.45, true);
 
     let pose = 0;
     const settle = window.setTimeout(() => {
       setReplay(false);
-      switchScene(finisher.impact, 0.35);
+      switchScene(finisher.impact, 0.35, true);
       window.setTimeout(() => activeVideoRef.current?.pause(), 900);
 
       // The winner then walks the ring with both hands raised.
       pose = window.setTimeout(() => {
         setChampion(true);
-        switchScene(CHAMPION_POSE.start, CHAMPION_POSE.rate);
+        switchScene(CHAMPION_POSE.start, CHAMPION_POSE.rate, true);
         cheer(2);
         logRef.current?.("ko", `champion pose — ${ko === "ru" ? names.ru : names.us}`);
       }, 2600);
@@ -591,7 +607,13 @@ export function Arena({
     const timer = window.setInterval(() => {
       const video = activeVideoRef.current;
       if (!video || ko) return;
-      if (playing.current) return;
+      // Animation lock: no new command while a sequence is still running.
+      if (isLocked()) return;
+      // Lock released and a KO is waiting: hand control to the replay sequence.
+      if (pendingKo.current) {
+        setCompletedSequences((value) => value + 1);
+        return;
+      }
 
       // Feeling-out phase: rotate through different idle scenarios.
       const scene = idleScene.current;
@@ -643,6 +665,9 @@ export function Arena({
       impacted.current = false;
       settling.current = false;
       stopAt.current = move.end;
+      // Hold the lock for at least the length of this move at its playback rate.
+      lockUntil.current =
+        performance.now() + ((move.end - move.start) / (move.rate * cfgRef.current.speed)) * 1000;
 
       impactAt.current = move.impact;
       setAttacker(event.side);
@@ -659,7 +684,7 @@ export function Arena({
       logRef.current?.("move", `${event.side.toUpperCase()} · ${move.label}`);
       // Move the wide shot to this block's corner of the ring.
       setFrame(frameFor(move));
-      switchScene(move.start, move.rate * cfgRef.current.speed);
+      switchScene(move.start, move.rate * cfgRef.current.speed, true);
 
     }, cfg.tickMs);
     return () => window.clearInterval(timer);
@@ -710,6 +735,10 @@ export function Arena({
         if (limit > video.currentTime + 0.1) {
           settling.current = true;
           stopAt.current = limit;
+          lockUntil.current =
+            performance.now() +
+            ((limit - video.currentTime) / Math.max(0.55, move.rate * cfgRef.current.speed * 0.85)) *
+              1000;
           // Slightly slower so the landing and the struggle read clearly.
           video.playbackRate = Math.max(0.55, move.rate * cfgRef.current.speed * 0.85);
           void video.play();
@@ -721,6 +750,8 @@ export function Arena({
       playing.current = false;
       currentEvent.current = null;
       currentMove.current = null;
+      // Short breath after the recovery, unless a KO is waiting to be replayed.
+      lockUntil.current = pendingKo.current ? 0 : performance.now() + 350;
       // Wake the deferred-KO effect only after the complete landing/recovery.
       if (pendingKo.current) setCompletedSequences((value) => value + 1);
       idleScene.current = pick(IDLE_SCENES);
@@ -731,7 +762,7 @@ export function Arena({
         scale: 1 + (Math.random() - 0.5) * 0.03,
         rotate: (Math.random() - 0.5) * 0.8,
       });
-      switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed);
+      switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed, true);
 
       window.setTimeout(
         () => setFloats((previous) => previous.filter((item) => item.id !== event.id)),
