@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as LiveRouteImport } from './routes/live'
+import { Route as MovesRouteImport } from './routes/moves'
 import { Route as ReplaysRouteImport } from './routes/replays'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -36,6 +37,11 @@ const AuthRoute = AuthRouteImport.update({
 const LiveRoute = LiveRouteImport.update({
   id: '/live',
   path: '/live',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MovesRoute = MovesRouteImport.update({
+  id: '/moves',
+  path: '/moves',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReplaysRoute = ReplaysRouteImport.update({
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/live': typeof LiveRoute
+  '/moves': typeof MovesRoute
   '/replays': typeof ReplaysRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/live': typeof LiveRoute
+  '/moves': typeof MovesRoute
   '/replays': typeof ReplaysRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/live': typeof LiveRoute
+  '/moves': typeof MovesRoute
   '/replays': typeof ReplaysRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -102,6 +111,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/live'
+    | '/moves'
     | '/replays'
     | '/reset-password'
     | '/admin'
@@ -112,6 +122,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/live'
+    | '/moves'
     | '/replays'
     | '/reset-password'
     | '/admin'
@@ -123,6 +134,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/live'
+    | '/moves'
     | '/replays'
     | '/reset-password'
     | '/_authenticated/admin'
@@ -135,6 +147,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   LiveRoute: typeof LiveRoute
+  MovesRoute: typeof MovesRoute
   ReplaysRoute: typeof ReplaysRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicActiveConfigRoute: typeof ApiPublicActiveConfigRoute
@@ -169,6 +182,13 @@ declare module '@tanstack/react-router' {
       path: '/live'
       fullPath: '/live'
       preLoaderRoute: typeof LiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/moves': {
+      id: '/moves'
+      path: '/moves'
+      fullPath: '/moves'
+      preLoaderRoute: typeof MovesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/replays': {
@@ -225,6 +245,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   LiveRoute: LiveRoute,
+  MovesRoute: MovesRoute,
   ReplaysRoute: ReplaysRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicActiveConfigRoute: ApiPublicActiveConfigRoute,
