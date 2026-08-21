@@ -150,6 +150,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   const [attacker, setAttacker] = useState<Side>("us");
   const [cut, setCut] = useState(false);
   const [crowd, setCrowd] = useState(0);
+  const [replay, setReplay] = useState(false);
   const [impact, setImpact] = useState<{ id: string; side: Side; label: string } | null>(null);
   const [floats, setFloats] = useState<FloatItem[]>([]);
 
@@ -205,6 +206,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     currentMove.current = null;
     const finisher = MOVES.find((move) => move.id === "finisher")!;
     cheer(2);
+    setReplay(true);
 
     // Replay: rewind slightly before the finish and play it back in slow motion.
     video.playbackRate = 0.45;
@@ -212,6 +214,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     void video.play();
 
     const settle = window.setTimeout(() => {
+      setReplay(false);
       video.playbackRate = 0.35;
       seek(video, finisher.impact);
       void video.play();
@@ -359,7 +362,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         style={{
           opacity: 0.12 + crowd * 0.18,
           background:
-            "radial-gradient(60% 120% at 20% 0%, hsl(var(--gold) / 0.5), transparent 70%), radial-gradient(60% 120% at 80% 0%, hsl(var(--gold) / 0.5), transparent 70%)",
+            "radial-gradient(60% 120% at 20% 0%, color-mix(in oklch, var(--gold) 55%, transparent), transparent 70%), radial-gradient(60% 120% at 80% 0%, color-mix(in oklch, var(--gold) 55%, transparent), transparent 70%)",
           mixBlendMode: "screen",
         }}
       />
@@ -409,6 +412,11 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
           mat and only a headline sits at the top-centre of the screen. */}
       {ko && (
         <div className="pointer-events-none absolute inset-x-0 top-[8%] z-20 flex flex-col items-center gap-1 text-center">
+          {replay && (
+            <div className="display animate-fade-in text-xs tracking-widest text-outline opacity-80 sm:text-sm">
+              ● REPLAY
+            </div>
+          )}
           <div className="display text-5xl text-gold text-outline sm:text-7xl">{t.knockout}</div>
           <div className="display text-xl text-outline sm:text-3xl">
             {ko === "ru" ? names.us : names.ru} — {t.knockedDown}
