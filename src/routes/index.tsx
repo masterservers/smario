@@ -1,13 +1,16 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Arena } from "@/components/game/Arena";
 import { ChatPanel } from "@/components/game/ChatPanel";
 import { GiftDock } from "@/components/game/GiftDock";
+import { EventLog, type LogEntry, type LogKind } from "@/components/game/EventLog";
 import { LangPicker } from "@/components/game/LangPicker";
+import { RefereeCount } from "@/components/game/RefereeCount";
 import { Leaderboard } from "@/components/game/Leaderboard";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
+import { useReferee } from "@/hooks/useReferee";
 import type { GiftId, Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
@@ -44,9 +47,35 @@ function BattlePage() {
   const [muted, setMuted] = useState(true);
   const [showBoard, setShowBoard] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showLog, setShowLog] = useState(false);
+  const [log, setLog] = useState<LogEntry[]>([]);
 
   const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch();
-  useCommentary(lang, events, state, muted);
+  const referee = useReferee(state.hpRu, state.hpUs, state.ko);
+  useCommentary(lang, events, state, muted, referee);
+
+  const pushLog = useCallback((kind: LogKind, text: string) => {
+    setLog((prev) => [
+      ...prev.slice(-59),
+      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, kind, text, at: Date.now() },
+    ]);
+  }, []);
+
+  // Gift/chat commands land in the trace as soon as they arrive over the wire.
+  const loggedGifts = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const event of events) {
+      if (loggedGifts.current.has(event.id)) continue;
+      loggedGifts.current.add(event.id);
+      pushLog("gift", `${event.sender} → ${event.side.toUpperCase()} · ${event.gift}`);
+    }
+  }, [events, pushLog]);
+
+  useEffect(() => {
+    if (referee.count > 0 && referee.side) {
+      pushLog("ref", `count ${referee.count}${referee.final ? "/10" : "/8"} · ${referee.side.toUpperCase()} down`);
+    }
+  }, [referee.count, referee.side, referee.final, pushLog]);
 
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
@@ -80,7 +109,11 @@ function BattlePage() {
           ko={state.ko}
           combo={state.combo}
           comboSide={state.comboSide}
+          paused={referee.count > 0 && !referee.koConfirmed}
+          koConfirmed={referee.koConfirmed}
+          onLog={pushLog}
         />
+        <RefereeCount lang={lang} referee={referee} />
       </div>
 
       {/* Slim HUD strip on top — scoreboard only */}
@@ -106,9 +139,14 @@ function BattlePage() {
               events={events}
               nickname={nickname}
               overlay
-              disabled={!ready || !!state.ko}
+              disabled={!ready || !!state.ko || referee.count > 0}
               onSend={(side, gift, message) => handleSend(side, gift, message)}
             />
+          </div>
+        )}
+        {showLog && (
+          <div className="mx-auto w-full max-w-md">
+            <EventLog lang={lang} entries={log} />
           </div>
         )}
         {showBoard && (
@@ -117,8 +155,8 @@ function BattlePage() {
           </div>
         )}
         <div className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1.5 opacity-90">
-          <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
-          <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
+          <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko || referee.count > 0} onSend={handleSend} />
+          <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko || referee.count > 0} onSend={handleSend} />
         </div>
       </div>
 
@@ -149,6 +187,22 @@ function BattlePage() {
         >
           🔥
         </button>
+        <button
+          type="button"
+          onClick={() => setShowLog((s) => !s)}
+          aria-label={t.eventLog}
+          className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+        >
+          🧾
+        </button>
+        <Link
+          to="/live"
+          search={{ lang }}
+          aria-label={t.watchLive}
+          className="grid size-10 place-items-center rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+        >
+          📡
+        </Link>
       </div>
     </main>
   );
