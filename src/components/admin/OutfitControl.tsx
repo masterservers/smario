@@ -55,11 +55,12 @@ export function OutfitControl({ onAudit }: { onAudit?: (action: string, details:
     }
     setMatchId(id);
     try {
-      await saveMatchOutfits({ data: { matchId: id, ru: next.ru, us: next.us } });
-      setNote("Saved for this match.");
+      const res = await saveMatchOutfits({ data: { matchId: id, ru: next.ru, us: next.us } });
+      setNote(res?.ok ? "Saved for this match." : "On air, but could not be stored for the match.");
     } catch {
       setNote("On air, but could not be stored for the match.");
     }
+
   };
 
   return (
