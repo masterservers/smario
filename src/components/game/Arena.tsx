@@ -76,25 +76,25 @@ type Frame = { x: number; y: number; scale: number; rotate: number };
 
 const FRAMES: Frame[] = [
   { x: 0, y: 0, scale: 1, rotate: 0 },
-  { x: -4.5, y: 0.5, scale: 1.04, rotate: -0.9 },
-  { x: 4.5, y: 0.5, scale: 1.04, rotate: 0.9 },
-  { x: -6, y: -1, scale: 1.06, rotate: 1.1 },
-  { x: 6, y: -1, scale: 1.06, rotate: -1.1 },
-  { x: 0, y: 1.5, scale: 0.97, rotate: 0 },
-  { x: -2.5, y: -1.5, scale: 1.02, rotate: 0.6 },
-  { x: 2.5, y: -1.5, scale: 1.02, rotate: -0.6 },
+  { x: -2.2, y: 0.3, scale: 1, rotate: -0.5 },
+  { x: 2.2, y: 0.3, scale: 1, rotate: 0.5 },
+  { x: -3, y: -0.6, scale: 0.99, rotate: 0.6 },
+  { x: 3, y: -0.6, scale: 0.99, rotate: -0.6 },
+  { x: 0, y: 0.8, scale: 0.97, rotate: 0 },
+  { x: -1.4, y: -0.8, scale: 1, rotate: 0.35 },
+  { x: 1.4, y: -0.8, scale: 1, rotate: -0.35 },
 ];
 
 /** Each block of the reel gets its own corner of the ring, plus a little drift. */
 function frameFor(move: Move): Frame {
   const block = Math.floor(move.start / 10); // 0..3
   const base = FRAMES[(block * 2 + (move.tier % 2) + 1) % FRAMES.length]!;
-  const drift = (Math.random() - 0.5) * 2.4;
+  const drift = (Math.random() - 0.5) * 1.2;
   return {
-    x: Math.max(-7, Math.min(7, base.x + drift)),
-    y: base.y + (Math.random() - 0.5) * 1.2,
+    x: Math.max(-3.5, Math.min(3.5, base.x + drift)),
+    y: base.y + (Math.random() - 0.5) * 0.6,
     scale: base.scale,
-    rotate: base.rotate + (Math.random() - 0.5) * 0.5,
+    rotate: base.rotate + (Math.random() - 0.5) * 0.3,
   };
 }
 
@@ -117,10 +117,11 @@ const PHASE_BLEND: Record<Phase, { camera: number; ease: string; fade: number }>
 /** Clamp every camera move so the shot stays wide and readable. */
 function clampFrame(frame: Frame): Frame {
   return {
-    x: Math.max(-7, Math.min(7, frame.x)),
-    y: Math.max(-3.5, Math.min(4, frame.y)),
-    scale: Math.max(0.96, Math.min(1.09, frame.scale)),
-    rotate: Math.max(-1.6, Math.min(1.6, frame.rotate)),
+    x: Math.max(-3.5, Math.min(3.5, frame.x)),
+    y: Math.max(-2, Math.min(2, frame.y)),
+    // Never zoom past 1: the whole ring must stay inside the screen.
+    scale: Math.max(0.92, Math.min(1, frame.scale)),
+    rotate: Math.max(-0.9, Math.min(0.9, frame.rotate)),
   };
 }
 
@@ -649,7 +650,7 @@ export function Arena({
     cheer(2);
     setReplay(true);
     // KO reads heaviest of all: full loss of balance, then the shot settles.
-    setFrame({ x: 0, y: 0.5, scale: 1.02, rotate: 0 });
+    setFrame(clampFrame({ x: 0, y: 0.5, scale: 1, rotate: 0 }));
     const koProfile = HIT_PROFILE[koKind.current];
     setReaction({
       id: `ko-${ko}`,
