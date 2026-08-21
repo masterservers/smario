@@ -166,8 +166,11 @@ export function Scoreboard({
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        aria-label={`${names.ru} vs ${names.us}`}
+        aria-label={`Fight ${names.ru} vs ${names.us}`}
       >
+        <span className="shrink-0 opacity-90" aria-hidden="true">
+          Fight
+        </span>
         <span
           className="min-w-0 truncate"
           style={{ color: "var(--ru-glow)" }}
@@ -175,6 +178,7 @@ export function Scoreboard({
         >
           {names.ru}
         </span>
+
         <span className="shrink-0 opacity-90" aria-hidden="true">
           vs
         </span>

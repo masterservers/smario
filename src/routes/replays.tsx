@@ -24,13 +24,13 @@ export const Route = createFileRoute("/replays")({
   }),
   head: () => ({
     meta: [
-      { title: "Match Replays — Putin vs Trump Battle" },
+      { title: "Match Replays — Fight Putin vs Trump" },
       {
         name: "description",
         content:
           "Rewatch finished Putin vs Trump matches: knockout highlight reel, final score, HP, every gift sent and the key knockdown moments.",
       },
-      { property: "og:title", content: "Match Replays — Putin vs Trump Battle" },
+      { property: "og:title", content: "Match Replays — Fight Putin vs Trump" },
       {
         property: "og:description",
         content: "Highlight replays with the knockout finish, full score and gift breakdown.",

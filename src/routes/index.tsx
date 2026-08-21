@@ -33,13 +33,13 @@ export const Route = createFileRoute("/")({
   }),
   head: () => ({
     meta: [
-      { title: "Putin vs Trump — Live Gift Battle Arena" },
+      { title: "Fight Putin vs Trump — Live Gift Arena" },
       {
         name: "description",
         content:
           "Watch Putin and Trump fight live. Send gifts for Russia or USA, land hits, and follow the multilingual commentator in English, German, Serbian, Romanian and Russian.",
       },
-      { property: "og:title", content: "Putin vs Trump — Live Gift Battle Arena" },
+      { property: "og:title", content: "Fight Putin vs Trump — Live Gift Arena" },
       {
         property: "og:description",
         content:

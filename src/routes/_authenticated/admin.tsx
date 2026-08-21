@@ -62,13 +62,13 @@ export const Route = createFileRoute("/_authenticated/admin")({
   }),
   head: () => ({
     meta: [
-      { title: "Battle admin — Putin vs Trump Battle Arena" },
+      { title: "Battle admin — Fight Putin vs Trump" },
       {
         name: "description",
         content:
           "Admin console for the battle arena: fighter names and nicknames, gift settings, TikTok sources, shareable live link and the full gift history.",
       },
-      { property: "og:title", content: "Battle admin — Putin vs Trump Battle Arena" },
+      { property: "og:title", content: "Battle admin — Fight Putin vs Trump" },
       {
         property: "og:description",
         content: "Fighters, gifts, TikTok sources, live link and gift history in one console.",
