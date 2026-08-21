@@ -135,7 +135,6 @@ export type SequencePair = {
 };
 
 const pairs: SequencePair[] = [];
-const mergeRatios = new Map<string, number[]>();
 
 for (let i = 0; i < ordered.length; i++) {
   const a = ordered[i]!;
@@ -148,10 +147,9 @@ for (let i = 0; i < ordered.length; i++) {
     const compatible = semanticallyCompatible(a, b);
     if (ratio >= VISUAL_CLUSTER_CONFIG.sameClusterOverlap) {
       if (compatible) {
-        pairs.push({ a: a.id, b: b.id, ratio, reason: "strong-overlap" });
-        union(a.id, b.id);
-        const key = `${a.id}|${b.id}`;
-        mergeRatios.set(key, [...(mergeRatios.get(key) ?? []), ratio]);
+        const merged = union(a.id, b.id);
+        // Refused by the span guard: still worth reporting as related footage.
+        pairs.push({ a: a.id, b: b.id, ratio, reason: merged ? "strong-overlap" : "near-duplicate" });
       } else {
         // Metadata conflict (e.g. punch vs throw): flag instead of merging.
         pairs.push({ a: a.id, b: b.id, ratio, reason: "suspicious" });
