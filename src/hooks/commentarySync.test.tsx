@@ -180,6 +180,7 @@ describe("commentary / impact synchronisation", () => {
     await settle();
     const text = captured[linesBefore].text;
     const call = spoken.slice(spokenBefore).find((s) => s.text === text);
+    if (!call) console.log("LINES", captured.map(l=>l.text), "SPOKEN", spoken.map(s=>s.text));
     expect(call, "the gift hit was never voiced").toBeTruthy();
     expect(call!.at - impactAt).toBeGreaterThanOrEqual(0);
     expect(call!.at - impactAt).toBeLessThanOrEqual(MAX_LAG_MS);
