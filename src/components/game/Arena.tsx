@@ -340,6 +340,7 @@ export function Arena({
   /** A KO may be scored during a move, but its replay must never cut that move. */
   const handledKo = useRef<Side | null>(null);
   const pendingKo = useRef<Side | null>(null);
+  const roundNo = useRef(0);
 
   const varietyRef = useRef(variety);
   varietyRef.current = variety;
