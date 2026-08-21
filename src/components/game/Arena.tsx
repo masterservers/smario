@@ -650,7 +650,7 @@ export function Arena({
     cheer(2);
     setReplay(true);
     // KO reads heaviest of all: full loss of balance, then the shot settles.
-    setFrame({ x: 0, y: 0.5, scale: 1.02, rotate: 0 });
+    setFrame(clampFrame({ x: 0, y: 0.5, scale: 1, rotate: 0 }));
     const koProfile = HIT_PROFILE[koKind.current];
     setReaction({
       id: `ko-${ko}`,
