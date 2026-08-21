@@ -26,6 +26,7 @@ import {
   type RefereeRules,
 } from "@/lib/hitConfig";
 
+import { ConfigManager } from "@/components/admin/ConfigManager";
 import { ALL_SCENES } from "@/lib/scenes";
 import {
   exportSceneConfig,
