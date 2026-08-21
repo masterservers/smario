@@ -545,6 +545,9 @@ export function Arena({
       koReplayRef.current = null;
       // A new round starts here: staged configuration imports go live now.
       commitPendingConfig("round");
+      // Next round leans on a different family of scenes.
+      roundNo.current += 1;
+      setSceneRound(roundNo.current);
       // Smooth return to live speed after the slow-motion finish.
       const video = activeVideoRef.current;
       if (video && video.playbackRate < 0.95) {
