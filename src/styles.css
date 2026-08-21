@@ -742,9 +742,10 @@
 
 /* --- Match title "Putin vs Trump" ------------------------------------ */
 .match-title {
-  /* auto scaling: min on mobile, capped on desktop */
-  font-size: clamp(1.08rem, 3.9vw, 1.875rem);
+  /* auto scaling: min on mobile, capped on desktop; --title-scale is tunable in admin */
+  font-size: calc(clamp(1.08rem, 3.9vw, 1.875rem) * var(--title-scale, 3));
   letter-spacing: clamp(0.02em, 0.25vw, 0.1em);
+
   /* adaptive outline + shadow so it stays readable over ring effects */
   paint-order: stroke fill;
   -webkit-text-stroke: clamp(1px, 0.35vw, 2.5px) hsl(var(--background) / 0.92);
