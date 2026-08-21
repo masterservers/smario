@@ -12,6 +12,9 @@ import {
   MOVES,
   inRoundTheme,
   setSceneRound,
+  familyOf,
+  familyBlocked,
+  type SceneFamily,
   type IdleScene,
   type Move,
 } from "@/lib/scenes";
@@ -372,6 +375,8 @@ export function Arena({
 
   const varietyRef = useRef(variety);
   varietyRef.current = variety;
+  // Keep the type-level anti-repetition guard in sync with the referee slider.
+  setFamilyStreak(variety.familyStreak);
   /** Last time each move was played — drives the referee cooldown control. */
   const moveCooldowns = useRef<Map<string, number>>(new Map());
   const followCooldowns = useRef<Map<string, number>>(new Map());
