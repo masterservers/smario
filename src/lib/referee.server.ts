@@ -124,6 +124,32 @@ export type RingVerdict = {
  * blow every gift produces. Nothing here trusts the browser: score, knockdown
  * and knockout all come from the database rows.
  */
+function emptyVerdict(matchId: string): RingVerdict {
+  return {
+    matchId,
+    round: 1,
+    scoreRu: 0,
+    scoreUs: 0,
+    hpRu: 100,
+    hpUs: 100,
+    combo: 0,
+    comboSide: null,
+    ko: null,
+    referee: defaultHitConfig().referee,
+    decisions: [],
+    serverTime: Date.now(),
+  };
+}
+
+/** Never fails the request: the show keeps running on the local mapping. */
+export async function judgeRingSafe(matchId: string): Promise<RingVerdict> {
+  try {
+    return await judgeRing(matchId);
+  } catch {
+    return emptyVerdict(matchId);
+  }
+}
+
 export async function judgeRing(matchId: string): Promise<RingVerdict> {
   const supabase = await adminClient();
 
