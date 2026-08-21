@@ -616,6 +616,10 @@ export function Arena({
   const moveUsage = useRef<Map<string, number>>(new Map());
   const followUsage = useRef<Map<string, number>>(new Map());
   const idleScene = useRef(IDLE_SCENES[0]!);
+  /** LRU memory of the feeling-out scenes, so none of them repeats early. */
+  const idleUsage = useRef<Map<string, number>>(new Map());
+  const recentIdle = useRef<string[]>([]);
+
   const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
   const primed = useRef(false);
   /** A KO may be scored during a move, but its replay must never cut that move. */
