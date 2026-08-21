@@ -119,6 +119,7 @@ function AdminPage() {
   const update = (id: GiftId, patch: Partial<GiftConfig[GiftId]>) => {
     setConfig((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
     setSaved(false);
+    record("gifts", `edit ${id}`, patch as Record<string, unknown>);
   };
 
   const updatePhrase = (id: GiftId, phraseLang: Lang, value: string) => {
@@ -127,14 +128,16 @@ function AdminPage() {
       [id]: { ...current[id], phrases: { ...current[id].phrases, [phraseLang]: value } },
     }));
     setSaved(false);
+    record("gifts", `phrase ${id} · ${phraseLang}`, { value });
   };
 
-  const patchAdmin = (patch: Partial<AdminConfig>) => {
+  const patchAdmin = (patch: Partial<AdminConfig>, section = "settings", action = "update") => {
     setAdmin((current) => {
       const next = { ...current, ...patch };
       saveAdminConfig(next);
       return next;
     });
+    record(section, action, patch as Record<string, unknown>);
   };
 
   const loadHistory = useCallback(async () => {
