@@ -285,7 +285,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
           void event.currentTarget.play();
         }}
         onTimeUpdate={handleTimeUpdate}
-        className="absolute inset-0 size-full object-contain"
+        className="absolute inset-0 size-full animate-arena-drift object-contain"
       />
 
       {impact && !ko && (
