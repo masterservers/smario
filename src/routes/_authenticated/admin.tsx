@@ -29,6 +29,7 @@ import {
 import { ConfigManager } from "@/components/admin/ConfigManager";
 import { BroadcastControl } from "@/components/admin/BroadcastControl";
 import { MixControl } from "@/components/admin/MixControl";
+import { publishControl, useBroadcastLang } from "@/lib/control";
 import { OutfitControl } from "@/components/admin/OutfitControl";
 import { SessionLinks } from "@/components/admin/SessionLinks";
 import { GuestChat } from "@/components/admin/GuestChat";
@@ -97,6 +98,7 @@ type HistoryRow = {
 
 function AdminPage() {
   const { lang } = Route.useSearch();
+  const onAirLang = useBroadcastLang(lang);
   const [config, setConfig] = useState<GiftConfig>(() => getGiftConfig());
   const [hits, setHits] = useState<HitConfig>(() => getHitConfig());
   const [scenes, setScenes] = useState<SceneConfig>(() => getSceneConfig());
