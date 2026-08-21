@@ -162,7 +162,7 @@ function BattlePage() {
   return (
     <main
       className="fixed inset-0 h-[100dvh] w-screen touch-pan-x overflow-hidden overscroll-none bg-background"
-      style={{ ["--hud" as string]: `${hud.height}px` }}
+      style={{ ["--hud" as string]: "0px" }}
     >
       <h1 className="sr-only">
         {names.ru} vs {names.us} — {t.live}
