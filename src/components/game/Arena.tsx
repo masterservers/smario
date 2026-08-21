@@ -64,13 +64,24 @@ const MOVES: Move[] = [
   { id: "senton", start: 37.6, end: 41.0, impact: 39.8, label: "SENTON BOMB", rate: 0.85, tier: 5 },
 ];
 
-/** Follow-up spots: a dive from the ropes onto the opponent already on the mat. */
+/**
+ * Follow-up spots played while the opponent is already down: corner climbs,
+ * dives from the ropes and throws. Windows start slightly before the launch so
+ * the climb/run-up is visible and the trajectory reads naturally.
+ */
 const FOLLOW_UPS: Move[] = [
-  { id: "fu-splash", start: 4.0, end: 7.0, impact: 6.4, label: "SPLASH ON THE DOWNED MAN", rate: 0.9, tier: 4 },
-  { id: "fu-elbow", start: 20.4, end: 23.2, impact: 22.5, label: "ELBOW DROP ON THE MAT", rate: 0.9, tier: 4 },
-  { id: "fu-moonsault", start: 27.2, end: 29.6, impact: 28.9, label: "MOONSAULT ON THE MAT", rate: 0.9, tier: 4 },
-  { id: "fu-senton", start: 37.6, end: 40.6, impact: 39.6, label: "SENTON ON THE DOWNED MAN", rate: 0.9, tier: 4 },
+  { id: "fu-splash", start: 3.6, end: 7.0, impact: 6.4, label: "SPLASH ON THE DOWNED MAN", rate: 0.9, tier: 4 },
+  { id: "fu-elbow", start: 20.0, end: 23.2, impact: 22.5, label: "ELBOW DROP ON THE MAT", rate: 0.9, tier: 4 },
+  { id: "fu-moonsault", start: 26.8, end: 29.6, impact: 28.9, label: "MOONSAULT ON THE MAT", rate: 0.88, tier: 4 },
+  { id: "fu-senton", start: 37.2, end: 40.6, impact: 39.6, label: "SENTON ON THE DOWNED MAN", rate: 0.9, tier: 4 },
+  { id: "fu-corner-climb", start: 12.6, end: 15.6, impact: 14.9, label: "CORNER CLIMB SPLASH", rate: 0.9, tier: 4 },
+  { id: "fu-rope-dive", start: 5.2, end: 8.0, impact: 7.2, label: "DIVE FROM THE TOP ROPE", rate: 0.9, tier: 4 },
+  { id: "fu-throw-out", start: 6.6, end: 9.6, impact: 8.6, label: "THROWN OVER THE ROPES", rate: 0.88, tier: 4 },
+  { id: "fu-ground-pound", start: 25.2, end: 27.6, impact: 26.8, label: "GROUND & POUND", rate: 0.95, tier: 3 },
+  { id: "fu-powerbomb", start: 2.4, end: 6.2, impact: 5.2, label: "POWERBOMB OFF THE CORNER", rate: 0.85, tier: 5 },
+  { id: "fu-german", start: 30.6, end: 33.2, impact: 32.4, label: "GERMAN SUPLEX THROW", rate: 0.92, tier: 4 },
 ];
+
 
 const GIFT_TIER: Record<string, number> = {
   rose: 1,
