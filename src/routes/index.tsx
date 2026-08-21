@@ -1,32 +1,24 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Arena } from "@/components/game/Arena";
-import { ChatPanel } from "@/components/game/ChatPanel";
-import { GiftDock } from "@/components/game/GiftDock";
-import { EventLog, type LogEntry, type LogKind } from "@/components/game/EventLog";
+import { type LogEntry, type LogKind } from "@/components/game/EventLog";
 import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
-import { FightControls } from "@/components/game/FightControls";
-import { DifficultyPicker } from "@/components/game/DifficultyPicker";
-import { RefereePanel } from "@/components/game/RefereePanel";
 import { Subtitles } from "@/components/game/Subtitles";
-import { useHudHeight } from "@/hooks/useHudHeight";
-import { loadDifficulty, saveDifficulty, type Difficulty } from "@/lib/difficulty";
-import { loadVariety, saveVariety, VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
-import { loadSubtitlesOn, saveSubtitlesOn } from "@/lib/subtitles";
-import { getGiftConfig } from "@/lib/giftConfig";
-import { MatchSummary } from "@/components/game/MatchSummary";
+import { loadDifficulty, type Difficulty } from "@/lib/difficulty";
+import { loadVariety, VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
+import { loadSubtitlesOn } from "@/lib/subtitles";
 import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
 import { useRemoteConfig } from "@/lib/useRemoteConfig";
 import { RefereeCount } from "@/components/game/RefereeCount";
-import { Leaderboard } from "@/components/game/Leaderboard";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Button } from "@/components/ui/button";
 import { announceHit, useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
 import { useTopBanner } from "@/hooks/useTopBanner";
-import type { GiftId, Side } from "@/lib/battle";
+import type { Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
+
 
 type Search = { lang: Lang };
 
