@@ -5,6 +5,8 @@ import { sideVoiceNames } from "@/lib/adminConfig";
 import { publishSubtitle } from "@/lib/subtitles";
 import { familyOf } from "@/lib/scenes";
 import { FAMILY_LINES } from "@/lib/familyLines";
+import { getVoiceClip, playVoiceClip, stopVoiceClip, type VoiceTone } from "@/lib/voice";
+import { crowdReact, duckCrowd } from "@/lib/crowd";
 
 export type CommentaryLine = { id: string; text: string; tone: "hit" | "big" | "ko" | "idle" };
 
