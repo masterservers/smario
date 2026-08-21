@@ -245,6 +245,8 @@ function drawLRU<T extends { id: string }>(
   if (recent.length > unique.length) recent.shift();
   recentFamilies.push(familyOf(chosen as { id: string; label?: string }));
   if (recentFamilies.length > 12) recentFamilies.shift();
+  noteVisualSequence(seqOf(chosen));
+
   return chosen;
 }
 
