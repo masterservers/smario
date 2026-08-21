@@ -247,7 +247,7 @@ function speak(text: string, lang: Lang, priority: number, cue?: number) {
     if (speechQueue.length >= MAX_QUEUE) dropCue(speechQueue.shift()?.cue);
   }
 
-  speechQueue.push({ text, lang, priority, cue });
+  speechQueue.push(cue === undefined ? { text, lang, priority } : { text, lang, priority, cue });
   // Highest priority first, stable for equal lanes.
   speechQueue.sort((a, b) => b.priority - a.priority);
   drain();
