@@ -131,6 +131,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   const currentMove = useRef<Move | null>(null);
   const recentMoves = useRef<string[]>([]);
   const idleScene = useRef(IDLE_SCENES[0]!);
+  const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
   const primed = useRef(false);
 
   const [attacker, setAttacker] = useState<Side>("us");
