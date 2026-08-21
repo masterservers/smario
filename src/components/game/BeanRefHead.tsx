@@ -107,9 +107,9 @@ export function BeanRefHead() {
 
   if (!config.headEnabled) return null;
   // Tracked shirt wins; the admin sliders are the fallback anchor.
-  const anchorX = spot ? spot.x - 3.5 : config.headX;
+  const anchorX = spot ? spot.x - 1 : config.headX;
   // The detector locks onto the torso; the head sits a bit above it.
-  const anchorY = spot ? spot.y - 8.5 : config.headY;
+  const anchorY = spot ? spot.y - 7.5 : config.headY;
   const sizePct = spot
     ? Math.min(5, Math.max(2.2, spot.width * 1.2))
     : config.headSize;
