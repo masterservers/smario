@@ -3,23 +3,75 @@ import fightVideo from "@/assets/arena-wide.webm.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
-type Sequence = {
+type Move = {
+  id: string;
   start: number;
   end: number;
   impact: number;
   label: string;
+  rate: number;
+  /** 1 = light strike, 5 = finisher */
+  tier: number;
 };
 
-const SEQUENCES: Record<string, Sequence> = {
-  rose: { start: 0.3, end: 3.1, impact: 2.35, label: "BODY SHOT" },
-  donut: { start: 2.2, end: 5.1, impact: 3.65, label: "COUNTER" },
-  tiktok: { start: 3.4, end: 6.7, impact: 5.05, label: "GRAPPLE" },
-  gift: { start: 5.1, end: 8.2, impact: 6.75, label: "TAKEDOWN" },
-  rocket: { start: 6.5, end: 9.7, impact: 8.15, label: "FINISHER" },
+/**
+ * Move library. The broadcast clip is sliced into many different windows and
+ * played back at different speeds, so the same attack is rarely seen twice in
+ * a row. Camera stays fixed — the footage is never mirrored.
+ */
+const MOVES: Move[] = [
+  { id: "jab", start: 0.2, end: 1.5, impact: 1.0, label: "JAB", rate: 1.15, tier: 1 },
+  { id: "hook", start: 1.3, end: 2.6, impact: 2.1, label: "HOOK", rate: 1.1, tier: 1 },
+  { id: "elbow", start: 2.4, end: 3.6, impact: 3.1, label: "ELBOW", rate: 1.2, tier: 1 },
+  { id: "kick", start: 4.1, end: 5.3, impact: 4.9, label: "LOW KICK", rate: 1.1, tier: 1 },
+
+  { id: "combo", start: 0.6, end: 2.4, impact: 1.7, label: "COMBO", rate: 1.05, tier: 2 },
+  { id: "clothesline", start: 3.0, end: 4.6, impact: 4.0, label: "CLOTHESLINE", rate: 1.0, tier: 2 },
+  { id: "counter", start: 5.0, end: 6.4, impact: 6.0, label: "COUNTER", rate: 1.05, tier: 2 },
+  { id: "knee", start: 6.2, end: 7.4, impact: 7.0, label: "FLYING KNEE", rate: 1.15, tier: 2 },
+
+  { id: "grapple", start: 2.0, end: 4.2, impact: 3.4, label: "GRAPPLE", rate: 0.95, tier: 3 },
+  { id: "suplex", start: 4.4, end: 6.6, impact: 5.8, label: "SUPLEX", rate: 0.95, tier: 3 },
+  { id: "dropkick", start: 6.0, end: 7.8, impact: 7.1, label: "DROPKICK", rate: 1.05, tier: 3 },
+  { id: "corner", start: 7.2, end: 9.0, impact: 8.3, label: "CORNER RUSH", rate: 1.0, tier: 3 },
+
+  { id: "slam", start: 1.8, end: 4.4, impact: 3.6, label: "BODY SLAM", rate: 0.9, tier: 4 },
+  { id: "rope-dive", start: 5.4, end: 8.0, impact: 7.2, label: "TOP-ROPE DIVE", rate: 0.9, tier: 4 },
+  { id: "throw-out", start: 6.8, end: 9.6, impact: 8.6, label: "THROWN OUT OF THE RING", rate: 0.9, tier: 4 },
+
+  { id: "splash", start: 4.0, end: 7.6, impact: 6.6, label: "SPLASH FROM THE ROPES", rate: 0.85, tier: 5 },
+  { id: "finisher", start: 6.4, end: 10.0, impact: 8.8, label: "FINISHER", rate: 0.85, tier: 5 },
+  { id: "powerbomb", start: 2.6, end: 6.2, impact: 5.2, label: "POWERBOMB", rate: 0.85, tier: 5 },
+];
+
+const GIFT_TIER: Record<string, number> = {
+  rose: 1,
+  donut: 2,
+  tiktok: 3,
+  gift: 4,
+  rocket: 5,
 };
 
-const IDLE_START = 0.2;
-const IDLE_END = 9.7;
+/** Feeling-out scenarios played when nobody is sending gifts. */
+const IDLE_SCENES: Array<{ start: number; end: number; rate: number }> = [
+  { start: 0.2, end: 2.2, rate: 0.8 },
+  { start: 2.0, end: 4.4, rate: 0.75 },
+  { start: 4.2, end: 6.4, rate: 0.8 },
+  { start: 6.0, end: 8.2, rate: 0.75 },
+  { start: 7.8, end: 10.0, rate: 0.85 },
+  { start: 1.2, end: 3.4, rate: 0.9 },
+];
+
+function pick<T>(items: T[], avoid: string[] = [], key?: (item: T) => string): T {
+  const pool = key ? items.filter((item) => !avoid.includes(key(item))) : items;
+  const list = pool.length > 0 ? pool : items;
+  return list[Math.floor(Math.random() * list.length)]!;
+}
+
+function movesForTier(tier: number): Move[] {
+  const exact = MOVES.filter((move) => move.tier === tier);
+  return exact.length > 0 ? exact : MOVES;
+}
 
 type FloatItem = { id: string; emoji: string; side: Side; left: number };
 type DamageItem = { id: string; side: Side; amount: number };
@@ -41,6 +93,9 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   const impactAt = useRef(0);
   const impacted = useRef(false);
   const currentEvent = useRef<GiftEvent | null>(null);
+  const currentMove = useRef<Move | null>(null);
+  const recentMoves = useRef<string[]>([]);
+  const idleScene = useRef(IDLE_SCENES[0]!);
   const primed = useRef(false);
 
   const [attacker, setAttacker] = useState<Side>("us");
@@ -66,30 +121,53 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     queue.current.push(...fresh.slice(-5));
   }, [events]);
 
+  // Freeze the fight on the downed frame when someone gets knocked out.
+  useEffect(() => {
+    if (!ko) return;
+    const video = videoRef.current;
+    if (!video) return;
+    playing.current = false;
+    currentEvent.current = null;
+    currentMove.current = null;
+    video.playbackRate = 0.5;
+    const finisher = MOVES.find((move) => move.id === "finisher")!;
+    video.currentTime = finisher.impact;
+    void video.play();
+    const timer = window.setTimeout(() => video.pause(), 1200);
+    return () => window.clearTimeout(timer);
+  }, [ko]);
+
   useEffect(() => {
     const timer = window.setInterval(() => {
       const video = videoRef.current;
       if (!video || ko) return;
       if (playing.current) return;
-      // Idle loop: keep both fighters visible and moving in the ring
-      if (video.paused || video.currentTime < IDLE_START || video.currentTime > IDLE_END) {
-        if (video.currentTime < IDLE_START || video.currentTime > IDLE_END) {
-          video.currentTime = IDLE_START;
+
+      // Feeling-out phase: rotate through different idle scenarios.
+      const scene = idleScene.current;
+      if (video.paused || video.currentTime < scene.start || video.currentTime > scene.end) {
+        if (video.currentTime < scene.start || video.currentTime > scene.end) {
+          idleScene.current = pick(IDLE_SCENES);
+          video.currentTime = idleScene.current.start;
         }
+        video.playbackRate = idleScene.current.rate;
         void video.play();
       }
+
       const event = queue.current.shift();
       if (!event) return;
 
+      const tier = GIFT_TIER[event.gift] ?? 1;
+      const move = pick(movesForTier(tier), recentMoves.current, (m) => m.id);
+      recentMoves.current = [...recentMoves.current, move.id].slice(-4);
 
-      const sequence = SEQUENCES[event.gift] ?? SEQUENCES['rose'];
-      if (!sequence) return;
       const gift = GIFT_BY_ID[event.gift];
       currentEvent.current = event;
+      currentMove.current = move;
       playing.current = true;
       impacted.current = false;
-      stopAt.current = sequence.end;
-      impactAt.current = sequence.impact;
+      stopAt.current = move.end;
+      impactAt.current = move.impact;
       setAttacker(event.side);
       setFloats((previous) => [
         ...previous.slice(-8),
@@ -101,7 +179,8 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         },
       ]);
 
-      video.currentTime = sequence.start;
+      video.currentTime = move.start;
+      video.playbackRate = move.rate;
       void video.play();
     }, 80);
     return () => window.clearInterval(timer);
@@ -110,20 +189,19 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   const handleTimeUpdate = () => {
     const video = videoRef.current;
     const event = currentEvent.current;
-    if (!video || !event || !playing.current) return;
-    const sequence = SEQUENCES[event.gift] ?? SEQUENCES['rose'];
-    if (!sequence) return;
+    const move = currentMove.current;
+    if (!video || !event || !move || !playing.current) return;
 
     if (!impacted.current && video.currentTime >= impactAt.current) {
       impacted.current = true;
       const defender: Side = event.side === "ru" ? "us" : "ru";
       const gift = GIFT_BY_ID[event.gift];
-      setImpact({ id: event.id, side: defender, label: sequence.label });
+      setImpact({ id: event.id, side: defender, label: move.label });
       setDamages((previous) => [
         ...previous.slice(-3),
         { id: event.id, side: defender, amount: gift?.damage ?? 4 },
       ]);
-      window.setTimeout(() => setImpact(null), 500);
+      window.setTimeout(() => setImpact(null), 600);
       window.setTimeout(
         () => setDamages((previous) => previous.filter((item) => item.id !== event.id)),
         900,
@@ -131,9 +209,13 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     }
 
     if (video.currentTime >= stopAt.current) {
-      video.pause();
       playing.current = false;
       currentEvent.current = null;
+      currentMove.current = null;
+      idleScene.current = pick(IDLE_SCENES);
+      video.currentTime = idleScene.current.start;
+      video.playbackRate = idleScene.current.rate;
+      void video.play();
       window.setTimeout(
         () => setFloats((previous) => previous.filter((item) => item.id !== event.id)),
         900,
@@ -153,14 +235,14 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         preload="auto"
         aria-label={`${names.ru} versus ${names.us}`}
         onLoadedData={(event) => {
-          event.currentTarget.currentTime = IDLE_START;
+          event.currentTarget.currentTime = IDLE_SCENES[0]!.start;
           void event.currentTarget.play();
         }}
         onTimeUpdate={handleTimeUpdate}
-        className={`absolute inset-0 size-full object-contain transition-transform duration-300 ${attacker === "ru" ? "-scale-x-100" : "scale-x-100"}`}
+        className="absolute inset-0 size-full object-contain"
       />
 
-      {impact && (
+      {impact && !ko && (
         <div className="pointer-events-none absolute inset-0 animate-arena-impact">
           <div className="display absolute left-1/2 top-[14%] -translate-x-1/2 text-2xl text-gold text-outline sm:text-4xl">
             {impact.label}
@@ -200,13 +282,14 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         </div>
       )}
 
+      {/* Knockout: no overlay panel over the ring — the loser stays down on the
+          mat and only a headline sits at the top-centre of the screen. */}
       {ko && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-background/75 text-center backdrop-blur-sm">
-          <div className="display text-6xl text-gold text-outline sm:text-8xl">{t.knockout}</div>
-          <div className="display text-3xl sm:text-5xl">
-            {ko === "ru" ? names.ru : names.us} {t.wins}
+        <div className="pointer-events-none absolute inset-x-0 top-[8%] z-20 flex flex-col items-center gap-1 text-center">
+          <div className="display text-5xl text-gold text-outline sm:text-7xl">{t.knockout}</div>
+          <div className="display text-xl text-outline sm:text-3xl">
+            {ko === "ru" ? names.us : names.ru} — {t.knockedDown}
           </div>
-          <div className="text-sm text-muted-foreground">{t.nextMatch}</div>
         </div>
       )}
     </div>

@@ -27,6 +27,7 @@ type UI = {
   topSupporters: string;
   noSupporters: string;
   knockout: string;
+  knockedDown: string;
   wins: string;
   nextMatch: string;
   you: string;
@@ -50,6 +51,7 @@ export const UI_TEXT: Record<Lang, UI> = {
     topSupporters: "Top supporters",
     noSupporters: "No gifts yet — be the first!",
     knockout: "KNOCKOUT!",
+    knockedDown: "is down on the mat",
     wins: "wins the match",
     nextMatch: "Next match starting…",
     you: "You",
@@ -71,6 +73,7 @@ export const UI_TEXT: Record<Lang, UI> = {
     topSupporters: "Top-Unterstützer",
     noSupporters: "Noch keine Geschenke — sei der Erste!",
     knockout: "KNOCKOUT!",
+    knockedDown: "liegt am Boden",
     wins: "gewinnt den Kampf",
     nextMatch: "Nächster Kampf startet…",
     you: "Du",
@@ -92,6 +95,7 @@ export const UI_TEXT: Record<Lang, UI> = {
     topSupporters: "Najbolji navijači",
     noSupporters: "Još nema poklona — budi prvi!",
     knockout: "NOKAUT!",
+    knockedDown: "leži na podu",
     wins: "pobeđuje u meču",
     nextMatch: "Sledeći meč počinje…",
     you: "Ti",
@@ -113,6 +117,7 @@ export const UI_TEXT: Record<Lang, UI> = {
     topSupporters: "Cei mai buni suporteri",
     noSupporters: "Încă niciun cadou — fii primul!",
     knockout: "KNOCKOUT!",
+    knockedDown: "este întins la podea",
     wins: "câștigă meciul",
     nextMatch: "Următorul meci începe…",
     you: "Tu",
@@ -134,6 +139,7 @@ export const UI_TEXT: Record<Lang, UI> = {
     topSupporters: "Лучшие болельщики",
     noSupporters: "Подарков пока нет — будь первым!",
     knockout: "НОКАУТ!",
+    knockedDown: "лежит на настиле",
     wins: "побеждает в матче",
     nextMatch: "Следующий матч начинается…",
     you: "Ты",
