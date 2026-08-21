@@ -168,6 +168,7 @@ function BattlePage() {
           leader={leader}
           matchId={matchId}
           ko={state.ko}
+          koConfirmed={referee.koConfirmed}
         />
       </div>
 
