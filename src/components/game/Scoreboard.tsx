@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { MAX_HP, type Side } from "@/lib/battle";
 import { UI_TEXT, type Lang } from "@/lib/i18n";
-import { sideNames, useAdminConfig, useMatchTitle, useTitleScale } from "@/lib/adminConfig";
+import { sideNames, useAdminConfig, useMatchTitle, useNameScale, useScoreboardScale, useTitleScale } from "@/lib/adminConfig";
 
 type Props = {
   lang: Lang;
@@ -97,6 +97,8 @@ export function Scoreboard({
     return { lead: words.join(" "), left, right: m[2] ?? "" };
   })();
   const titleScale = useTitleScale();
+  const scoreScale = useScoreboardScale();
+  const nameScale = useNameScale();
   const { time, elapsed } = useRoundClock(matchId, round, ko);
 
   // Referee calls and gift ticker — driven by useTopBanner, which speaks the
@@ -106,19 +108,22 @@ export function Scoreboard({
   else if (!call && !ko && elapsed < 3200) call = round > 1 ? t.refNextRound : t.refRoundStart;
 
   return (
-    <div className="hud-panel pointer-events-none mx-auto mt-1 w-full max-w-[44rem] rounded-full border border-border bg-background/55 px-3 py-1 backdrop-blur-md">
+    <div
+      className="hud-panel pointer-events-none mx-auto mt-1 w-full max-w-[44rem] rounded-full border border-border bg-background/55 px-3 py-1 backdrop-blur-md"
+      style={{ "--score-scale": scoreScale, "--name-scale": nameScale } as CSSProperties}
+    >
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-base leading-none sm:text-lg">🇷🇺</span>
             <span
-              className="display truncate text-xs leading-none sm:text-sm"
+              className="hud-name display truncate leading-none"
               style={{ color: "var(--ru-glow)" }}
             >
               {names.ruTeam} · {names.ru}
             </span>
             {leader === "ru" && <span className="text-xs">👑</span>}
-            <span className="display ml-auto text-xl leading-none sm:text-3xl" style={{ color: "var(--ru-glow)" }}>
+            <span className="hud-score display ml-auto leading-none" style={{ color: "var(--ru-glow)" }}>
               {scoreRu}
             </span>
           </div>
@@ -128,9 +133,9 @@ export function Scoreboard({
         </div>
 
         <div className="flex flex-col items-center px-1 leading-none">
-          <span className="display text-sm text-gold sm:text-base">VS</span>
-          <span className="display mt-0.5 text-xs tabular-nums text-gold sm:text-sm">{time}</span>
-          <span className="mt-0.5 text-[8px] uppercase text-muted-foreground sm:text-[9px]">
+          <span className="hud-vs display text-gold">VS</span>
+          <span className="hud-clock display mt-0.5 tabular-nums text-gold">{time}</span>
+          <span className="hud-meta mt-0.5 uppercase text-muted-foreground">
             {t.round} {round} · {viewers}
           </span>
           {call && (
@@ -153,12 +158,12 @@ export function Scoreboard({
 
         <div className="min-w-0 text-right">
           <div className="flex items-center justify-end gap-1.5">
-            <span className="display mr-auto text-xl leading-none sm:text-3xl" style={{ color: "var(--us-glow)" }}>
+            <span className="hud-score display mr-auto leading-none" style={{ color: "var(--us-glow)" }}>
               {scoreUs}
             </span>
             {leader === "us" && <span className="text-xs">👑</span>}
             <span
-              className="display truncate text-xs leading-none sm:text-sm"
+              className="hud-name display truncate leading-none"
               style={{ color: "var(--us-glow)" }}
             >
               {names.us} · {names.usTeam}

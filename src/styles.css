@@ -889,3 +889,18 @@
   50% { transform: translate(-50%, -52%) rotate(1.5deg); }
 }
 html[data-perf="lite"] .bean-head { animation: none; }
+
+/* --- Scoreboard type scale (admin adjustable) ------------------------ */
+.hud-name { font-size: calc(0.75rem * var(--name-scale, 1)); }
+.hud-score { font-size: calc(1.25rem * var(--score-scale, 1)); }
+.hud-vs { font-size: calc(0.875rem * var(--score-scale, 1)); }
+.hud-clock { font-size: calc(0.75rem * var(--score-scale, 1)); }
+.hud-meta { font-size: calc(0.5rem * var(--score-scale, 1)); }
+
+@media (min-width: 640px) {
+  .hud-name { font-size: calc(0.875rem * var(--name-scale, 1)); }
+  .hud-score { font-size: calc(1.875rem * var(--score-scale, 1)); }
+  .hud-vs { font-size: calc(1rem * var(--score-scale, 1)); }
+  .hud-clock { font-size: calc(0.875rem * var(--score-scale, 1)); }
+  .hud-meta { font-size: calc(0.5625rem * var(--score-scale, 1)); }
+}
