@@ -78,6 +78,8 @@ function normalize(raw: unknown): AdminConfig {
   }
   base.liveSession = str(parsed.liveSession, base.liveSession);
   base.matchTitle = normalizeTitle(parsed.matchTitle ?? base.matchTitle);
+  base.titleScale = clampScale(parsed.titleScale ?? base.titleScale);
+
   return base;
 }
 
