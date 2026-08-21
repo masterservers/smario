@@ -112,10 +112,16 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
     // The reel is 16:9 and letterboxed, so Bean lives inside the same box — he
     // always stands on the mat, never down in the black bars.
     <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
-      <div className="relative aspect-video max-h-full w-full max-w-full">
+      <div
+        className={`relative aspect-video max-h-full w-full max-w-full ${
+          debug ? "outline outline-1 outline-sky-400/80" : ""
+        }`}
+      >
         <div
           key={`${run.id}-${struck}`}
           className={`bean-ref absolute bottom-[4%] top-[46%] flex flex-col items-center justify-end ${
+            debug ? "outline outline-1 outline-lime-400/90" : ""
+          } ${
             run.from === "left"
               ? `bean-ref-left ${separating ? "left-[26%]" : "left-[6%]"}`
               : `bean-ref-right ${separating ? "right-[26%]" : "right-[6%]"}`
