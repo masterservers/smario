@@ -31,6 +31,7 @@ import { BroadcastControl } from "@/components/admin/BroadcastControl";
 import { SessionLinks } from "@/components/admin/SessionLinks";
 import { GuestChat } from "@/components/admin/GuestChat";
 import { RoundMapping } from "@/components/admin/RoundMapping";
+import { MatchReset } from "@/components/admin/MatchReset";
 import { TwoFactorGate, TwoFactorSettings, useMfaState } from "@/components/admin/TwoFactor";
 import { ALL_SCENES } from "@/lib/scenes";
 import {
