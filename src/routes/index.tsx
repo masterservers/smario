@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Arena } from "@/components/game/Arena";
 import { ChatPanel } from "@/components/game/ChatPanel";
-import { CommentaryBar } from "@/components/game/CommentaryBar";
 import { GiftDock } from "@/components/game/GiftDock";
 import { LangPicker } from "@/components/game/LangPicker";
 import { Leaderboard } from "@/components/game/Leaderboard";
@@ -44,6 +43,7 @@ function BattlePage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const [muted, setMuted] = useState(true);
   const [showBoard, setShowBoard] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch();
   const lines = useCommentary(lang, events, state, muted);
@@ -136,7 +136,7 @@ function BattlePage() {
         <button
           type="button"
           onClick={() => setShowChat((s) => !s)}
-          aria-label={t.chat}
+          aria-label={t.chatPlaceholder}
           className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
         >
           💬
