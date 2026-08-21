@@ -51,6 +51,19 @@ export function SceneDebugPanel() {
         {transitions.lockIdle ? "idle locked" : "idle free"} ·{" "}
         {transitions.allowGiftInterrupt ? "gift may cut" : "no cuts"}
       </div>
+      <div className="mt-1 border-t border-border/60 pt-1 text-muted-foreground">
+        <div className="uppercase tracking-widest">visual sequences</div>
+        <div>
+          names {stats.totalMoveNames} · unique footage {stats.uniqueVisualSequences} · dup{" "}
+          {stats.duplicateMappings}
+        </div>
+        <div>
+          avg {stats.averageMovesPerSequence} names/seq · most reused {stats.mostReused.id} (
+          {stats.mostReused.count})
+        </div>
+        <div className="truncate">recent: {stats.recent.join(" › ") || "—"}</div>
+      </div>
+
     </div>
   );
 }
