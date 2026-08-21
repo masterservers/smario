@@ -298,6 +298,9 @@ export function useCommentary(
       { id: `${now}-${Math.random().toString(36).slice(2)}`, text, tone },
     ]);
     publishSubtitle(text, "commentary", 3200);
+    if (tone === "ko") crowdReact("ko");
+    else if (tone === "big") crowdReact("big");
+    else if (tone === "hit") crowdReact("hit");
     if (!mutedRef.current) speak(text, langRef.current, PRIORITY[tone]);
   };
 
