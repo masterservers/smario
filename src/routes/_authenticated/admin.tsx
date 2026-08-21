@@ -405,6 +405,17 @@ function AdminPage() {
         </div>
       </div>
 
+      {/* Security ------------------------------------------------------- */}
+      <section className="panel mt-6 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Security · two-factor
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          The console requires a 6-digit code from an authenticator app at every sign-in.
+        </p>
+        <TwoFactorSettings />
+      </section>
+
       {/* Fighters ------------------------------------------------------- */}
       <section className="panel mt-6 rounded-2xl p-4">
         <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
