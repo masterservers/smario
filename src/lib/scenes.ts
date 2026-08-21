@@ -395,9 +395,71 @@ const EXTRA_IDLE: IdleScene[] = [
   { id: "i-x12", start: 38.0, end: 40.0, rate: 0.8, label: "CLOSING SECONDS" },
 ];
 
-export const MOVES: Move[] = [...BASE_MOVES, ...EXTRA_MOVES];
-export const FOLLOW_UPS: Move[] = [...BASE_FOLLOW_UPS, ...EXTRA_FOLLOW_UPS];
-export const IDLE_SCENES: IdleScene[] = [...BASE_IDLE, ...EXTRA_IDLE];
+/**
+ * Rope and top-rope vocabulary brought back and expanded: climbing the
+ * turnbuckle, leaping over the opponent, springboards, and throws that send a
+ * fighter over the top rope and out of the ring.
+ */
+const ROPE_MOVES: Move[] = [
+  { id: "r-climb-corner", start: 20.2, end: 22.8, impact: 22.2, label: "CLIMBS THE TURNBUCKLE", rate: 0.9, tier: 4 },
+  { id: "r-leap-over", start: 21.6, end: 24.4, impact: 23.6, label: "LEAP OVER THE OPPONENT", rate: 0.88, tier: 4 },
+  { id: "r-top-rope-jump", start: 22.2, end: 25.2, impact: 24.4, label: "TOP-ROPE JUMP", rate: 0.88, tier: 4 },
+  { id: "r-springboard", start: 23.0, end: 25.8, impact: 25.1, label: "SPRINGBOARD ATTACK", rate: 0.88, tier: 4 },
+  { id: "r-flying-elbow", start: 24.4, end: 27.0, impact: 26.3, label: "FLYING ELBOW FROM THE ROPES", rate: 0.88, tier: 4 },
+  { id: "r-rope-hurricanrana", start: 25.6, end: 28.2, impact: 27.5, label: "ROPE HURRICANRANA", rate: 0.88, tier: 4 },
+  { id: "r-rope-somersault", start: 21.0, end: 23.9, impact: 23.2, label: "SOMERSAULT OFF THE ROPES", rate: 0.86, tier: 4 },
+  { id: "r-vault-jump", start: 12.6, end: 15.0, impact: 14.4, label: "VAULTS THE ROPES", rate: 0.9, tier: 3 },
+  { id: "r-rope-catapult", start: 13.6, end: 15.8, impact: 15.2, label: "ROPE CATAPULT", rate: 0.92, tier: 3 },
+  { id: "r-over-the-top", start: 36.0, end: 38.8, impact: 38.0, label: "THROWN OVER THE TOP ROPE", rate: 0.86, tier: 5 },
+  { id: "r-toss-outside", start: 37.2, end: 39.8, impact: 39.0, label: "TOSSED OUT OF THE RING", rate: 0.86, tier: 5 },
+  { id: "r-rope-slam-out", start: 34.6, end: 37.4, impact: 36.8, label: "SLAMMED OVER THE ROPES", rate: 0.86, tier: 5 },
+  { id: "r-rope-superplex", start: 20.8, end: 24.0, impact: 23.4, label: "SUPERPLEX FROM THE ROPES", rate: 0.84, tier: 5 },
+  { id: "r-rope-finish-dive", start: 24.0, end: 27.4, impact: 26.7, label: "DIVING FINISHER", rate: 0.84, tier: 5 },
+];
+
+const ROPE_FOLLOW_UPS: Move[] = [
+  { id: "fu-rope-leap", start: 21.4, end: 24.2, impact: 23.5, label: "LEAP FROM THE ROPES", rate: 0.86, tier: 4 },
+  { id: "fu-rope-somersault", start: 22.6, end: 25.4, impact: 24.7, label: "SOMERSAULT ONTO THE MAT", rate: 0.86, tier: 4 },
+  { id: "fu-rope-elbow", start: 25.0, end: 27.8, impact: 27.1, label: "FLYING ELBOW ON THE MAT", rate: 0.86, tier: 4 },
+  { id: "fu-over-ropes", start: 36.6, end: 39.6, impact: 38.9, label: "ROLLED OVER THE ROPES", rate: 0.86, tier: 4 },
+];
+
+const ROPE_IDLE: IdleScene[] = [
+  { id: "i-r1", start: 20.6, end: 22.8, rate: 0.76, label: "CORNER CLIMB LOOK" },
+  { id: "i-r2", start: 12.8, end: 15.2, rate: 0.78, label: "BOUNCING OFF THE ROPES" },
+  { id: "i-r3", start: 36.6, end: 38.8, rate: 0.76, label: "AT THE ROPES" },
+];
+
+/**
+ * Round themes: each round leans on a different family of scenes, so a long
+ * match never plays the same rhythm twice. The preference is soft — the strict
+ * LRU rotation still guarantees no close repetition.
+ */
+const ROUND_THEMES: RegExp[] = [
+  /JAB|HOOK|CROSS|UPPERCUT|SHOT|COMBO|COMBINATION|ELBOW|SLAP|BACKFIST/, // round 1: striking
+  /KICK|KNEE|TEEP|SPIN|CLOTHESLINE|SHOULDER/, // round 2: kicks and charges
+  /ROPE|TURNBUCKLE|CLIMB|VAULT|SPRINGBOARD|LEAP|JUMP|DIVE|SOMERSAULT|MOONSAULT|SPLASH/, // round 3: rope work
+  /SLAM|THROW|TOSS|SUPLEX|POWERBOMB|CARRY|SPINEBUSTER|TAKEDOWN|BOMB/, // round 4: throws
+  /MAT|GROUND|STOMP|DROP|MOUNT|PIN|CORNER/, // round 5: mat and corner work
+];
+
+let activeRound = 0;
+
+/** Called by the arena when a new round begins. */
+export function setSceneRound(round: number) {
+  activeRound = Math.max(0, Math.floor(round));
+}
+
+/** True when the scene belongs to the family favoured by the current round. */
+export function inRoundTheme(item: { label?: string }): boolean {
+  const theme = ROUND_THEMES[activeRound % ROUND_THEMES.length]!;
+  return typeof item.label === "string" && theme.test(item.label);
+}
+
+export const MOVES: Move[] = [...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES];
+
+export const FOLLOW_UPS: Move[] = [...BASE_FOLLOW_UPS, ...EXTRA_FOLLOW_UPS, ...ROPE_FOLLOW_UPS];
+export const IDLE_SCENES: IdleScene[] = [...BASE_IDLE, ...EXTRA_IDLE, ...ROPE_IDLE];
 
 /** Every scene the scheduler can pick, for the admin list and the debug panel. */
 export const ALL_SCENES = [
