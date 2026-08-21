@@ -400,25 +400,11 @@ const FOLLOW_UPS: Move[] = [
 /** Victory pose: the winner stands over the ring with both hands raised. */
 const CHAMPION_POSE = { start: 28.6, end: 30.1, rate: 0.7 };
 
-const GIFT_TIER: Record<string, number> = {
-  rose: 1,
-  donut: 2,
-  tiktok: 3,
-  gift: 4,
-  rocket: 5,
-};
-
 /**
- * Each gift reads as a specific kind of blow, delivered by the fighter the gift
- * was sent to: a rose is a strike, a rocket ends with a throw.
+ * The gift → kind of blow → power mapping is no longer hard-coded: it lives in
+ * the admin panel (`/admin`, tab "Lovituri") and is read live through
+ * `ruleFor()`, so it can be tuned during a live show without a redeploy.
  */
-const GIFT_KIND: Record<string, HitKind[]> = {
-  rose: ["punch"],
-  donut: ["kick", "punch"],
-  tiktok: ["grapple", "kick"],
-  gift: ["aerial", "grapple"],
-  rocket: ["throw", "aerial"],
-};
 
 /**
  * Feeling-out scenarios played when nobody is sending gifts. Deliberately many,
