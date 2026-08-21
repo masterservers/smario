@@ -119,18 +119,21 @@ function AdminPage() {
     }
   }, []);
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const me = await getMyStaffRole();
-        setRole(me.role);
-        setActor(me.email);
-        if (me.role) void loadAudit();
-      } catch {
-        setRole(null);
-      }
-    })();
+  const reloadRole = useCallback(async () => {
+    try {
+      const me = await getMyStaffRole();
+      setRole(me.role);
+      setActor(me.email);
+      setMfaRequired(me.mfaRequired);
+      if (me.role) void loadAudit();
+    } catch {
+      setRole(null);
+    }
   }, [loadAudit]);
+
+  useEffect(() => {
+    void reloadRole();
+  }, [reloadRole]);
 
   /**
    * Writes an audit entry. Field edits fire on every keystroke, so identical
