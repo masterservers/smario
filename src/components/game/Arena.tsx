@@ -199,7 +199,17 @@ const MOVES: Move[] = [
     tier: 4,
   },
 
+  // Rope work — contact with the mesh, being pushed off the ropes, rebound
+  // jumps and turns, so the action leaves the centre of the ring.
+  { id: "rope-press", start: 12.6, end: 14.4, impact: 13.6, label: "PRESSED ON THE ROPES", rate: 0.96, tier: 2 },
+  { id: "rope-whip", start: 13.2, end: 15.2, impact: 14.5, label: "ROPE WHIP", rate: 1.0, tier: 2 },
+  { id: "rope-rebound", start: 15.2, end: 17.2, impact: 16.4, label: "ROPE REBOUND", rate: 1.02, tier: 2 },
+  { id: "rope-shoulder", start: 18.4, end: 20.0, impact: 19.5, label: "ROPE SHOULDER CHARGE", rate: 0.98, tier: 3 },
+  { id: "rope-spin", start: 20.6, end: 22.8, impact: 22.0, label: "ROPE SPIN OUT", rate: 0.94, tier: 3 },
+  { id: "rope-vault", start: 23.2, end: 25.6, impact: 24.8, label: "ROPE VAULT", rate: 0.9, tier: 4 },
+
   // Tier 5 — finishers.
+
   {
     id: "powerbomb-a",
     start: 34.2,
