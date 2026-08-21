@@ -119,11 +119,30 @@ export type RingVerdict = {
   serverTime: number;
 };
 
+/** A quiet ring: no score, no knockdown, no decisions to apply. */
+function emptyVerdict(matchId: string, round: number, config: HitConfig): RingVerdict {
+  return {
+    matchId,
+    round,
+    scoreRu: 0,
+    scoreUs: 0,
+    hpRu: 100,
+    hpUs: 100,
+    combo: 0,
+    comboSide: null,
+    ko: null,
+    referee: config.referee,
+    decisions: [],
+    serverTime: Date.now(),
+  };
+}
+
 /**
  * Recomputes the whole ring state from the stored gift feed and decides which
  * blow every gift produces. Nothing here trusts the browser: score, knockdown
  * and knockout all come from the database rows.
  */
+
 export async function judgeRing(matchId: string): Promise<RingVerdict> {
   const supabase = await adminClient();
 
