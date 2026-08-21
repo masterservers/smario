@@ -885,6 +885,7 @@ export function Arena({
 
       currentEvent.current = event;
       currentMove.current = move;
+      sparring.current = false;
       playing.current = true;
       impacted.current = false;
       settling.current = false;
@@ -954,7 +955,8 @@ export function Arena({
       koKind.current = kind;
       // Exactly-once confirmation: one gift id, one landed hit, one voice line.
       const rootId = event.id.split("-fu")[0]!;
-      if (!delivered.current.has(rootId)) {
+      // A sparring spot is pure action: it never scores and never speaks.
+      if (!sparring.current && !delivered.current.has(rootId)) {
         delivered.current.add(rootId);
         queuedAt.current.delete(rootId);
         hitRef.current?.({
@@ -1014,10 +1016,12 @@ export function Arena({
           sparkLife,
         );
       }
-      setDamages((previous) => [
-        ...previous.slice(-1),
-        { id: event.id, side: defender, amount: gift?.damage ?? 4 },
-      ]);
+      if (!sparring.current) {
+        setDamages((previous) => [
+          ...previous.slice(-1),
+          { id: event.id, side: defender, amount: gift?.damage ?? 4 },
+        ]);
+      }
       window.setTimeout(() => setImpact(null), 600);
       window.setTimeout(
         () => setDamages((previous) => previous.filter((item) => item.id !== event.id)),
@@ -1058,6 +1062,7 @@ export function Arena({
 
       settling.current = false;
       playing.current = false;
+      sparring.current = false;
       currentEvent.current = null;
       currentMove.current = null;
       // Short breath after the recovery, unless a KO is waiting to be replayed.
