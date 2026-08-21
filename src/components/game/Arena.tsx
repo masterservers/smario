@@ -495,6 +495,8 @@ export function Arena({
     const video = videoRef.current;
     if (!video) return;
     playing.current = false;
+    settling.current = false;
+
     currentEvent.current = null;
     currentMove.current = null;
     const finisher = MOVES.find((move) => move.id === "finisher")!;
