@@ -83,18 +83,49 @@ function find(id: string): string {
   }
   return root;
 }
-function union(a: string, b: string) {
+const rank = new Map<string, number>();
+/** Live span of each cluster root, used to stop chain-merging. */
+const spanOf = new Map<string, { start: number; end: number; longest: number }>();
+
+/**
+ * A → B and B → C can each overlap strongly while A and C show nothing in
+ * common. Without a guard, a chain of shifted windows collapses a whole reel
+ * into one "cluster". A merge is only accepted while the resulting span stays
+ * close to the length of a single action.
+ */
+const SPAN_GUARD = 1.6;
+
+function union(a: string, b: string): boolean {
   const ra = find(a);
   const rb = find(b);
-  if (ra === rb) return;
+  if (ra === rb) return false;
+  const sa = spanOf.get(ra)!;
+  const sb = spanOf.get(rb)!;
+  const start = Math.min(sa.start, sb.start);
+  const end = Math.max(sa.end, sb.end);
+  const longest = Math.max(sa.longest, sb.longest);
+  if (end - start > longest * SPAN_GUARD) return false;
   // Keep the earlier sequence (traversal order) as the root for determinism.
-  const ia = ordered.findIndex((s) => s.id === ra);
-  const ib = ordered.findIndex((s) => s.id === rb);
-  if (ia <= ib) parent.set(rb, ra);
-  else parent.set(ra, rb);
+  const merged = { start, end, longest };
+  if ((rank.get(ra) ?? 0) <= (rank.get(rb) ?? 0)) {
+    parent.set(rb, ra);
+    spanOf.set(ra, merged);
+  } else {
+    parent.set(ra, rb);
+    spanOf.set(rb, merged);
+  }
+  return true;
 }
 
-for (const sequence of ordered) parent.set(sequence.id, sequence.id);
+ordered.forEach((sequence, index) => {
+  parent.set(sequence.id, sequence.id);
+  rank.set(sequence.id, index);
+  spanOf.set(sequence.id, {
+    start: sequence.start,
+    end: sequence.end,
+    longest: sequence.end - sequence.start,
+  });
+});
 
 export type SequencePair = {
   a: string;
