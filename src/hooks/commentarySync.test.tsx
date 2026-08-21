@@ -8,6 +8,7 @@ import { act, render } from "@testing-library/react";
 import { announceHit, announceSpar, useCommentary, type CommentaryLine } from "./useCommentary";
 import { FAMILY_LINES } from "@/lib/familyLines";
 import { familyOf } from "@/lib/scenes";
+import { sideVoiceNames } from "@/lib/adminConfig";
 import type { BattleState, GiftEvent } from "@/lib/battle";
 
 /** Voice must start no later than this after the impact frame. */
@@ -77,9 +78,10 @@ function lastLine() {
 /** Every line the pack can produce for a family, with our two fighters. */
 function actionLinesFor(label: string) {
   const family = familyOf({ label });
-  return FAMILY_LINES.en[family].action.map((fn) => fn("PUTIN", "TRUMP")).concat(
-    FAMILY_LINES.en[family].action.map((fn) => fn("TRUMP", "PUTIN")),
-  );
+  const names = sideVoiceNames("en");
+  return FAMILY_LINES.en[family].action
+    .map((fn) => fn(names.ru, names.us))
+    .concat(FAMILY_LINES.en[family].action.map((fn) => fn(names.us, names.ru)));
 }
 
 /** Let the speech queue drain and the per-tone cooldown expire. */
@@ -100,6 +102,15 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
 });
+
+const SEED: GiftEvent = {
+  id: "seed",
+  side: "ru",
+  gift: "rose",
+  value: 1,
+  sender: "seed",
+  created_at: new Date(0).toISOString(),
+};
 
 const MOVES: Array<{ label: string; family: string }> = [
   { label: "RIGHT HOOK", family: "punch" },
@@ -145,11 +156,11 @@ describe("commentary / impact synchronisation", () => {
       sender: "tester",
       created_at: new Date().toISOString(),
     };
-    const view = render(<Probe events={[]} />);
+    const view = render(<Probe events={[SEED]} />);
     await settle();
 
     act(() => {
-      view.rerender(<Probe events={[event]} />);
+      view.rerender(<Probe events={[SEED, event]} />);
     });
     const linesBefore = captured.length;
     const spokenBefore = spoken.length;
@@ -180,11 +191,11 @@ describe("commentary / impact synchronisation", () => {
       sender: "tester",
       created_at: new Date().toISOString(),
     };
-    const view = render(<Probe events={[]} />);
+    const view = render(<Probe events={[SEED]} />);
     await settle();
 
     act(() => {
-      view.rerender(<Probe events={[event]} />);
+      view.rerender(<Probe events={[SEED, event]} />);
     });
     const linesBefore = captured.length;
 
