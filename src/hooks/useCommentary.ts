@@ -3,6 +3,8 @@ import { GIFT_BY_ID, type BattleState, type GiftEvent, type Side } from "@/lib/b
 import { COMMENTARY, LANG_META, REFEREE_LINES, UI_TEXT, type Lang } from "@/lib/i18n";
 import { sideVoiceNames } from "@/lib/adminConfig";
 import { publishSubtitle } from "@/lib/subtitles";
+import { familyOf } from "@/lib/scenes";
+import { FAMILY_LINES } from "@/lib/familyLines";
 
 export type CommentaryLine = { id: string; text: string; tone: "hit" | "big" | "ko" | "idle" };
 
@@ -197,6 +199,17 @@ export function announceHit(hit: HitAnnouncement) {
   hitAnnouncer?.(hit);
 }
 
+let sceneAnnouncer: ((scene: { id?: string; label: string }) => void) | null = null;
+
+/**
+ * Called by the arena when a scene without a gift starts (feeling-out phases,
+ * rope work, mat scrambles). The commentator describes the family of the scene
+ * in the language chosen on the link.
+ */
+export function announceScene(scene: { id?: string; label: string }) {
+  sceneAnnouncer?.(scene);
+}
+
 
 export function useCommentary(
   lang: Lang,
@@ -245,7 +258,9 @@ export function useCommentary(
    * the background, dropped scene), a fallback fires the call anyway — but only
    * once per gift id, so a hit is never commented twice.
    */
-  const pendingCalls = useRef<Map<string, { run: () => void; timer: number }>>(new Map());
+  const pendingCalls = useRef<Map<string, { run: (label?: string) => void; timer: number }>>(
+    new Map(),
+  );
   const spokenHits = useRef<Set<string>>(new Set());
 
   const flushCall = (eventId: string, suffix?: string) => {
@@ -256,14 +271,24 @@ export function useCommentary(
     if (spokenHits.current.has(eventId)) return;
     spokenHits.current.add(eventId);
     if (spokenHits.current.size > 200) spokenHits.current.clear();
-    pending.run();
+    pending.run(suffix);
     if (suffix) publishSubtitle(suffix, "hit", 2200);
   };
 
   useEffect(() => {
     hitAnnouncer = (hit) => flushCall(hit.eventId, hit.label);
+    // Ambient family call: only when the voice lane is free, so it never steps
+    // on a hit, a referee count or a knockout call.
+    sceneAnnouncer = (scene) => {
+      if (commentaryBusy()) return;
+      const family = familyOf(scene);
+      const ambient = FAMILY_LINES[langRef.current][family].ambient;
+      if (ambient.length === 0) return;
+      push(pick(ambient), "idle");
+    };
     return () => {
       hitAnnouncer = null;
+      sceneAnnouncer = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -285,14 +310,23 @@ export function useCommentary(
     const defender = last.side === "ru" ? names.us : names.ru;
     const gift = GIFT_BY_ID[last.gift];
 
-    const call = () => {
+    const call = (label?: string) => {
+      const big = (gift?.damage ?? 0) >= 20;
       if (state.combo >= 4 && state.comboSide === last.side) {
         push(pick(c.combo)(attacker, defender, String(state.combo)), "big");
-      } else if ((gift?.damage ?? 0) >= 20) {
-        push(pick(c.bigHit)(attacker, defender), "big");
-      } else {
-        push(pick(c.hit)(attacker, defender), "hit");
+        return;
       }
+      // The arena tells us which move actually landed, so the call describes the
+      // real family of the scene (punch, kick, ropes, throw, mat, clinch).
+      if (label) {
+        const family = familyOf({ label });
+        const pack = FAMILY_LINES[langRef.current][family].action;
+        if (pack.length > 0) {
+          push(pick(pack)(attacker, defender), big ? "big" : "hit");
+          return;
+        }
+      }
+      push(big ? pick(c.bigHit)(attacker, defender) : pick(c.hit)(attacker, defender), big ? "big" : "hit");
     };
     // Fallback well after the usual impact delay, in case no confirmation comes.
     const timer = window.setTimeout(() => flushCall(last.id), IMPACT_DELAY_MS + 3200);
