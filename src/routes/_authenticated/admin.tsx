@@ -197,7 +197,7 @@ function AdminPage() {
                         ...admin.fighters,
                         [side]: { ...admin.fighters[side], name: e.target.value },
                       },
-                    })
+                    }, "fighters", `${side} name`)
                   }
                   className="mt-1 h-9"
                   aria-label={`${side} fighter name`}
@@ -213,7 +213,7 @@ function AdminPage() {
                         ...admin.fighters,
                         [side]: { ...admin.fighters[side], nickname: e.target.value },
                       },
-                    })
+                    }, "fighters", `${side} nickname`)
                   }
                   className="mt-1 h-9"
                   aria-label={`${side} fighter nickname`}
@@ -235,7 +235,7 @@ function AdminPage() {
             <Input
               value={admin.tiktok.username}
               placeholder="@account"
-              onChange={(e) => patchAdmin({ tiktok: { ...admin.tiktok, username: e.target.value } })}
+              onChange={(e) => patchAdmin({ tiktok: { ...admin.tiktok, username: e.target.value } }, "tiktok", "username")}
               className="mt-1 h-9"
             />
           </label>
@@ -244,7 +244,7 @@ function AdminPage() {
             <Input
               value={admin.tiktok.liveUrl}
               placeholder="https://www.tiktok.com/@account/live"
-              onChange={(e) => patchAdmin({ tiktok: { ...admin.tiktok, liveUrl: e.target.value } })}
+              onChange={(e) => patchAdmin({ tiktok: { ...admin.tiktok, liveUrl: e.target.value } }, "tiktok", "live url")}
               className="mt-1 h-9"
             />
           </label>
@@ -254,7 +254,7 @@ function AdminPage() {
               value={admin.tiktok.webhookUrl}
               placeholder="https://…/api/public/tiktok"
               onChange={(e) =>
-                patchAdmin({ tiktok: { ...admin.tiktok, webhookUrl: e.target.value } })
+                patchAdmin({ tiktok: { ...admin.tiktok, webhookUrl: e.target.value } }, "tiktok", "relay endpoint")
               }
               className="mt-1 h-9"
             />
@@ -265,7 +265,7 @@ function AdminPage() {
             type="button"
             size="sm"
             variant={admin.tiktok.enabled ? "default" : "outline"}
-            onClick={() => patchAdmin({ tiktok: { ...admin.tiktok, enabled: !admin.tiktok.enabled } })}
+            onClick={() => patchAdmin({ tiktok: { ...admin.tiktok, enabled: !admin.tiktok.enabled } }, "tiktok", "source toggle")}
           >
             {admin.tiktok.enabled ? "Source active" : "Source paused"}
           </Button>
@@ -311,7 +311,7 @@ function AdminPage() {
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => patchAdmin({ liveSession: newSessionId() })}
+            onClick={() => patchAdmin({ liveSession: newSessionId() }, "live", "new session")}
           >
             New session
           </Button>
