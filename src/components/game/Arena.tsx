@@ -408,21 +408,54 @@ const GIFT_TIER: Record<string, number> = {
   rocket: 5,
 };
 
-/** Feeling-out scenarios played when nobody is sending gifts. */
+/**
+ * Each gift reads as a specific kind of blow, delivered by the fighter the gift
+ * was sent to: a rose is a strike, a rocket ends with a throw.
+ */
+const GIFT_KIND: Record<string, HitKind[]> = {
+  rose: ["punch"],
+  donut: ["kick", "punch"],
+  tiktok: ["grapple", "kick"],
+  gift: ["aerial", "grapple"],
+  rocket: ["throw", "aerial"],
+};
+
+/**
+ * Feeling-out scenarios played when nobody is sending gifts. Deliberately many,
+ * so the idle fight keeps travelling across the ring instead of looping the
+ * same two or three windows.
+ */
 const IDLE_SCENES: Array<{ start: number; end: number; rate: number }> = [
   { start: 0.2, end: 2.4, rate: 0.8 },
+  { start: 1.4, end: 3.6, rate: 0.78 },
   { start: 2.2, end: 4.6, rate: 0.75 },
+  { start: 3.4, end: 5.6, rate: 0.82 },
   { start: 4.4, end: 6.8, rate: 0.8 },
+  { start: 5.6, end: 7.8, rate: 0.76 },
   { start: 6.6, end: 9.0, rate: 0.75 },
+  { start: 8.0, end: 10.1, rate: 0.8 },
   { start: 10.2, end: 12.6, rate: 0.82 },
+  { start: 11.4, end: 13.6, rate: 0.8 },
   { start: 12.4, end: 14.8, rate: 0.78 },
+  { start: 13.8, end: 16.0, rate: 0.76 },
   { start: 15.0, end: 17.4, rate: 0.8 },
+  { start: 16.2, end: 18.6, rate: 0.78 },
   { start: 17.2, end: 19.8, rate: 0.76 },
+  { start: 18.6, end: 20.6, rate: 0.8 },
   { start: 20.4, end: 22.6, rate: 0.74 },
+  { start: 21.6, end: 23.8, rate: 0.76 },
+  { start: 23.0, end: 25.2, rate: 0.78 },
+  { start: 24.6, end: 26.8, rate: 0.74 },
   { start: 26.6, end: 29.4, rate: 0.78 },
+  { start: 28.2, end: 30.2, rate: 0.76 },
   { start: 30.5, end: 32.8, rate: 0.8 },
+  { start: 31.8, end: 34.0, rate: 0.78 },
   { start: 32.6, end: 35.0, rate: 0.76 },
+  { start: 34.4, end: 36.6, rate: 0.78 },
+  { start: 36.2, end: 38.4, rate: 0.76 },
+  { start: 37.4, end: 39.6, rate: 0.8 },
 ];
+
 
 
 function pick<T>(items: T[], avoid: string[] = [], key?: (item: T) => string): T {
