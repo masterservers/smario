@@ -109,7 +109,7 @@ export function markCue(kind: CueKind): number {
 export function resolveCue(
   id: number | undefined,
   source: SyncSample["source"],
-  line?: { text?: string; lang?: string },
+  line?: { text?: string | undefined; lang?: string | undefined },
 ) {
   if (!id) return;
   const cue = pending.get(id);
@@ -128,7 +128,10 @@ export function resolveCue(
 }
 
 /** Drops a cue whose line never went on air (interrupted by a bigger call). */
-export function dropCue(id: number | undefined, line?: { text?: string; lang?: string }) {
+export function dropCue(
+  id: number | undefined,
+  line?: { text?: string | undefined; lang?: string | undefined },
+) {
   if (!id) return;
   const cue = pending.get(id);
   if (!cue) return;
