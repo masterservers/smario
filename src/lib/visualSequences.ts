@@ -91,6 +91,20 @@ export const VISUAL_SEQUENCES: Record<string, VisualSequence> = Object.fromEntri
   Array.from(byWindow.values()).map((s) => [s.id, s]),
 );
 
+/** Scene ids that play a given sequence (audit/debug use). */
+export function sequenceMembers(id: string): string[] {
+  return movesOfSequence.get(id) ?? [];
+}
+
+/** Human label of a catalog scene id, for audit reports. */
+const labelOfScene = new Map<string, string>();
+for (const scene of [...MOVES, ...FOLLOW_UPS] as Move[]) labelOfScene.set(scene.id, scene.label);
+for (const scene of IDLE_SCENES as IdleScene[]) labelOfScene.set(scene.id, scene.label ?? scene.id);
+
+export function sceneLabel(id: string): string {
+  return labelOfScene.get(id) ?? id;
+}
+
 /** The visual sequence a scene plays. Falls back to its raw window key. */
 export function visualSequenceIdOf(scene: { id: string; src?: string; start?: number; end?: number }): string {
   const known = sequenceOfMove.get(scene.id);
