@@ -393,7 +393,11 @@ export function Arena({
 }: Props) {
   const logRef = useRef(onLog);
   logRef.current = onLog;
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
+  const activeLayerRef = useRef(0);
+  const activeVideoRef = useRef<HTMLVideoElement | null>(null);
+  const switchingRef = useRef(false);
+  const switchTokenRef = useRef(0);
   const seen = useRef<Set<string>>(new Set());
   const queue = useRef<GiftEvent[]>([]);
   const playing = useRef(false);
@@ -439,6 +443,7 @@ export function Arena({
   }, []);
 
   const [attacker, setAttacker] = useState<Side>("us");
+  const [activeLayer, setActiveLayer] = useState(0);
   const [crowd, setCrowd] = useState(0);
   const [replay, setReplay] = useState(false);
   const [champion, setChampion] = useState(false);
@@ -456,6 +461,37 @@ export function Arena({
 
   const seek = (video: HTMLVideoElement, time: number) => {
     video.currentTime = time;
+  };
+
+  /** Decode the next scene off-screen before replacing the visible frame. */
+  const switchScene = (time: number, rate: number) => {
+    const previous = activeVideoRef.current;
+    const nextLayer = activeLayerRef.current === 0 ? 1 : 0;
+    const next = videoRefs.current[nextLayer];
+    if (!next || switchingRef.current) return false;
+
+    switchingRef.current = true;
+    const token = ++switchTokenRef.current;
+    next.pause();
+    next.playbackRate = rate;
+    const reveal = () => {
+      if (token !== switchTokenRef.current) return;
+      void next.play().then(() => {
+        if (token !== switchTokenRef.current) return;
+        activeLayerRef.current = nextLayer;
+        activeVideoRef.current = next;
+        setActiveLayer(nextLayer);
+        switchingRef.current = false;
+        window.setTimeout(() => {
+          if (previous && previous !== activeVideoRef.current) previous.pause();
+        }, 180);
+      }).catch(() => {
+        switchingRef.current = false;
+      });
+    };
+    next.addEventListener("seeked", reveal, { once: true });
+    seek(next, time);
+    return true;
   };
 
   /** Crowd reaction pulse, synced to hits and knockouts. */
