@@ -97,6 +97,16 @@ export function commentaryBusy() {
   return speaking || speechQueue.length > 0;
 }
 
+/**
+ * Priority of what currently holds the voice lane (-1 when it is free). A
+ * sparring call may cut ambient filler (0) but never a referee count, a big
+ * hit or a knockout (>= 2).
+ */
+export function commentaryLanePriority() {
+  const queued = speechQueue.length > 0 ? speechQueue[0]!.priority : -1;
+  return Math.max(speaking ? speakingPriority : -1, queued);
+}
+
 function drain() {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   if (speaking || speechQueue.length === 0 || drainTimer) return;
@@ -249,10 +259,12 @@ export function useCommentary(
     hit: 0,
     idle: 0,
   });
-  const push = (text: string, tone: CommentaryLine["tone"]) => {
+  // `force` is used for calls tied to a frame on screen (a landed blow): the
+  // move must always be named, even if another hit was called a second ago.
+  const push = (text: string, tone: CommentaryLine["tone"], force = false) => {
     const now = Date.now();
     // Spacing per lane so the same kind of call never floods the broadcast.
-    if (now - lastToneAt.current[tone] < TONE_COOLDOWN_MS[tone]) return;
+    if (!force && now - lastToneAt.current[tone] < TONE_COOLDOWN_MS[tone]) return;
     // Never repeat one of the recent lines.
     if (recent.current.includes(text)) return;
     lastToneAt.current[tone] = now;
@@ -304,14 +316,16 @@ export function useCommentary(
     // steps on a gift hit, a referee count or a knockout.
     sparAnnouncer = ({ side, label, tier }) => {
       if (pendingCalls.current.size > 0) return;
-      if (commentaryBusy()) return;
+      // Ambient filler is cut off by the move that just landed; only a referee
+      // count, a big hit or a knockout keeps the lane.
+      if (commentaryLanePriority() >= 2) return;
       const names = sideVoiceNames(langRef.current);
       const attacker = side === "ru" ? names.ru : names.us;
       const defender = side === "ru" ? names.us : names.ru;
       const family = familyOf({ label });
       const pack = FAMILY_LINES[langRef.current][family].action;
       if (pack.length === 0) return;
-      push(pick(pack)(attacker, defender), tier >= 4 ? "big" : "hit");
+      push(pick(pack)(attacker, defender), tier >= 4 ? "big" : "hit", true);
     };
     return () => {
       hitAnnouncer = null;

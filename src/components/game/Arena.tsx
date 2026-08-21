@@ -25,7 +25,7 @@ import {
 import { moveKind } from "@/lib/moveKind";
 import { commitPendingConfig } from "@/lib/pendingConfig";
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
-import { sceneBlocked, sceneStarted, sceneTelemetry } from "@/lib/sceneDebug";
+import { sceneBlocked, sceneImpact, sceneStarted, sceneTelemetry } from "@/lib/sceneDebug";
 import { decideSpar } from "@/lib/sparRules";
 
 const FIGHT_VIDEO = fightVideo.url;
@@ -989,6 +989,12 @@ export function Arena({
         stun: base.stun * rule.stun,
       };
       koKind.current = kind;
+      sceneImpact({
+        side: event.side,
+        label: move.label,
+        kind,
+        sparring: sparring.current,
+      });
       // Exactly-once confirmation: one gift id, one landed hit, one voice line.
       const rootId = event.id.split("-fu")[0]!;
       // A sparring spot never scores, but the commentator still calls the move
