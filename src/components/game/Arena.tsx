@@ -89,12 +89,12 @@ const FRAMES: Frame[] = [
 function frameFor(move: Move): Frame {
   const block = Math.floor(move.start / 10); // 0..3
   const base = FRAMES[(block * 2 + (move.tier % 2) + 1) % FRAMES.length]!;
-  const drift = (Math.random() - 0.5) * 2.4;
+  const drift = (Math.random() - 0.5) * 1.2;
   return {
-    x: Math.max(-7, Math.min(7, base.x + drift)),
-    y: base.y + (Math.random() - 0.5) * 1.2,
+    x: Math.max(-3.5, Math.min(3.5, base.x + drift)),
+    y: base.y + (Math.random() - 0.5) * 0.6,
     scale: base.scale,
-    rotate: base.rotate + (Math.random() - 0.5) * 0.5,
+    rotate: base.rotate + (Math.random() - 0.5) * 0.3,
   };
 }
 
