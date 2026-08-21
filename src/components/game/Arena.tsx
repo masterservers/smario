@@ -988,6 +988,18 @@ export function Arena({
         () => setDamages((previous) => previous.filter((item) => item.id !== event.id)),
         900,
       );
+      // Guarantee the follow-through: from the frame of contact the scene keeps
+      // rolling long enough for the blow to finish on screen, and the lock is
+      // extended with it so nothing can cut in.
+      const throughTo = Math.min(39.8, video.currentTime + followThroughOf(kind));
+      if (throughTo > stopAt.current) {
+        stopAt.current = throughTo;
+        const rate = Math.max(0.55, move.rate * cfgRef.current.speed);
+        lockUntil.current = Math.max(
+          lockUntil.current,
+          performance.now() + ((throughTo - video.currentTime) / rate) * 1000,
+        );
+      }
     }
 
 
