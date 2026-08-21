@@ -476,12 +476,10 @@ function drawIdle(
  * tiers so a stream of the same gift still produces different scenes.
  */
 function movesForGift(giftId: string, tier: number): Move[] {
-  const kinds = GIFT_KIND[giftId];
+  const kinds = ruleFor(giftId).kinds;
   const exact = MOVES.filter((move) => move.tier === tier);
   const near = MOVES.filter((move) => Math.abs(move.tier - tier) <= 1);
-  const matching = kinds
-    ? near.filter((move) => kinds.includes(kindOf(move)))
-    : [];
+  const matching = near.filter((move) => kinds.includes(kindOf(move)));
   // Weight: the gift's own kind first, then the exact tier, then the neighbours.
   const pool = [...matching, ...matching, ...exact, ...near];
   return pool.length > 0 ? pool : MOVES;
