@@ -72,7 +72,7 @@ function BattlePage() {
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
-      {/* Ring: fills the entire viewport */}
+      {/* Ring: fills the entire viewport, kept clean */}
       <div className="absolute inset-0">
         <Arena
           lang={lang}
@@ -83,69 +83,76 @@ function BattlePage() {
         />
       </div>
 
-      {/* HUD top */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-2 p-2 sm:p-3">
-        <div className="pointer-events-auto">
-          <Scoreboard
-            lang={lang}
-            round={round}
-            viewers={viewers}
-            scoreRu={state.scoreRu}
-            scoreUs={state.scoreUs}
-            hpRu={state.hpRu}
-            hpUs={state.hpUs}
-            leader={leader}
-          />
-        </div>
+      {/* Slim HUD strip on top — scoreboard only */}
+      <div className="absolute inset-x-0 top-0 z-10">
+        <Scoreboard
+          lang={lang}
+          round={round}
+          viewers={viewers}
+          scoreRu={state.scoreRu}
+          scoreUs={state.scoreUs}
+          hpRu={state.hpRu}
+          hpUs={state.hpUs}
+          leader={leader}
+        />
+      </div>
 
-        <div className="flex items-start gap-2">
-          <div className="pointer-events-auto min-w-0 flex-1">
-            <CommentaryBar
+      {/* Slim HUD strip at the bottom — gifts only */}
+      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 p-2 sm:p-3">
+        {showChat && (
+          <div className="mx-auto flex max-h-[30dvh] w-full max-w-3xl min-h-0 flex-col justify-end overflow-hidden">
+            <ChatPanel
               lang={lang}
-              lines={lines}
-              muted={muted}
-              onToggleMute={() => setMuted((m) => !m)}
+              events={events}
+              nickname={nickname}
+              overlay
+              disabled={!ready || !!state.ko}
+              onSend={(side, gift, message) => handleSend(side, gift, message)}
             />
           </div>
-          <div className="pointer-events-auto flex shrink-0 items-center gap-2">
-            <LangPicker lang={lang} onChange={setLang} />
-            <button
-              type="button"
-              onClick={() => setShowBoard((s) => !s)}
-              aria-label={t.leaderboard}
-              className="rounded-full border border-border bg-black/50 px-3 py-1.5 text-sm backdrop-blur-md transition-colors hover:bg-accent"
-            >
-              🔥
-            </button>
-          </div>
-        </div>
-
+        )}
         {showBoard && (
-          <div className="pointer-events-auto ml-auto w-full max-w-[16rem]">
+          <div className="mx-auto w-full max-w-sm">
             <Leaderboard lang={lang} rows={leaders} />
           </div>
         )}
-      </div>
-
-      {/* HUD bottom: chat + gifts */}
-      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 p-2 sm:p-3">
-        <div className="flex max-h-[28dvh] min-h-0 flex-col justify-end overflow-hidden">
-          <ChatPanel
-            lang={lang}
-            events={events}
-            nickname={nickname}
-            overlay
-            disabled={!ready || !!state.ko}
-            onSend={(side, gift, message) => handleSend(side, gift, message)}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:mx-auto sm:w-full sm:max-w-3xl">
+        <div className="mx-auto grid w-full max-w-3xl grid-cols-2 gap-2">
           <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
           <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
         </div>
       </div>
+
+      {/* Small round controls, no text over the ring */}
+      <div className="absolute bottom-1/2 right-2 z-20 flex translate-y-1/2 flex-col gap-2">
+        <LangPicker lang={lang} onChange={setLang} />
+        <button
+          type="button"
+          onClick={() => setMuted((m) => !m)}
+          aria-label={t.commentator}
+          className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+        >
+          {muted ? "🔇" : "🔊"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowChat((s) => !s)}
+          aria-label={t.chat}
+          className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+        >
+          💬
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowBoard((s) => !s)}
+          aria-label={t.leaderboard}
+          className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+        >
+          🔥
+        </button>
+      </div>
     </main>
   );
 }
+
 
 
