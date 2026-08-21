@@ -385,7 +385,10 @@ export function Arena({
   const recentIdle = useRef<string[]>([]);
 
   const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
+  /** True while the ring is showing a sparring spot: action only, no score. */
+  const sparring = useRef(false);
   const primed = useRef(false);
+
   /** A KO may be scored during a move, but its replay must never cut that move. */
   const handledKo = useRef<Side | null>(null);
   const pendingKo = useRef<Side | null>(null);
