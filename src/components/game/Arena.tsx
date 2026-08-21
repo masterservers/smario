@@ -548,6 +548,18 @@ type Props = {
   koConfirmed?: boolean;
   /** Real-time trace of triggered moves, impacts, KO and replay. */
   onLog?: (kind: "move" | "impact" | "ko" | "replay", text: string) => void;
+  /**
+   * Confirmation that a gift produced exactly one landed hit. Fired at the
+   * frame of contact, so voice and subtitles are in sync with the impact.
+   */
+  onHit?: (hit: {
+    eventId: string;
+    side: Side;
+    gift: string;
+    kind: HitKind;
+    label: string;
+    force: number;
+  }) => void;
 };
 
 export function Arena({
