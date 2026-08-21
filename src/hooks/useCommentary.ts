@@ -59,12 +59,22 @@ function pickVoice(speechLang: string): SpeechSynthesisVoice | null {
 type Spoken = { text: string; lang: Lang; priority: number };
 
 /**
- * Single speech pipeline: only one line is ever spoken at a time, urgent calls
- * (KO, referee count) cut the queue, and normal lines wait for a short gap so
- * sentences never overlap or stack up behind the action.
+ * Priority lanes for the commentator:
+ *   3 = critical (knockout, final count) — cuts anything, even mid-sentence
+ *   2 = high (referee count, big hit / combo) — cuts ambient chatter only
+ *   1 = normal (regular hit, fighter back up)
+ *   0 = ambient (idle filler, round intro) — always yields
  */
+export const PRIORITY: Record<CommentaryLine["tone"], number> = {
+  ko: 3,
+  big: 2,
+  hit: 1,
+  idle: 0,
+};
+
 const speechQueue: Spoken[] = [];
 let speaking = false;
+let speakingPriority = -1;
 let lastEndAt = 0;
 let drainTimer = 0;
 const MIN_GAP_MS = 320;
@@ -88,17 +98,19 @@ function drain() {
     utterance.lang = speechLang;
     const voice = pickVoice(speechLang);
     if (voice) utterance.voice = voice;
-    utterance.rate = 1.08;
+    utterance.rate = next.priority >= 3 ? 1.14 : 1.08;
     utterance.pitch = 0.78; // deeper, male broadcast tone
     utterance.volume = 1;
     const done = () => {
       speaking = false;
+      speakingPriority = -1;
       lastEndAt = Date.now();
       drain();
     };
     utterance.onend = done;
     utterance.onerror = done;
     speaking = true;
+    speakingPriority = next.priority;
     synth.speak(utterance);
     // Safety net: some engines never fire onend, so release the lane anyway.
     window.setTimeout(
@@ -110,31 +122,43 @@ function drain() {
   }, wait);
 }
 
-export function stopCommentary() {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+function clearLane() {
   speechQueue.length = 0;
   window.clearTimeout(drainTimer);
   drainTimer = 0;
   speaking = false;
+  speakingPriority = -1;
   window.speechSynthesis.cancel();
 }
 
-function speak(text: string, lang: Lang, urgent: boolean) {
+export function stopCommentary() {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  if (urgent) {
-    speechQueue.length = 0;
-    window.clearTimeout(drainTimer);
-    drainTimer = 0;
-    speaking = false;
-    window.speechSynthesis.cancel();
+  clearLane();
+}
+
+function speak(text: string, lang: Lang, priority: number) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+  // A more important call interrupts whatever is on air right now.
+  if (speaking && priority > speakingPriority) {
+    clearLane();
     lastEndAt = 0;
-  } else if (speechQueue.length >= MAX_QUEUE) {
-    // Drop the oldest pending line: stale commentary is worse than silence.
-    speechQueue.shift();
+  } else if (speaking && priority < speakingPriority && priority <= 0) {
+    return; // ambient filler never queues behind an important call
+  } else {
+    // Drop pending lines that matter less than the newcomer.
+    for (let i = speechQueue.length - 1; i >= 0; i -= 1) {
+      if (speechQueue[i]!.priority < priority) speechQueue.splice(i, 1);
+    }
+    if (speechQueue.length >= MAX_QUEUE) speechQueue.shift();
   }
-  speechQueue.push({ text, lang, priority: urgent ? 2 : 1 });
+
+  speechQueue.push({ text, lang, priority });
+  // Highest priority first, stable for equal lanes.
+  speechQueue.sort((a, b) => b.priority - a.priority);
   drain();
 }
+
 
 export function useCommentary(
   lang: Lang,
