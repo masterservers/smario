@@ -180,7 +180,7 @@ function drain() {
     // Already generated? Start on this frame, zero latency.
     const ready = peekVoiceClip(next.text, next.lang, tone);
     if (ready) {
-      resolveCue(next.cue, "cache");
+      resolveCue(next.cue, "cache", { text: next.text, lang: next.lang });
       playVoiceClip(ready, done);
       return;
     }
@@ -192,13 +192,13 @@ function drain() {
       started = true;
       window.clearTimeout(deadline);
       if (url) {
-        resolveCue(next.cue, "neural");
+        resolveCue(next.cue, "neural", { text: next.text, lang: next.lang });
         playVoiceClip(url, done);
       } else if ("speechSynthesis" in window) {
-        resolveCue(next.cue, "local");
+        resolveCue(next.cue, "local", { text: next.text, lang: next.lang });
         speakFallback(next, done);
       } else {
-        resolveCue(next.cue, "silent");
+        resolveCue(next.cue, "silent", { text: next.text, lang: next.lang });
         done();
       }
     };
@@ -209,7 +209,7 @@ function drain() {
 
 function clearLane() {
   laneGeneration += 1;
-  for (const item of speechQueue) dropCue(item.cue);
+  for (const item of speechQueue) dropCue(item.cue, { text: item.text, lang: item.lang });
   speechQueue.length = 0;
   window.clearTimeout(drainTimer);
   drainTimer = 0;
@@ -234,17 +234,20 @@ function speak(text: string, lang: Lang, priority: number, cue?: number) {
     clearLane();
     lastEndAt = 0;
   } else if (speaking && priority < speakingPriority && priority <= 0) {
-    dropCue(cue);
+    dropCue(cue, { text, lang });
     return; // ambient filler never queues behind an important call
   } else {
     // Drop pending lines that matter less than the newcomer.
     for (let i = speechQueue.length - 1; i >= 0; i -= 1) {
       if (speechQueue[i]!.priority < priority) {
-        dropCue(speechQueue[i]!.cue);
+        dropCue(speechQueue[i]!.cue, { text: speechQueue[i]!.text, lang: speechQueue[i]!.lang });
         speechQueue.splice(i, 1);
       }
     }
-    if (speechQueue.length >= MAX_QUEUE) dropCue(speechQueue.shift()?.cue);
+    if (speechQueue.length >= MAX_QUEUE) {
+      const stale = speechQueue.shift();
+      dropCue(stale?.cue, { text: stale?.text, lang: stale?.lang });
+    }
   }
 
   speechQueue.push(cue === undefined ? { text, lang, priority } : { text, lang, priority, cue });

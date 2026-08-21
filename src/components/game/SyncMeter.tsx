@@ -1,5 +1,5 @@
 import { useSceneConfig } from "@/lib/sceneConfig";
-import { useSyncMeter } from "@/lib/syncMeter";
+import { downloadSyncLog, useSyncMeter } from "@/lib/syncMeter";
 
 const KIND_LABEL: Record<string, string> = {
   hit: "punch",
@@ -18,19 +18,23 @@ function tone(ms: number) {
 /**
  * Live A/V sync read-out: how many milliseconds pass between the frame a blow,
  * a referee count or a knockout happens and the first word of the announcer.
- * Shown in the arena while the debug switch is on in the admin console.
+ * Shows the delay of every single line, a per-cue breakdown (punch / count /
+ * KO) and exports the full log of the running round.
  */
 export function SyncMeter() {
   const { transitions } = useSceneConfig();
-  const { last, averageMs, worstMs, samples } = useSyncMeter();
+  const { last, averageMs, worstMs, samples, byKind, dropped, round, roundLog } = useSyncMeter();
 
   if (!transitions.debug) return null;
 
   return (
-    <div className="pointer-events-none absolute bottom-2 right-2 z-30 w-44 rounded-xl border border-border/70 bg-background/85 p-2 font-mono text-[10px] leading-tight text-foreground backdrop-blur">
+    <div className="pointer-events-none absolute bottom-2 right-2 z-30 w-56 rounded-xl border border-border/70 bg-background/85 p-2 font-mono text-[10px] leading-tight text-foreground backdrop-blur">
       <div className="flex items-center justify-between text-muted-foreground">
-        <span className="uppercase tracking-widest">a/v sync</span>
-        <span>{samples.length}</span>
+        <span className="uppercase tracking-widest">a/v sync · r{round}</span>
+        <span>
+          {roundLog.length}
+          {dropped > 0 ? ` · ${dropped}✕` : ""}
+        </span>
       </div>
       {last ? (
         <>
@@ -40,7 +44,15 @@ export function SyncMeter() {
               +{last.deltaMs} ms
             </span>
           </div>
-          <div className="text-muted-foreground">voice: {last.source}</div>
+          {last.text ? (
+            <div className="truncate text-muted-foreground" title={last.text}>
+              “{last.text}”
+            </div>
+          ) : null}
+          <div className="text-muted-foreground">
+            voice: {last.source}
+            {last.lang ? ` · ${last.lang}` : ""}
+          </div>
           <div className="mt-1 flex justify-between text-muted-foreground">
             <span>
               avg <span className={`tabular-nums ${tone(averageMs)}`}>{averageMs} ms</span>
@@ -65,10 +77,43 @@ export function SyncMeter() {
               />
             ))}
           </div>
+          {byKind.length > 0 ? (
+            <div className="mt-1 space-y-[1px] border-t border-border/50 pt-1">
+              {byKind.map((stat) => (
+                <div key={stat.kind} className="flex justify-between text-muted-foreground">
+                  <span>
+                    {KIND_LABEL[stat.kind] ?? stat.kind} ×{stat.count}
+                  </span>
+                  <span className="tabular-nums">
+                    <span className={tone(stat.averageMs)}>{stat.averageMs}</span>
+                    <span className="opacity-60"> / {stat.worstMs} ms</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </>
       ) : (
         <div className="mt-1 text-muted-foreground">waiting for the first call…</div>
       )}
+      <div className="pointer-events-auto mt-1.5 flex gap-1">
+        <button
+          type="button"
+          onClick={() => downloadSyncLog("csv")}
+          disabled={roundLog.length === 0}
+          className="flex-1 rounded-md border border-border/70 px-1 py-[3px] uppercase tracking-widest text-muted-foreground transition hover:text-foreground disabled:opacity-40"
+        >
+          csv
+        </button>
+        <button
+          type="button"
+          onClick={() => downloadSyncLog("json")}
+          disabled={roundLog.length === 0}
+          className="flex-1 rounded-md border border-border/70 px-1 py-[3px] uppercase tracking-widest text-muted-foreground transition hover:text-foreground disabled:opacity-40"
+        >
+          json
+        </button>
+      </div>
     </div>
   );
 }

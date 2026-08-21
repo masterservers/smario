@@ -23,6 +23,7 @@ import type { Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 import { useBroadcastLang, useBroadcastMix, useControlBus, type ControlMessage } from "@/lib/control";
 import { setActiveRound } from "@/lib/hitConfig";
+import { setSyncRound } from "@/lib/syncMeter";
 import { publishSubtitle } from "@/lib/subtitles";
 
 
@@ -133,6 +134,7 @@ function BattlePage() {
   // The gift → hit mapping may differ from round to round.
   useEffect(() => {
     setActiveRound(round);
+    setSyncRound(round);
   }, [round]);
 
   // Arena ambience follows the same sound switch as the announcer.
