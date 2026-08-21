@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import {
   applyBundle,
   diffBundle,
+  diffSnapshots,
   exportBundle,
   resetBundle,
   validateBundle,
@@ -11,8 +12,10 @@ import {
   type ConfigBundle,
   type FieldError,
 } from "@/lib/configBundle";
+import { clearPendingConfig, getPendingConfig, stagePendingConfig } from "@/lib/pendingConfig";
 import {
   activateConfigVersion,
+  getActiveConfigVersion,
   deleteConfigVersion,
   listConfigVersions,
   saveConfigVersion,
@@ -40,6 +43,12 @@ export function ConfigManager({ onApplied, record }: Props) {
   const [versions, setVersions] = useState<ConfigVersion[]>([]);
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
+  /** When an import goes live: immediately, at the next scene end or next round. */
+  const [timing, setTiming] = useState<"now" | "scene" | "round">("scene");
+  const [staged, setStaged] = useState(() => getPendingConfig());
+  /** Version comparison screen. */
+  const [compare, setCompare] = useState<{ a: string; b: string }>({ a: "", b: "" });
+  const [live, setLive] = useState<ConfigVersion | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const loadVersions = useCallback(async () => {
@@ -52,7 +61,16 @@ export function ConfigManager({ onApplied, record }: Props) {
 
   useEffect(() => {
     void loadVersions();
+    void getActiveConfigVersion()
+      .then((version) => setLive((version as ConfigVersion | null) ?? null))
+      .catch(() => setLive(null));
   }, [loadVersions]);
+
+  /** Poll the staged import so the badge disappears once the arena applied it. */
+  useEffect(() => {
+    const timer = window.setInterval(() => setStaged(getPendingConfig()), 1500);
+    return () => window.clearInterval(timer);
+  }, []);
 
   /** Step 1: validate the JSON field by field and build the diff preview. */
   const check = (text: string) => {
@@ -66,15 +84,31 @@ export function ConfigManager({ onApplied, record }: Props) {
     }
     setErrors([]);
     setWarnings(result.warnings);
-    setPreview({ diff: diffBundle(result.bundle), bundle: result.bundle });
+    const diff = diffBundle(result.bundle);
+    setPreview({ diff, bundle: result.bundle });
+    record("config", "validated & previewed", { changes: diff.total, warnings: result.warnings.length });
   };
 
   /** Step 2: apply the previewed bundle and publish it as a new version. */
   const apply = async () => {
     if (!preview) return;
+    if (timing !== "now") {
+      const pending = stagePendingConfig(preview.bundle, timing, label || "import");
+      setStaged(pending);
+      record("config", "import staged", { changes: preview.diff.total, when: timing });
+      setStatus({
+        ok: true,
+        text:
+          timing === "scene"
+            ? "Staged — goes live as soon as the current scene ends."
+            : "Staged — goes live at the start of the next round.",
+      });
+      setPreview(null);
+      return;
+    }
     applyBundle(preview.bundle);
     onApplied();
-    record("config", "import applied", { changes: preview.diff.total });
+    record("config", "import applied", { changes: preview.diff.total, when: "now" });
     setStatus({ ok: true, text: `Applied — ${preview.diff.total} changes.` });
     setPreview(null);
     setJson(exportBundle());
@@ -105,7 +139,8 @@ export function ConfigManager({ onApplied, record }: Props) {
       setJson(exportBundle());
       await loadVersions();
       setStatus({ ok: true, text: `Restored "${version.label}".` });
-      record("config", "version restored", { label: version.label });
+      record("config", "version restored", { label: version.label, id: version.id });
+      setLive(version);
     } catch {
       setStatus({ ok: false, text: "Could not restore this version." });
     } finally {
@@ -217,6 +252,19 @@ export function ConfigManager({ onApplied, record }: Props) {
         <Button variant="outline" className="h-8" onClick={() => check(json)}>
           Validate &amp; preview
         </Button>
+        <label className="flex items-center gap-1 text-xs text-muted-foreground">
+          Apply
+          <select
+            value={timing}
+            onChange={(event) => setTiming(event.target.value as typeof timing)}
+            className="h-8 rounded-md border border-border bg-background px-1 text-xs"
+            aria-label="when to apply the configuration"
+          >
+            <option value="scene">at the end of the current scene</option>
+            <option value="round">at the start of the next round</option>
+            <option value="now">immediately</option>
+          </select>
+        </label>
         <Button className="h-8" disabled={!preview || busy} onClick={() => void apply()}>
           Apply {preview ? `(${preview.diff.total})` : ""}
         </Button>
@@ -226,6 +274,26 @@ export function ConfigManager({ onApplied, record }: Props) {
           </span>
         ) : null}
       </div>
+
+      {staged ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-primary/40 bg-primary/5 p-2 text-xs">
+          <span>
+            Waiting to go live: <strong>{staged.label}</strong> —{" "}
+            {staged.when === "scene" ? "at the end of the current scene" : "at the next round"}.
+          </span>
+          <button
+            type="button"
+            className="rounded-md border border-border px-2 py-0.5"
+            onClick={() => {
+              clearPendingConfig();
+              setStaged(null);
+              record("config", "staged import cancelled", { label: staged.label });
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
 
       {errors.length > 0 ? (
         <ul className="mt-2 space-y-1 rounded-lg border border-destructive/40 bg-destructive/5 p-2 text-xs">
@@ -279,6 +347,17 @@ export function ConfigManager({ onApplied, record }: Props) {
         <div className="display text-xs uppercase tracking-widest text-muted-foreground">
           Versions (stored in the backend)
         </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Live now:{" "}
+          {live ? (
+            <span className="text-foreground">
+              {live.label} · {new Date(live.created_at).toLocaleString()}
+              {live.created_by_email ? ` · ${live.created_by_email}` : ""}
+            </span>
+          ) : (
+            "no published version (local settings)"
+          )}
+        </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Input
             value={label}
@@ -339,6 +418,80 @@ export function ConfigManager({ onApplied, record }: Props) {
               </div>
             ))
           )}
+        </div>
+
+        <div className="mt-4 border-t border-border pt-3">
+          <div className="display text-xs uppercase tracking-widest text-muted-foreground">
+            Compare two versions
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            {(["a", "b"] as const).map((slot) => (
+              <select
+                key={slot}
+                value={compare[slot]}
+                onChange={(event) => setCompare({ ...compare, [slot]: event.target.value })}
+                className="h-8 max-w-56 rounded-md border border-border bg-background px-1"
+                aria-label={slot === "a" ? "first version" : "second version"}
+              >
+                <option value="">{slot === "a" ? "from version…" : "to version…"}</option>
+                {versions.map((version) => (
+                  <option key={version.id} value={version.id}>
+                    {version.label} — {new Date(version.created_at).toLocaleString()}
+                  </option>
+                ))}
+              </select>
+            ))}
+          </div>
+          {(() => {
+            const a = versions.find((version) => version.id === compare.a);
+            const b = versions.find((version) => version.id === compare.b);
+            if (!a || !b || a.id === b.id) {
+              return (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Pick two different versions to see what changed.
+                </p>
+              );
+            }
+            let diff: ReturnType<typeof diffSnapshots>;
+            try {
+              diff = diffSnapshots(
+                JSON.parse(a.bundle) as ConfigBundle,
+                JSON.parse(b.bundle) as ConfigBundle,
+              );
+            } catch {
+              return <p className="mt-2 text-xs text-destructive">One version is unreadable.</p>;
+            }
+            const list = [
+              ...diff.scenes.map((row) => ({ ...row, area: "scene" })),
+              ...diff.transitions.map((row) => ({ ...row, area: "transition" })),
+              ...diff.hits.map((row) => ({ ...row, area: "hit" })),
+            ];
+            return (
+              <div className="mt-2 rounded-lg border border-border p-2 text-xs">
+                <div className="text-muted-foreground">
+                  {diff.total === 0 ? "Identical settings" : `${diff.total} differences`}
+                </div>
+                <div className="mt-1 max-h-56 overflow-auto">
+                  {list.map((row) => (
+                    <div
+                      key={`${row.area}-${row.field}`}
+                      className="grid grid-cols-[70px_1fr_auto] items-center gap-2 border-b border-border/40 py-1 last:border-0"
+                    >
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        {row.area}
+                      </span>
+                      <span className="truncate">{row.field}</span>
+                      <span className="font-mono">
+                        <span className="text-destructive line-through">{row.from}</span>
+                        {" → "}
+                        <span className="text-emerald-500">{row.to}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

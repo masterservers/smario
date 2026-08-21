@@ -13,6 +13,8 @@ import {
   type IdleScene,
   type Move,
 } from "@/lib/scenes";
+import { moveKind } from "@/lib/moveKind";
+import { commitPendingConfig } from "@/lib/pendingConfig";
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
 import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
 
@@ -21,14 +23,7 @@ const FIGHT_VIDEO = fightVideo.url;
 
 /** How a hit reads physically on screen (kinds are configurable in /admin). */
 
-function kindOf(move: Move): HitKind {
-  const l = move.label;
-  if (/KICK|TEEP|DROPKICK/.test(l)) return "kick";
-  if (/ROPE|CLIMB|DIVE|SPLASH|MOONSAULT|JUMP|DROP/.test(l)) return "aerial";
-  if (/SLAM|THROW|POWERBOMB|TOSS|FINISHER/.test(l)) return "throw";
-  if (/JAB|HOOK|CROSS|RIGHT|UPPERCUT|ELBOW|COMBO|COMBINATION|COUNTER|SHOT/.test(l)) return "punch";
-  return "grapple";
-}
+const kindOf = (move: Move): HitKind => moveKind(move);
 
 /**
  * Hit-stun and KO tuning, per kind of hit. Everything the impact feels like is
@@ -539,6 +534,8 @@ export function Arena({
       pendingKo.current = null;
       setShowReplayPanel(false);
       koReplayRef.current = null;
+      // A new round starts here: staged configuration imports go live now.
+      commitPendingConfig("round");
       // Smooth return to live speed after the slow-motion finish.
       const video = activeVideoRef.current;
       if (video && video.playbackRate < 0.95) {
@@ -669,6 +666,9 @@ export function Arena({
       }
       if (video.paused || idleOver) {
         if (idleOver) {
+          // Safe boundary: the previous scene finished, so a staged
+          // configuration import can be applied without cutting the action.
+          commitPendingConfig("scene");
           const next = drawIdle(idleUsage.current, recentIdle.current, video.currentTime);
           idleScene.current = next;
           const rate = next.rate * cfgRef.current.speed;

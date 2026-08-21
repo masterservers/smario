@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { ALL_SCENES } from "@/lib/scenes";
+import { ALL_SCENES, FOLLOW_UPS, MOVES } from "@/lib/scenes";
+import { moveKind } from "@/lib/moveKind";
 import { GIFTS, type GiftId } from "@/lib/battle";
 import {
   defaultSceneConfig,
@@ -150,7 +151,144 @@ export function validateBundle(text: string): ValidationResult {
       warnings.push({ field: `disabled[${index}]`, message: `unknown scene "${id}" — ignored` });
     }
   });
+  // Cross-references: a rule that points at something the arena cannot play
+  // would silently kill a gift, so it blocks the import instead of warning.
+  const errors: FieldError[] = [];
+  const resolved = resolveBundle(result.data);
+
+  for (const gift of GIFTS) {
+    const rule = resolved.hits.gifts[gift.id];
+    const field = `hits.gifts.${gift.id}`;
+    if (!rule) {
+      errors.push({ field, message: "missing rule for a known gift" });
+      continue;
+    }
+    if (!rule.kinds || rule.kinds.length === 0) {
+      errors.push({ field: `${field}.kinds`, message: "at least one kind of blow" });
+      continue;
+    }
+    const playable = [...MOVES, ...FOLLOW_UPS].some(
+      (move) => Math.abs(move.tier - rule.tier) <= 1 && rule.kinds.includes(moveKind(move)),
+    );
+    if (!playable) {
+      errors.push({
+        field: `${field}.kinds`,
+        message: `no scene matches "${rule.kinds.join(", ")}" at tier ${rule.tier}`,
+      });
+    }
+    const disabledAll = [...MOVES, ...FOLLOW_UPS]
+      .filter((move) => Math.abs(move.tier - rule.tier) <= 1 && rule.kinds.includes(moveKind(move)))
+      .every((move) => resolved.scenes.disabled.includes(move.id));
+    if (playable && disabledAll) {
+      errors.push({
+        field: `${field}`,
+        message: "every scene this gift could play is turned off",
+      });
+    }
+  }
+
+  const referee = resolved.hits.referee;
+  if (referee.finalCount < referee.knockdownCount) {
+    errors.push({
+      field: "hits.referee.finalCount",
+      message: `must be at least the knockdown count (${referee.knockdownCount})`,
+    });
+  }
+
+  const activeIdle = ALL_SCENES.filter(
+    (scene) => scene.group === "idle" && !resolved.scenes.disabled.includes(scene.id),
+  );
+  if (activeIdle.length === 0) {
+    errors.push({ field: "scenes", message: "at least one idle scene must stay active" });
+  }
+  const activeMoves = ALL_SCENES.filter(
+    (scene) => scene.group === "move" && !resolved.scenes.disabled.includes(scene.id),
+  );
+  if (activeMoves.length === 0) {
+    errors.push({ field: "scenes", message: "at least one fight scene must stay active" });
+  }
+
+  if (errors.length > 0) return { ok: false, errors };
   return { ok: true, bundle: result.data, warnings };
+}
+
+/**
+ * Diff between two stored snapshots (full exports), independent of what is
+ * live right now — used by the version comparison screen in the console.
+ */
+export function diffSnapshots(a: ConfigBundle, b: ConfigBundle): BundleDiff {
+  const sceneRows: DiffRow[] = [];
+  const readScene = (bundle: ConfigBundle, id: string) => {
+    const entry = bundle.scenes?.find((scene) => scene.id === id);
+    return {
+      active: entry?.active !== false && !(bundle.disabled ?? []).includes(id),
+      weight: entry?.weight ?? bundle.weights?.[id] ?? 1,
+    };
+  };
+  for (const scene of ALL_SCENES) {
+    const from = readScene(a, scene.id);
+    const to = readScene(b, scene.id);
+    if (from.active !== to.active) {
+      sceneRows.push({
+        field: label(scene.id),
+        from: from.active ? "active" : "off",
+        to: to.active ? "active" : "off",
+      });
+    }
+    if (from.weight !== to.weight) {
+      sceneRows.push({
+        field: `${label(scene.id)} — weight`,
+        from: String(from.weight),
+        to: String(to.weight),
+      });
+    }
+  }
+
+  const transitions: DiffRow[] = [];
+  const keys = new Set([
+    ...Object.keys(a.transitions ?? {}),
+    ...Object.keys(b.transitions ?? {}),
+  ]);
+  for (const key of keys) {
+    const from = (a.transitions as Record<string, unknown> | undefined)?.[key];
+    const to = (b.transitions as Record<string, unknown> | undefined)?.[key];
+    if (from !== to) transitions.push({ field: key, from: String(from), to: String(to) });
+  }
+
+  const hits: DiffRow[] = [];
+  for (const gift of GIFTS) {
+    const from = a.hits?.gifts?.[gift.id];
+    const to = b.hits?.gifts?.[gift.id];
+    if (!from || !to) continue;
+    if ((from.kinds ?? []).join(",") !== (to.kinds ?? []).join(",")) {
+      hits.push({
+        field: `${gift.id} — kinds`,
+        from: (from.kinds ?? []).join(", "),
+        to: (to.kinds ?? []).join(", "),
+      });
+    }
+    for (const key of ["tier", "force", "stun"] as const) {
+      if (from[key] !== to[key]) {
+        hits.push({ field: `${gift.id} — ${key}`, from: String(from[key]), to: String(to[key]) });
+      }
+    }
+  }
+  const refKeys = new Set([
+    ...Object.keys(a.hits?.referee ?? {}),
+    ...Object.keys(b.hits?.referee ?? {}),
+  ]);
+  for (const key of refKeys) {
+    const from = (a.hits?.referee as Record<string, unknown> | undefined)?.[key];
+    const to = (b.hits?.referee as Record<string, unknown> | undefined)?.[key];
+    if (from !== to) hits.push({ field: `referee — ${key}`, from: String(from), to: String(to) });
+  }
+
+  return {
+    scenes: sceneRows,
+    transitions,
+    hits,
+    total: sceneRows.length + transitions.length + hits.length,
+  };
 }
 
 export type DiffRow = { field: string; from: string; to: string };

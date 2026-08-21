@@ -16,6 +16,7 @@ import { Route as LiveRouteImport } from './routes/live'
 import { Route as ReplaysRouteImport } from './routes/replays'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiPublicActiveConfigRouteImport } from './routes/api/public/active-config'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -51,6 +52,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicActiveConfigRoute = ApiPublicActiveConfigRouteImport.update({
+  id: '/api/public/active-config',
+  path: '/api/public/active-config',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/replays': typeof ReplaysRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/api/public/active-config': typeof ApiPublicActiveConfigRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/replays': typeof ReplaysRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/api/public/active-config': typeof ApiPublicActiveConfigRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,12 +85,27 @@ export interface FileRoutesById {
   '/replays': typeof ReplaysRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/api/public/active-config': typeof ApiPublicActiveConfigRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/live' | '/replays' | '/reset-password' | '/admin'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/live'
+    | '/replays'
+    | '/reset-password'
+    | '/admin'
+    | '/api/public/active-config'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/live' | '/replays' | '/reset-password' | '/admin'
+  to:
+    | '/'
+    | '/auth'
+    | '/live'
+    | '/replays'
+    | '/reset-password'
+    | '/admin'
+    | '/api/public/active-config'
   id:
     | '__root__'
     | '/'
@@ -92,6 +115,7 @@ export interface FileRouteTypes {
     | '/replays'
     | '/reset-password'
     | '/_authenticated/admin'
+    | '/api/public/active-config'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -101,6 +125,7 @@ export interface RootRouteChildren {
   LiveRoute: typeof LiveRoute
   ReplaysRoute: typeof ReplaysRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicActiveConfigRoute: typeof ApiPublicActiveConfigRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -154,6 +179,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/active-config': {
+      id: '/api/public/active-config'
+      path: '/api/public/active-config'
+      fullPath: '/api/public/active-config'
+      preLoaderRoute: typeof ApiPublicActiveConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -175,6 +207,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveRoute: LiveRoute,
   ReplaysRoute: ReplaysRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicActiveConfigRoute: ApiPublicActiveConfigRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
