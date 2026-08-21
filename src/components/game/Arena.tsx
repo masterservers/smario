@@ -307,6 +307,8 @@ export function Arena({
   const moveUsage = useRef<Map<string, number>>(new Map());
   const followUsage = useRef<Map<string, number>>(new Map());
   const idleScene = useRef(IDLE_SCENES[0]!);
+  /** When the scene on screen started — the minimum-duration rule uses it. */
+  const sceneStartedAt = useRef(0);
   /** LRU memory of the feeling-out scenes, so none of them repeats early. */
   const idleUsage = useRef<Map<string, number>>(new Map());
   const recentIdle = useRef<string[]>([]);
@@ -893,7 +895,18 @@ export function Arena({
       lockUntil.current = pendingKo.current ? 0 : performance.now() + 350;
       // Wake the deferred-KO effect only after the complete landing/recovery.
       if (pendingKo.current) setCompletedSequences((value) => value + 1);
-      idleScene.current = drawIdle(idleUsage.current, recentIdle.current, idleScene.current);
+      idleScene.current = drawIdle(idleUsage.current, recentIdle.current);
+      sceneStartedAt.current = performance.now();
+      sceneStarted({
+        id: idleScene.current.id,
+        label: idleScene.current.label,
+        group: "idle",
+        plannedMs:
+          ((idleScene.current.end - idleScene.current.start) /
+            (idleScene.current.rate * cfgRef.current.speed)) *
+          1000,
+        reason: "move played to the end",
+      });
 
       // Between spots the fighters keep circling: drift the framing back.
       // Recovery: the camera eases out of the mat framing first, then drifts on
