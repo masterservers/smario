@@ -40,8 +40,18 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: BattlePage,
+  component: BattleRoute,
+  errorComponent: ({ error }) => <GameErrorScreen error={error} />,
 });
+
+function BattleRoute() {
+  const { lang } = Route.useSearch();
+  return (
+    <GameErrorBoundary lang={lang}>
+      <BattlePage />
+    </GameErrorBoundary>
+  );
+}
 
 function BattlePage() {
   const { lang } = Route.useSearch();
