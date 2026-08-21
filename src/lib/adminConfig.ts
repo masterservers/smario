@@ -27,6 +27,9 @@ export type AdminConfig = {
   liveSession: string;
   /** Approved match title used on every page and notification. */
   matchTitle: string;
+  /** Font scale of the public match title (1 = base size). */
+  titleScale: number;
+
 };
 
 export function newSessionId(): string {
