@@ -4,6 +4,7 @@ import { Arena } from "@/components/game/Arena";
 import { ChatPanel } from "@/components/game/ChatPanel";
 import { GiftDock } from "@/components/game/GiftDock";
 import { EventLog, type LogEntry, type LogKind } from "@/components/game/EventLog";
+import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
 import { LangPicker } from "@/components/game/LangPicker";
 import { MatchSummary } from "@/components/game/MatchSummary";
 import { RefereeCount } from "@/components/game/RefereeCount";
@@ -62,7 +63,7 @@ function BattlePage() {
   const [showLog, setShowLog] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
 
-  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(lang);
+  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(lang, pushLog);
   const referee = useReferee(state.hpRu, state.hpUs, state.ko);
   useCommentary(lang, events, state, muted, referee);
 

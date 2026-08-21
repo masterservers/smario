@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Arena } from "@/components/game/Arena";
+import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
 import { ChatPanel } from "@/components/game/ChatPanel";
 import { GiftDock } from "@/components/game/GiftDock";
 import { LangPicker } from "@/components/game/LangPicker";
@@ -36,8 +37,18 @@ export const Route = createFileRoute("/live")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: LivePage,
+  component: LiveRoute,
+  errorComponent: ({ error }) => <GameErrorScreen error={error} />,
 });
+
+function LiveRoute() {
+  const { lang } = Route.useSearch();
+  return (
+    <GameErrorBoundary lang={lang}>
+      <LivePage />
+    </GameErrorBoundary>
+  );
+}
 
 /** Watch-only view: same real-time feed, no controls over the ring. */
 function LivePage() {
