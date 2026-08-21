@@ -1,5 +1,6 @@
 import type { RefereeState } from "@/hooks/useReferee";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
+import refereeAvatar from "@/assets/referee-bean.png.asset.json";
 
 type Props = { lang: Lang; referee: RefereeState };
 
