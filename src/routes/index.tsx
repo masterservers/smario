@@ -85,7 +85,7 @@ function BattlePage() {
     ]);
   }, []);
 
-  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(
+  const { matchId, round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(
     lang,
     pushLog,
   );
