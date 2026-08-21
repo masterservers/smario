@@ -18,6 +18,9 @@ import { announceHit, announceScene, useCommentary } from "@/hooks/useCommentary
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
 import { useTopBanner } from "@/hooks/useTopBanner";
+import { useRoundSummary } from "@/hooks/useRoundSummary";
+import { RoundSummaryCard } from "@/components/game/RoundSummaryCard";
+import { SpectatorChat } from "@/components/game/SpectatorChat";
 import type { GiftId, Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 import { useBroadcastLang, useControlBus, type ControlMessage } from "@/lib/control";
@@ -99,6 +102,7 @@ function LivePage() {
     muted,
   });
 
+  const summary = useRoundSummary(matchId, round, events, lang);
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
 
@@ -192,6 +196,20 @@ function LivePage() {
           koConfirmed={referee.koConfirmed}
           banner={banner}
         />
+      </div>
+
+      {/* End-of-round recap in the commentator's language: score, hits, gifts. */}
+      {summary.visible && summary.data && (
+        <div className="pointer-events-none absolute right-2 top-24 z-20 flex w-[min(22rem,86vw)] justify-end">
+          <RoundSummaryCard lang={lang} data={summary.data} onClose={summary.dismiss} />
+        </div>
+      )}
+
+      {/* Live spectator feed, localized with an English fallback. */}
+      <div className="pointer-events-none absolute bottom-2 left-2 z-10 flex max-h-[34dvh] w-[min(20rem,78vw)] flex-col overflow-hidden rounded-2xl border border-border bg-background/55 p-2.5 backdrop-blur-md">
+        <div className="pointer-events-auto min-h-0 flex-1">
+          <SpectatorChat lang={lang} events={events} nickname={nickname} />
+        </div>
       </div>
 
       {/* A session link is watch-only unless it was created with gifting on:
