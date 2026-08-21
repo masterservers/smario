@@ -217,11 +217,78 @@ function kindAge(kind: HitKind): number {
 }
 
 function drawLRU<T extends { id: string }>(
-...
+  pool: T[],
+  usage: Map<string, number>,
+  recent: string[],
+  cooldowns?: Map<string, number>,
+  cooldownMs = 0,
+  prefer?: (item: T) => boolean,
+): T {
+  advanceSceneBeat();
+  const unique = enabled(Array.from(new Map(pool.map((item) => [item.id, item])).values()));
+  // Everything with the lowest weighted usage is still "unplayed" in this cycle.
+  const cost = (id: string) => (usage.get(id) ?? 0);
+  let lowest = Infinity;
+  for (const item of unique) lowest = Math.min(lowest, cost(item.id));
+  let list = unique.filter((item) => cost(item.id) <= lowest + 1e-6);
+  // Inside the cycle, avoid what was just seen and what is still cooling down.
+  const now = performance.now();
+  const blocked = new Set(recent.slice(-Math.max(1, Math.floor(unique.length / 2))));
+  const notRecent = list.filter((item) => !blocked.has(item.id));
+  if (notRecent.length > 0) list = notRecent;
+  if (cooldowns && cooldownMs > 0) {
+    const cool = list.filter((item) => now - (cooldowns.get(item.id) ?? -Infinity) >= cooldownMs);
+    if (cool.length > 0) list = cool;
+  }
+  // Type-level anti-repetition: drop the families that already ran too often
+  // in a row (or that dominate the recent window). Applied before the softer
+  // continuity/round filters so those can never bring a tired family back.
+  const varied = list.filter(
+    (item) => !familyBlocked(item as { label?: string }, recentFamilies, maxFamilyStreak),
+  );
+  if (varied.length > 0) list = varied;
+  // Category rotation (hard rule): punch / kick / aerial / throw / grapple may
+  // not chain past `maxKindStreak` or take over the recent window.
+  const rotated = list.filter((item) => {
+    const label = (item as { label?: string }).label;
+    return typeof label !== "string" || !kindBlocked(kindOf(item as unknown as Move));
+  });
+  if (rotated.length > 0) list = rotated;
+  // Category rotation (soft rule): favour the categories that have been waiting
+  // the longest, so a round walks through all five instead of two.
+  const labelled = list.filter((item) => typeof (item as { label?: string }).label === "string");
+  if (labelled.length > 0 && recentKinds.length > 0 && Math.random() < 0.75) {
+    let best = -1;
+    const ages = new Map<HitKind, number>();
+    for (const kind of ROTATION_KINDS) ages.set(kind, kindAge(kind));
+    for (const item of labelled) best = Math.max(best, ages.get(kindOf(item as unknown as Move)) ?? 0);
+    const overdue = labelled.filter(
+      (item) => (ages.get(kindOf(item as unknown as Move)) ?? 0) >= best,
+    );
+    if (overdue.length > 0) list = overdue;
+  }
+  // Continuity: among the eligible scenes, favour the ones that carry on from
+  // where the picture is right now, so the cut reads as one continuous action.
+  if (prefer) {
+    const smooth = list.filter(prefer);
+    if (smooth.length > 0) list = smooth;
+  }
+  // Round colour: each round leans towards a different family of scenes
+  // (striking, kicks, rope work, throws, mat work) so the match never repeats
+  // the same rhythm. Soft filter — the LRU cycle stays in charge.
+  if (Math.random() < 0.7) {
+    const themed = list.filter((item) => inRoundTheme(item as { label?: string }));
+    if (themed.length > 0) list = themed;
+  }
+  const chosen = list[Math.floor(Math.random() * list.length)]!;
+  // Weighted cost: a heavier scene "ages" more slowly and returns sooner.
+  usage.set(chosen.id, cost(chosen.id) + 1 / Math.max(0.25, weightOf(chosen.id)));
+  cooldowns?.set(chosen.id, now);
+  recent.push(chosen.id);
+  if (recent.length > unique.length) recent.shift();
   recentFamilies.push(familyOf(chosen as { id: string; label?: string }));
   if (recentFamilies.length > 12) recentFamilies.shift();
-  const chosenLabel = (chosen as { label?: string }).label;
-  if (typeof chosenLabel === "string") {
+  if (typeof (chosen as { label?: string }).label === "string") {
     recentKinds.push(kindOf(chosen as unknown as Move));
     if (recentKinds.length > 12) recentKinds.shift();
   }
