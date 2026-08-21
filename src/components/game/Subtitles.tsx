@@ -31,7 +31,7 @@ export function Subtitles({ enabled = true, className }: Props) {
     >
       <p
         key={subtitle.id}
-        className={`max-w-[46rem] animate-fade-in rounded-lg bg-black/65 px-3 py-1.5 text-center text-xs leading-snug backdrop-blur-md sm:text-sm ${tone}`}
+        className={`max-w-[46rem] rounded-lg bg-black/65 px-3 py-1.5 text-center text-xs leading-snug backdrop-blur-md sm:text-sm ${tone}`}
       >
         {subtitle.text}
       </p>
