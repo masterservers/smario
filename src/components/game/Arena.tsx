@@ -476,12 +476,18 @@ export function Arena({
     video.currentTime = time;
   };
 
-  /** Decode the next scene off-screen before replacing the visible frame. */
-  const switchScene = (time: number, rate: number) => {
+  /**
+   * Decode the next scene off-screen before replacing the visible frame.
+   * `force` is reserved for sequences that own the lock (a move start, the KO
+   * replay); every other call is refused while the lock is held.
+   */
+  const switchScene = (time: number, rate: number, force = false) => {
+    if (!force && isLocked()) return false;
     const previous = activeVideoRef.current;
     const nextLayer = activeLayerRef.current === 0 ? 1 : 0;
     const next = videoRefs.current[nextLayer];
     if (!next || switchingRef.current) return false;
+
 
     switchingRef.current = true;
     const token = ++switchTokenRef.current;
