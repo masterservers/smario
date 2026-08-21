@@ -58,8 +58,8 @@ export const listConfigVersions = createServerFn({ method: "POST" })
 
 async function assertStaff(context: { supabase: { rpc: Function }; userId: string }) {
   const [{ data: isAdmin }, { data: isModerator }] = await Promise.all([
-    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
-    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "moderator" }),
+    context.supabase.rpc("current_user_has_role", { _role: "admin" }),
+    context.supabase.rpc("current_user_has_role", { _role: "moderator" }),
   ]);
   if (!isAdmin && !isModerator) throw new Error("Forbidden");
 }

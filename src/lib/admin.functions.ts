@@ -27,8 +27,8 @@ export const getMyStaffRole = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabase, userId, claims } = context;
     const [{ data: isAdmin }, { data: isModerator }] = await Promise.all([
-      supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
-      supabase.rpc("has_role", { _user_id: userId, _role: "moderator" }),
+      supabase.rpc("current_user_has_role", { _role: "admin" }),
+      supabase.rpc("current_user_has_role", { _role: "moderator" }),
     ]);
     let role: StaffRole = isAdmin ? "admin" : isModerator ? "moderator" : null;
     const email = (claims as { email?: string } | null)?.email ?? null;
@@ -167,14 +167,8 @@ export const probeTikTokSource = createServerFn({ method: "POST" })
     return { url: parsed.toString() };
   })
   .handler(async ({ data, context }): Promise<SourceProbe> => {
-    const { data: isStaff } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    const { data: isModerator } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "moderator",
-    });
+    const { data: isStaff } = await context.supabase.rpc("current_user_has_role", { _role: "admin" });
+    const { data: isModerator } = await context.supabase.rpc("current_user_has_role", { _role: "moderator" });
     if (!isStaff && !isModerator) throw new Error("Forbidden");
 
     const started = Date.now();
