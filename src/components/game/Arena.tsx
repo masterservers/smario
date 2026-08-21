@@ -660,18 +660,23 @@ export function Arena({
       // An idle scenario is played to its end as well, unless the admin allows
       // a gift to cut in.
       if (!idleOver && giftWaiting && rules.lockIdle && !rules.allowGiftInterrupt) {
-        if (!video.paused) {
-          sceneBlocked("idle scene protected until its end");
-          return;
+        if (video.paused && !paused) {
+          video.playbackRate = scene.rate * cfgRef.current.speed;
+          void video.play();
         }
+        sceneBlocked("idle scene protected until its end");
+        return;
       }
       if (video.paused || idleOver) {
         if (idleOver) {
-          const next = drawIdle(idleUsage.current, recentIdle.current);
+          const next = drawIdle(idleUsage.current, recentIdle.current, video.currentTime);
           idleScene.current = next;
           const rate = next.rate * cfgRef.current.speed;
           switchScene(next.start, rate);
           sceneStartedAt.current = performance.now();
+          // Hold the scene for its full window: nothing may cut into it.
+          lockUntil.current =
+            performance.now() + Math.max(0, ((next.end - next.start) / rate) * 1000 - 120);
           sceneStarted({
             id: next.id,
             label: next.label,
@@ -681,6 +686,7 @@ export function Arena({
           });
           return;
         }
+
 
         video.playbackRate = idleScene.current.rate * cfgRef.current.speed;
         void video.play();
