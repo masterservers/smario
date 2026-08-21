@@ -45,7 +45,7 @@ const DEFAULT_RULES: Record<GiftId, GiftHitRule> = {
   gift: { kinds: ["aerial", "grapple"], tier: 4, force: 1.2, stun: 1.2 },
   rocket: { kinds: ["throw", "aerial"], tier: 5, force: 1.35, stun: 1.3 },
   burger: { kinds: ["punch"], tier: 2, force: 1, stun: 1 },
-  vodka: { kinds: ["punch", "clinch" as HitKind].slice(0, 1) as HitKind[], tier: 2, force: 1.05, stun: 1.05 },
+  vodka: { kinds: ["punch", "grapple"], tier: 2, force: 1.05, stun: 1.05 },
   lightning: { kinds: ["kick", "punch"], tier: 2, force: 1.1, stun: 0.9 },
   glove: { kinds: ["punch"], tier: 3, force: 1.15, stun: 1.1 },
   eagle: { kinds: ["aerial", "kick"], tier: 4, force: 1.2, stun: 1.15 },
