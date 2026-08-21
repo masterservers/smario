@@ -71,6 +71,7 @@ type Props = {
  */
 export function MrBeanReferee({ lang, beat, counting }: Props) {
   const [run, setRun] = useState<{ id: number; gag: Gag; from: "left" | "right" } | null>(null);
+  const debug = useDebugView();
 
   // Fixed cadence — one intervention every INTERVAL_MS, in a stable rotation.
   useEffect(() => {
