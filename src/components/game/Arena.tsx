@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import fightVideo from "@/assets/arena-wide.webm.asset.json";
+const FIGHT_VIDEO = "/media/arena-mega.webm";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
