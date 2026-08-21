@@ -8,7 +8,7 @@ export function LangPicker({
   onChange: (next: Lang) => void;
 }) {
   return (
-    <div className="flex items-center gap-1 rounded-full border border-border bg-card/80 p-1">
+    <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-border bg-background/80 p-0.5 backdrop-blur-md sm:gap-1 sm:p-1">
       {LANGS.map((code) => {
         const active = code === lang;
         return (
@@ -18,7 +18,7 @@ export function LangPicker({
             onClick={() => onChange(code)}
             aria-pressed={active}
             title={LANG_META[code].label}
-            className={`rounded-full px-2 py-1 text-sm transition-colors ${
+            className={`size-7 rounded-full p-0 text-xs transition-colors sm:h-auto sm:w-auto sm:px-2 sm:py-1 sm:text-sm ${
               active ? "bg-primary text-primary-foreground" : "hover:bg-accent"
             }`}
           >
