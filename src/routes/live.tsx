@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Arena } from "@/components/game/Arena";
 import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
 import { ChatPanel } from "@/components/game/ChatPanel";
 import { GiftDock } from "@/components/game/GiftDock";
 import { FightControls } from "@/components/game/FightControls";
+import { DifficultyPicker } from "@/components/game/DifficultyPicker";
+import { loadDifficulty, saveDifficulty, type Difficulty } from "@/lib/difficulty";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Button } from "@/components/ui/button";
@@ -55,6 +57,17 @@ function LivePage() {
   const { lang } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [muted, setMuted] = useState(true);
+  const [difficulty, setDifficulty] = useState<Difficulty>("normal");
+
+  useEffect(() => {
+    setDifficulty(loadDifficulty());
+  }, []);
+
+  const changeDifficulty = useCallback((value: Difficulty) => {
+    setDifficulty(value);
+    saveDifficulty(value);
+  }, []);
+
   const [showChat, setShowChat] = useState(false);
 
   const { round, events, state, viewers, nickname, ready, sendGift } = useLiveMatch(lang);
@@ -84,6 +97,7 @@ function LivePage() {
 
       <div className="absolute inset-x-0 bottom-[9.75rem] top-11 md:inset-0">
         <Arena
+          difficulty={difficulty}
           lang={lang}
           events={events}
           ko={state.ko}
@@ -131,6 +145,7 @@ function LivePage() {
           onChat={() => setShowChat((c) => !c)}
           className="mx-auto flex w-full max-w-2xl items-center justify-center gap-1.5 md:hidden"
         >
+          <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
           <Link
             to="/"
             search={{ lang }}
@@ -154,6 +169,7 @@ function LivePage() {
         onChat={() => setShowChat((c) => !c)}
         className="fight-controls absolute right-2 top-14 z-20 hidden flex-col items-center gap-2 md:flex"
       >
+        <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
         <Link
           to="/"
           search={{ lang }}
