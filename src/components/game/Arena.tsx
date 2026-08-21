@@ -7,6 +7,7 @@ import { ruleFor, ruleForEvent, type HitKind } from "@/lib/hitConfig";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 import { getGiftConfig } from "@/lib/giftConfig";
 import { giftName } from "@/lib/giftCatalog";
+import { useOutfits } from "@/lib/outfits";
 import {
   CHAMPION_POSE,
   FOLLOW_UPS,
@@ -508,6 +509,8 @@ export function Arena({
 
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
+  // Live outfit state (suit / ring gear), shared with the admin console.
+  const outfits = useOutfits();
 
   const seek = (video: HTMLVideoElement, time: number) => {
     video.currentTime = time;
@@ -1229,6 +1232,26 @@ export function Arena({
               className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter,opacity]"
             />
           ))}
+
+          {/* Outfit layer: when a fighter is sent out without his jacket, his
+              side of the ring gets the stripped-down wrestling-gear look. It is
+              painted over the running footage, so playback, audio and the
+              commentary timing are never touched. */}
+          {(["ru", "us"] as const).map((side) =>
+            outfits[side] === "gear" ? (
+              <div
+                key={`gear-${side}`}
+                aria-hidden
+                className="pointer-events-none absolute inset-0 transition-opacity duration-500"
+                style={{
+                  background: `radial-gradient(38% 30% at ${side === "ru" ? "38%" : "62%"} 52%, ${
+                    side === "ru" ? "rgba(220,60,60,0.42)" : "rgba(60,110,230,0.42)"
+                  } 0%, rgba(0,0,0,0) 72%)`,
+                  mixBlendMode: "multiply",
+                }}
+              />
+            ) : null,
+          )}
 
           {/* Impact sparks — density and spread follow the force of the hit. */}
           {sparks.map((burst) => (
