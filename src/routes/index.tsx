@@ -9,6 +9,7 @@ import { MatchSummary } from "@/components/game/MatchSummary";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Leaderboard } from "@/components/game/Leaderboard";
 import { Scoreboard } from "@/components/game/Scoreboard";
+import { Button } from "@/components/ui/button";
 import { useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
@@ -102,8 +103,9 @@ function BattlePage() {
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
-      {/* Ring: fills the entire viewport, kept clean */}
-      <div className="absolute inset-0 bg-background">
+      {/* Fixed wide ring stage. On phones it is centred in the clear space
+          between the compact HUD rows, never pushed down by controls. */}
+      <div className="absolute inset-x-0 bottom-[7.25rem] top-11 bg-background sm:inset-0">
         <Arena
           lang={lang}
           events={events}
@@ -178,46 +180,55 @@ function BattlePage() {
         </div>
       </div>
 
-      {/* Small round controls, no text over the ring */}
-      <div className="absolute bottom-1/2 right-2 z-20 flex translate-y-1/2 flex-col gap-2">
+      {/* Controls stay directly below the score on phones, never over the
+          centre of the ring. Desktop keeps the compact side rail. */}
+      <div className="absolute right-1.5 top-12 z-20 flex items-center gap-1 sm:bottom-1/2 sm:right-2 sm:top-auto sm:translate-y-1/2 sm:flex-col sm:gap-2">
         <LangPicker lang={lang} onChange={setLang} />
-        <button
+        <Button
           type="button"
           onClick={() => setMuted((m) => !m)}
           aria-label={t.commentator}
-          className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+          variant="outline"
+          size="icon"
+          className="size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md sm:size-10"
         >
           {muted ? "🔇" : "🔊"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => setShowChat((s) => !s)}
           aria-label={t.chatPlaceholder}
-          className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+          variant="outline"
+          size="icon"
+          className="size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md sm:size-10"
         >
           💬
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => setShowBoard((s) => !s)}
           aria-label={t.leaderboard}
-          className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+          variant="outline"
+          size="icon"
+          className="hidden size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md sm:inline-flex sm:size-10"
         >
           🔥
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => setShowLog((s) => !s)}
           aria-label={t.eventLog}
-          className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+          variant="outline"
+          size="icon"
+          className="hidden size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md sm:inline-flex sm:size-10"
         >
           🧾
-        </button>
+        </Button>
         <Link
           to="/replays"
           search={{ lang }}
           aria-label={t.replays}
-          className="grid size-10 place-items-center rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+          className="hidden size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent sm:grid"
         >
           ⏪
         </Link>
@@ -225,7 +236,7 @@ function BattlePage() {
           to="/live"
           search={{ lang }}
           aria-label={t.watchLive}
-          className="grid size-10 place-items-center rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+          className="hidden size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent sm:grid"
         >
           📡
         </Link>

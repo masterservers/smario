@@ -13,7 +13,8 @@ import {
 
 type LeaderRow = { sender: string; total: number; side: Side };
 
-const KO_HOLD_MS = 14000;
+/** Keep the defeated fighter visible on the mat for a full twenty seconds. */
+const KO_HOLD_MS = 20000;
 
 // Client-side guard mirroring the database limits: a small token bucket keeps
 // honest users from ever hitting the server rejection.

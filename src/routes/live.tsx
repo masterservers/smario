@@ -6,6 +6,7 @@ import { GiftDock } from "@/components/game/GiftDock";
 import { LangPicker } from "@/components/game/LangPicker";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
+import { Button } from "@/components/ui/button";
 import { useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
@@ -70,7 +71,7 @@ function LivePage() {
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
-      <div className="absolute inset-0">
+      <div className="absolute inset-x-0 bottom-[7.25rem] top-11 sm:inset-0">
         <Arena
           lang={lang}
           events={events}
@@ -117,29 +118,33 @@ function LivePage() {
         </div>
       </div>
 
-      <div className="absolute bottom-1/2 right-2 z-20 flex translate-y-1/2 flex-col gap-2">
+      <div className="absolute right-1.5 top-12 z-20 flex items-center gap-1 sm:bottom-1/2 sm:right-2 sm:top-auto sm:translate-y-1/2 sm:flex-col sm:gap-2">
         <LangPicker lang={lang} onChange={(next) => void navigate({ search: { lang: next }, replace: true })} />
-        <button
+        <Button
           type="button"
           onClick={() => setMuted((m) => !m)}
           aria-label={t.commentator}
-          className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+          variant="outline"
+          size="icon"
+          className="size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md sm:size-10"
         >
           {muted ? "🔇" : "🔊"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => setShowChat((c) => !c)}
           aria-label={t.chatPlaceholder}
-          className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+          variant="outline"
+          size="icon"
+          className="size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md sm:size-10"
         >
           💬
-        </button>
+        </Button>
         <Link
           to="/"
           search={{ lang }}
           aria-label={t.sendGiftsFor}
-          className="grid size-10 place-items-center rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+          className="hidden size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent sm:grid"
         >
           🎁
         </Link>
