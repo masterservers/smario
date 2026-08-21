@@ -675,13 +675,6 @@ export function Arena({
       follow.current = null;
 
 
-      // A big spot leaves the opponent flat on the mat — chain corner climbs and
-      // dives onto the downed fighter before taking new gifts.
-      if (paused) return;
-      const pendingFollow = follow.current;
-      const event = pendingFollow ? pendingFollow.event : queue.current.shift();
-      if (!event) return;
-      follow.current = null;
 
       const tier = ruleFor(event.gift).tier;
       const move = pendingFollow
