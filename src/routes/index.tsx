@@ -152,12 +152,48 @@ function BattlePage() {
   );
 
 
+  // The scoreboard grows with the viewport (round line, title, banners), so the
+  // arena band is derived from its measured height instead of a fixed guess.
+  const shellRef = useRef<HTMLElement | null>(null);
+  const hudRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const shell = shellRef.current;
+    const hud = hudRef.current;
+    if (!shell || !hud) return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const h = Math.ceil(hud.getBoundingClientRect().height);
+      if (h > 0) shell.style.setProperty("--hud-h", `${h}px`);
+      // Captions sit at the bottom; reserve just enough so they never cover
+      // the mat, and keep it small on short landscape screens.
+      const caption = window.innerHeight < 480 ? 28 : 36;
+      shell.style.setProperty("--caption-h", `${caption}px`);
+    };
+    const queue = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(measure);
+    };
+    queue();
+    const observer = new ResizeObserver(queue);
+    observer.observe(hud);
+    window.addEventListener("resize", queue);
+    window.addEventListener("orientationchange", queue);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", queue);
+      window.removeEventListener("orientationchange", queue);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const leader: Side | null =
     state.scoreRu === state.scoreUs ? null : state.scoreRu > state.scoreUs ? "ru" : "us";
 
+
   return (
     <main
+      ref={shellRef}
       className="fixed inset-0 h-[100dvh] w-screen touch-pan-x overflow-hidden overscroll-none bg-background"
       style={{ ["--hud" as string]: "0px" }}
     >
@@ -165,9 +201,10 @@ function BattlePage() {
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
-      {/* The ring keeps the full area under the HUD strip, so the whole mat is
-          visible in portrait and in landscape — never hidden by the scoreboard. */}
-      <div className="absolute inset-x-0 bottom-0 top-[var(--hud-h)] bg-background">
+      {/* The ring keeps the whole area between the measured scoreboard strip and
+          the caption line, so the full mat stays visible in both orientations. */}
+      <div className="absolute inset-x-0 bottom-[var(--caption-h,2.25rem)] top-[var(--hud-h)] bg-background">
+
         <Arena
           difficulty={difficulty}
           variety={variety}
@@ -196,8 +233,14 @@ function BattlePage() {
       </div>
 
       {/* Slim HUD strip on top — scoreboard only */}
-      <div className="absolute inset-x-0 top-0 z-10 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]">
+      {/* Slim HUD strip on top — scoreboard only. Its real height is measured
+          and published as --hud-h, so the ring never starts under it. */}
+      <div
+        ref={hudRef}
+        className="absolute inset-x-0 top-0 z-10 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]"
+      >
         <Scoreboard
+
           lang={lang}
           round={round}
           viewers={viewers}

@@ -608,7 +608,7 @@
    Single source of truth for the scoreboard strip, so the arena always
    starts exactly under it in both orientations. */
 :root {
-  --hud-h: 3.4rem;
+  --hud-h: 3rem;
 }
 
 @media (min-width: 640px) {
@@ -633,13 +633,16 @@
 .arena-video {
   object-fit: contain;
   object-position: center var(--arena-focus, 50%);
+  /* Zoom is anchored to the BOTTOM of the frame: the mat and the fighters'
+     feet can never leave the picture, only empty crowd rows at the top are
+     traded for a bigger ring. */
   transform: scale(var(--arena-zoom, 1)) translateY(var(--arena-lift, 0%));
-  transform-origin: center center;
+  transform-origin: center bottom;
 }
 
-/* Portrait phones: the wide shot is width-limited, so there is spare room
-   above and below. Lift the picture slightly toward the scoreboard instead
-   of zooming, so the mat and the ropes both stay in frame. */
+/* Portrait phones: the wide shot is width-limited, so a lot of vertical room
+   is wasted as letterbox. Zoom from the bottom so the ring fills the screen
+   while the ropes, the mat and the referee all stay inside. */
 @media (orientation: portrait) {
   .arena-video {
     --arena-zoom: 1;
@@ -648,16 +651,17 @@
   }
 }
 
-/* Tall tablets: more vertical room, so keep it perfectly centred. */
+/* Tall tablets: more vertical room, so a gentler zoom is enough. */
 @media (orientation: portrait) and (min-width: 640px) {
   .arena-video {
+    --arena-zoom: 1;
     --arena-lift: 0%;
     --arena-focus: 50%;
   }
 }
 
-/* Landscape phones: height-limited. Stay on `contain` (no cover crop) and
-   bias the framing a touch upward so the mat is never clipped. */
+/* Landscape phones: height-limited, the picture already fills the screen.
+   Stay on `contain` with zoom 1 — any zoom here would clip the ring. */
 @media (orientation: landscape) and (max-height: 600px) {
   .arena-video {
     --arena-zoom: 1;
@@ -674,6 +678,7 @@
     --arena-focus: 50%;
   }
 }
+
 
 
 /* Short (landscape phone) screens: keep the referee readout clear of the
@@ -854,4 +859,19 @@
 [data-perf="lite"] .bean-ref,
 [data-perf="lite"] .gift-float {
   contain: layout paint;
+}
+
+/* --- Compact HUD on short screens -----------------------------------
+   Landscape phones have very little vertical room: shrink the scoreboard
+   strip so the ring keeps every pixel it can, without hiding any data. */
+@media (max-height: 600px) {
+  .hud-panel {
+    margin-top: 0.125rem;
+    padding-block: 0.125rem;
+    max-width: 40rem;
+  }
+  .hud-panel .match-title {
+    margin-top: 0.125rem;
+    font-size: clamp(0.62rem, 1.6vw, 0.9rem);
+  }
 }
