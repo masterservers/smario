@@ -29,6 +29,10 @@ export type AdminConfig = {
   matchTitle: string;
   /** Font scale of the public match title (1 = base size). */
   titleScale: number;
+  /** Font scale of the scoreboard numbers, clock and round line. */
+  scoreboardScale: number;
+  /** Font scale of the fighter names shown in the scoreboard. */
+  nameScale: number;
 
 };
 
