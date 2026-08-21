@@ -464,6 +464,31 @@ function pick<T>(items: T[], avoid: string[] = [], key?: (item: T) => string): T
   return list[Math.floor(Math.random() * list.length)]!;
 }
 
+type IdleScene = (typeof IDLE_SCENES)[number];
+
+/**
+ * Idle scenes rotate least-recently-used as well: every feeling-out window is
+ * shown before any of them comes back, so the fight never loops the same beat.
+ */
+function drawIdle(
+  usage: Map<string, number>,
+  recent: string[],
+  current: IdleScene,
+): IdleScene {
+  const blocked = new Set([...recent.slice(-Math.floor(IDLE_SCENES.length / 2)), `${current.start}`]);
+  const open = IDLE_SCENES.filter((scene) => !blocked.has(`${scene.start}`));
+  const list = open.length > 0 ? open : IDLE_SCENES;
+  let best = Infinity;
+  for (const scene of list) best = Math.min(best, usage.get(`${scene.start}`) ?? 0);
+  const fresh = list.filter((scene) => (usage.get(`${scene.start}`) ?? 0) === best);
+  const chosen = fresh[Math.floor(Math.random() * fresh.length)]!;
+  usage.set(`${chosen.start}`, (usage.get(`${chosen.start}`) ?? 0) + 1);
+  recent.push(`${chosen.start}`);
+  if (recent.length > IDLE_SCENES.length) recent.shift();
+  return chosen;
+}
+
+
 /**
  * Pool for a gift: the moves whose physical kind matches the gift (rose = a
  * strike, rocket = a throw) at that power tier, widened to the neighbouring
