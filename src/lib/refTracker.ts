@@ -51,9 +51,9 @@ export function createRefTracker() {
     const dark = new Uint8Array(W * H);
     const light = new Uint8Array(W * H);
     for (let i = 0; i < W * H; i++) {
-      const r = data[i * 4];
-      const g = data[i * 4 + 1];
-      const b = data[i * 4 + 2];
+      const r = data[i * 4] ?? 0;
+      const g = data[i * 4 + 1] ?? 0;
+      const b = data[i * 4 + 2] ?? 0;
       const max = Math.max(r, g, b);
       const min = Math.min(r, g, b);
       const grey = max - min < 46;
@@ -67,7 +67,12 @@ export function createRefTracker() {
     const win = 7; // ~7% of the frame width
     const winH = 9;
     let best = { x: 0, y: 0, score: 0 };
-    for (let y = 4; y < H - winH - 4; y += 1) {
+    // The referee's torso always sits in the band between the crowd and the
+    // mat — searching only there keeps ropes, apron logos and the turnbuckle
+    // pads out of the running.
+    const yFrom = Math.round(H * 0.24);
+    const yTo = Math.round(H * 0.58);
+    for (let y = yFrom; y < yTo; y += 1) {
       for (let x = 2; x < W - win - 2; x += 1) {
         let flips = 0;
         let darks = 0;
@@ -83,8 +88,10 @@ export function createRefTracker() {
             if (tone >= 0) prev = tone;
           }
         }
-        const balance = Math.min(darks, lights) / (win * winH);
-        const score = balance * 2 + flips / (win * winH);
+        const cells = win * winH;
+        const balance = Math.min(darks, lights) / cells;
+        if (balance < 0.16) continue;
+        const score = balance * 2 + flips / cells;
         if (score > best.score) best = { x: x + win / 2, y: y + winH / 2, score };
       }
     }
