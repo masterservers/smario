@@ -615,8 +615,18 @@ export function Arena({
     const timer = window.setInterval(() => {
       const video = activeVideoRef.current;
       if (!video || ko) return;
+      const rules = getSceneConfig().transitions;
       // Animation lock: no new command while a sequence is still running.
-      if (isLocked()) return;
+      if (isLocked()) {
+        sceneBlocked("animation lock — scene still running");
+        return;
+      }
+      // Minimum duration: even a short window is protected, so nothing can cut
+      // a scene a few frames after it started.
+      if (performance.now() - sceneStartedAt.current < rules.minSceneMs + rules.tailMs) {
+        sceneBlocked(`min duration ${rules.minSceneMs}ms + tail ${rules.tailMs}ms`);
+        return;
+      }
       // Lock released and a KO is waiting: hand control to the replay sequence.
       if (pendingKo.current) {
         setCompletedSequences((value) => value + 1);
@@ -625,16 +635,45 @@ export function Arena({
 
       // Feeling-out phase: rotate through different idle scenarios.
       const scene = idleScene.current;
-      if (video.paused || video.currentTime < scene.start || video.currentTime > scene.end) {
-        if (video.currentTime < scene.start || video.currentTime > scene.end) {
-          idleScene.current = drawIdle(idleUsage.current, recentIdle.current, idleScene.current);
-          switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed);
+      const idleOver = video.currentTime < scene.start || video.currentTime > scene.end;
+      const giftWaiting = queue.current.length > 0 || follow.current !== null;
+      // An idle scenario is played to its end as well, unless the admin allows
+      // a gift to cut in.
+      if (!idleOver && giftWaiting && rules.lockIdle && !rules.allowGiftInterrupt) {
+        if (!video.paused) {
+          sceneBlocked("idle scene protected until its end");
+          return;
+        }
+      }
+      if (video.paused || idleOver) {
+        if (idleOver) {
+          const next = drawIdle(idleUsage.current, recentIdle.current);
+          idleScene.current = next;
+          const rate = next.rate * cfgRef.current.speed;
+          switchScene(next.start, rate);
+          sceneStartedAt.current = performance.now();
+          sceneStarted({
+            id: next.id,
+            label: next.label,
+            group: "idle",
+            plannedMs: ((next.end - next.start) / rate) * 1000,
+            reason: "previous scene finished",
+          });
           return;
         }
 
         video.playbackRate = idleScene.current.rate * cfgRef.current.speed;
         void video.play();
       }
+
+      // A big spot leaves the opponent flat on the mat — chain corner climbs and
+      // dives onto the downed fighter before taking new gifts.
+      if (paused) return;
+      const pendingFollow = follow.current;
+      const event = pendingFollow ? pendingFollow.event : queue.current.shift();
+      if (!event) return;
+      follow.current = null;
+
 
       // A big spot leaves the opponent flat on the mat — chain corner climbs and
       // dives onto the downed fighter before taking new gifts.
