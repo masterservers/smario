@@ -524,6 +524,12 @@ function AdminPage() {
         <MatchReset onAudit={(action, details) => record("match", action, details)} />
       </section>
 
+      {/* Real combat footage inventory (admin only) ----------------------- */}
+      <div className="mt-4">
+        <CombatAssets />
+      </div>
+
+
       {/* Referee interventions ------------------------------------------- */}
       <section className="panel mt-4 rounded-2xl p-4">
         <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
