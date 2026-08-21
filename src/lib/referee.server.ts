@@ -144,7 +144,19 @@ function emptyVerdict(matchId: string, round: number, config: HitConfig): RingVe
  */
 
 export async function judgeRing(matchId: string): Promise<RingVerdict> {
+  try {
+    return await judgeRingInner(matchId);
+  } catch (error) {
+    // The referee must never take the ring down: any backend hiccup (missing
+    // credentials, unreachable database) answers with a neutral verdict.
+    console.error("judgeRing failed", error);
+    return emptyVerdict(matchId, 1, defaultHitConfig());
+  }
+}
+
+async function judgeRingInner(matchId: string): Promise<RingVerdict> {
   const supabase = await adminClient();
+
 
   const { data: matchRow } = await supabase
     .from("matches")
