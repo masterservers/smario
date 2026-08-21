@@ -206,194 +206,32 @@ function BattlePage() {
         />
       </div>
 
-      {/* Slim HUD strip at the bottom — gifts only */}
-      <div
-        ref={hud.ref}
-        className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] sm:p-2"
-      >
-        {showChat && (
-          <div className="mx-auto flex max-h-[30dvh] w-full max-w-3xl min-h-0 flex-col justify-end overflow-hidden">
-            <ChatPanel
-              lang={lang}
-              events={events}
-              nickname={nickname}
-              overlay
-              disabled={!ready}
-              onSend={(side, gift, message) => handleSend(side, gift, message)}
-            />
-          </div>
-        )}
-        {referee.koConfirmed && (
-          <div className="mx-auto w-full max-w-md">
-            <MatchSummary
-              lang={lang}
-              events={events}
-              action={
-                <Link
-                  to="/replays"
-                  search={{ lang }}
-                  className="display inline-block rounded-md border border-gold px-3 py-1 text-sm text-gold"
-                >
-                  ⏪ {t.watchReplay}
-                </Link>
-              }
-            />
-          </div>
-        )}
-        {showLog && (
-          <div className="mx-auto w-full max-w-md">
-            <EventLog lang={lang} entries={log} />
-          </div>
-        )}
-        {showBoard && (
-          <div className="mx-auto w-full max-w-sm">
-            <Leaderboard lang={lang} rows={leaders} />
-          </div>
-        )}
-        {/* Phones: every control lives in this bottom row, clear of the ring. */}
-        <FightControls
-          lang={lang}
-          onLang={setLang}
-          muted={muted}
-          onMute={() => setMuted((m) => !m)}
-          onChat={() => setShowChat((s) => !s)}
-          className="mx-auto flex w-full max-w-2xl items-center justify-center gap-1.5 [@media(min-width:768px)_and_(min-height:520px)]:hidden"
-        >
-          <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
-        <RefereePanel lang={lang} value={variety} onChange={changeVariety} />
+      {/* The whole area under the ring stays empty — guests walk in there.
+          Gifts, chat, language and tuning now live only in /admin. */}
+
+      {/* Minimal rail at the top-right: sound + admin, never over the mat. */}
+      <div className="absolute right-2 top-14 z-20 flex flex-col items-center gap-2">
         <Button
           type="button"
-          onClick={() =>
-            setCaptions((on) => {
-              saveSubtitlesOn(!on);
-              return !on;
-            })
-          }
+          onClick={() => setMuted((m) => !m)}
           aria-label={t.commentator}
-          aria-pressed={captions}
+          aria-pressed={!muted}
           variant="outline"
           size="icon"
-          className={`size-8 shrink-0 rounded-full bg-background/80 text-sm backdrop-blur-md sm:size-9 md:size-10 md:text-base ${captions ? "" : "opacity-50"}`}
+          className="size-9 shrink-0 rounded-full bg-background/80 text-sm backdrop-blur-md md:size-10"
         >
-          💬🗒️
+          {muted ? "🔇" : "🔊"}
         </Button>
         <Link
           to="/admin"
           search={{ lang }}
-          aria-label="Gift admin"
-          className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-background/80 text-sm backdrop-blur-md sm:size-9 md:size-10"
+          aria-label="Admin"
+          className="grid size-9 shrink-0 place-items-center rounded-full border border-border bg-background/80 text-sm backdrop-blur-md md:size-10"
         >
           ⚙️
         </Link>
-          <Button
-            type="button"
-            onClick={() => setShowBoard((s) => !s)}
-            aria-label={t.leaderboard}
-            variant="outline"
-            size="icon"
-            className="size-8 shrink-0 rounded-full bg-background/80 text-sm backdrop-blur-md sm:size-9"
-          >
-            🔥
-          </Button>
-          <Link
-            to="/live"
-            search={{ lang }}
-            aria-label={t.watchLive}
-            className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-background/80 text-sm backdrop-blur-md sm:size-9"
-          >
-            📡
-          </Link>
-        </FightControls>
-        <div className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1.5 opacity-90">
-          <GiftDock
-            lang={lang}
-            side="ru"
-            overlay
-            disabled={!ready}
-            onSend={handleSend}
-          />
-          <GiftDock
-            lang={lang}
-            side="us"
-            overlay
-            disabled={!ready}
-            onSend={handleSend}
-          />
-        </div>
       </div>
 
-      {/* Desktop only: slim rail at the top-right, never over the fighters. */}
-      <FightControls
-        lang={lang}
-        onLang={setLang}
-        muted={muted}
-        onMute={() => setMuted((m) => !m)}
-        onChat={() => setShowChat((s) => !s)}
-        className="fight-controls absolute right-2 top-14 z-20 hidden flex-col items-center gap-2 [@media(min-width:768px)_and_(min-height:520px)]:flex"
-      >
-        <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
-        <RefereePanel lang={lang} value={variety} onChange={changeVariety} />
-        <Button
-          type="button"
-          onClick={() =>
-            setCaptions((on) => {
-              saveSubtitlesOn(!on);
-              return !on;
-            })
-          }
-          aria-label={t.commentator}
-          aria-pressed={captions}
-          variant="outline"
-          size="icon"
-          className={`size-8 shrink-0 rounded-full bg-background/80 text-sm backdrop-blur-md sm:size-9 md:size-10 md:text-base ${captions ? "" : "opacity-50"}`}
-        >
-          💬🗒️
-        </Button>
-        <Link
-          to="/admin"
-          search={{ lang }}
-          aria-label="Gift admin"
-          className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-background/80 text-sm backdrop-blur-md sm:size-9 md:size-10"
-        >
-          ⚙️
-        </Link>
-        <Button
-          type="button"
-          onClick={() => setShowBoard((s) => !s)}
-          aria-label={t.leaderboard}
-          variant="outline"
-          size="icon"
-          className="size-10 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md"
-        >
-          🔥
-        </Button>
-        <Button
-          type="button"
-          onClick={() => setShowLog((s) => !s)}
-          aria-label={t.eventLog}
-          variant="outline"
-          size="icon"
-          className="size-10 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md"
-        >
-          🧾
-        </Button>
-        <Link
-          to="/replays"
-          search={{ lang }}
-          aria-label={t.replays}
-          className="grid size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent"
-        >
-          ⏪
-        </Link>
-        <Link
-          to="/live"
-          search={{ lang }}
-          aria-label={t.watchLive}
-          className="grid size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent"
-        >
-          📡
-        </Link>
-      </FightControls>
 
       <Subtitles enabled={captions} />
     </main>
