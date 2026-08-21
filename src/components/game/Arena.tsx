@@ -7,6 +7,7 @@ import { ruleFor, ruleForEvent, type HitKind } from "@/lib/hitConfig";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 import { getGiftConfig } from "@/lib/giftConfig";
 import { giftName } from "@/lib/giftCatalog";
+import { RefereeBean } from "@/components/game/RefereeBean";
 import { useOutfits } from "@/lib/outfits";
 import {
   CHAMPION_POSE,
