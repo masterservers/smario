@@ -73,12 +73,17 @@ export function defaultHitConfig(): HitConfig {
   const gifts = Object.fromEntries(
     GIFTS.map((gift) => [gift.id, { ...DEFAULT_RULES[gift.id]!, kinds: [...DEFAULT_RULES[gift.id]!.kinds] }]),
   ) as Record<GiftId, GiftHitRule>;
+  const routing = Object.fromEntries(
+    GIFTS.map((gift) => [gift.id, "auto" as GiftTargetRule]),
+  ) as Record<GiftId, GiftTargetRule>;
   return {
     gifts,
     rounds: Object.fromEntries(CONFIGURABLE_ROUNDS.map((r) => [String(r), {}])),
+    routing,
     referee: { knockdownCount: 8, finalCount: 10, countMs: 950, resumeDelayMs: 900 },
   };
 }
+
 
 const KEY = "pvt.hitConfig";
 
