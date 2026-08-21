@@ -85,8 +85,7 @@ export function ConfigManager({ onApplied, record }: Props) {
   const publish = async (name: string) => {
     setBusy(true);
     try {
-      const bundle = JSON.parse(exportBundle()) as unknown;
-      await saveConfigVersion({ data: { label: name, bundle, activate: true } });
+      await saveConfigVersion({ data: { label: name, bundle: exportBundle(), activate: true } });
       await loadVersions();
       setStatus({ ok: true, text: `Saved in the backend as "${name}".` });
       record("config", "version saved", { label: name });
@@ -101,7 +100,7 @@ export function ConfigManager({ onApplied, record }: Props) {
     setBusy(true);
     try {
       await activateConfigVersion({ data: { id: version.id } });
-      applyBundle(JSON.parse(JSON.stringify(version.bundle)) as ConfigBundle);
+      applyBundle(JSON.parse(version.bundle) as ConfigBundle);
       onApplied();
       setJson(exportBundle());
       await loadVersions();

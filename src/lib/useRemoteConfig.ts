@@ -13,7 +13,7 @@ export function useRemoteConfig() {
     void (async () => {
       try {
         const version = await getActiveConfigVersion();
-        if (!cancelled && version?.bundle) applyStoredBundle(version.bundle);
+        if (!cancelled && version?.bundle) applyStoredBundle(JSON.parse(version.bundle));
       } catch {
         // offline or not published yet — the local settings stay in place
       }

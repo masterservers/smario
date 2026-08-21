@@ -7,7 +7,8 @@ export type ConfigVersion = {
   is_active: boolean;
   created_by_email: string | null;
   created_at: string;
-  bundle: Record<string, unknown>;
+  /** The full configuration, serialized as JSON text. */
+  bundle: string;
 };
 
 /** The configuration everyone (players and spectators) should be running. */
@@ -34,7 +35,8 @@ export const getActiveConfigVersion = createServerFn({ method: "GET" }).handler(
       .eq("is_active", true)
       .limit(1)
       .maybeSingle();
-    return (data as ConfigVersion | null) ?? null;
+    if (!data) return null;
+    return { ...(data as Omit<ConfigVersion, "bundle">), bundle: JSON.stringify((data as { bundle: unknown }).bundle ?? {}) };
   },
 );
 
@@ -48,7 +50,10 @@ export const listConfigVersions = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(40);
     if (error) return [];
-    return (data ?? []) as ConfigVersion[];
+    return (data ?? []).map((row) => ({
+      ...(row as unknown as Omit<ConfigVersion, "bundle">),
+      bundle: JSON.stringify((row as { bundle: unknown }).bundle ?? {}),
+    }));
   });
 
 async function assertStaff(context: { supabase: { rpc: Function }; userId: string }) {
@@ -62,9 +67,10 @@ async function assertStaff(context: { supabase: { rpc: Function }; userId: strin
 /** Stores a new version and makes it the active one for everybody. */
 export const saveConfigVersion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { label: string; bundle: unknown; activate?: boolean }) => {
+  .inputValidator((input: { label: string; bundle: string; activate?: boolean }) => {
     const label = typeof input?.label === "string" && input.label.trim() ? input.label.trim().slice(0, 80) : "snapshot";
-    if (!input?.bundle || typeof input.bundle !== "object") throw new Error("Invalid configuration");
+    if (typeof input?.bundle !== "string" || input.bundle.length < 2) throw new Error("Invalid configuration");
+    JSON.parse(input.bundle);
     return { label, bundle: input.bundle, activate: input.activate !== false };
   })
   .handler(async ({ data, context }): Promise<ConfigVersion> => {
@@ -78,7 +84,7 @@ export const saveConfigVersion = createServerFn({ method: "POST" })
       .from("config_versions")
       .insert({
         label: data.label,
-        bundle: data.bundle as never,
+        bundle: JSON.parse(data.bundle) as never,
         is_active: data.activate,
         created_by: context.userId,
         created_by_email: email,
@@ -86,7 +92,7 @@ export const saveConfigVersion = createServerFn({ method: "POST" })
       .select("id, label, is_active, created_by_email, created_at, bundle")
       .single();
     if (error) throw new Error("Unable to save this version");
-    return row as ConfigVersion;
+    return { ...(row as unknown as Omit<ConfigVersion, "bundle">), bundle: JSON.stringify((row as { bundle: unknown }).bundle ?? {}) };
   });
 
 /** Rolls back: makes an older stored version the active one again. */
@@ -107,7 +113,7 @@ export const activateConfigVersion = createServerFn({ method: "POST" })
       .select("id, label, is_active, created_by_email, created_at, bundle")
       .single();
     if (error) throw new Error("Unable to restore this version");
-    return row as ConfigVersion;
+    return { ...(row as unknown as Omit<ConfigVersion, "bundle">), bundle: JSON.stringify((row as { bundle: unknown }).bundle ?? {}) };
   });
 
 /** Removes a stored version (the active one is kept). */

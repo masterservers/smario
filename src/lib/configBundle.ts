@@ -201,12 +201,12 @@ export function resolveBundle(bundle: ConfigBundle): { scenes: SceneConfig; hits
     ...defaultSceneConfig(),
     disabled: Array.from(disabled),
     weights,
-    transitions: { ...currentScenes.transitions, ...defined(bundle.transitions) },
+    transitions: { ...currentScenes.transitions, ...defined(bundle.transitions) } as SceneConfig["transitions"],
   };
 
   const hits: HitConfig = {
     gifts: { ...currentHits.gifts },
-    referee: { ...currentHits.referee, ...defined(bundle.hits?.referee) },
+    referee: { ...currentHits.referee, ...defined(bundle.hits?.referee) } as HitConfig["referee"],
   };
   for (const gift of GIFTS) {
     const patch = bundle.hits?.gifts?.[gift.id];
@@ -216,7 +216,7 @@ export function resolveBundle(bundle: ConfigBundle): { scenes: SceneConfig; hits
       ...defined(patch),
       kinds: (patch.kinds as HitConfig["gifts"][GiftId]["kinds"] | undefined) ??
         currentHits.gifts[gift.id].kinds,
-    };
+    } as HitConfig["gifts"][GiftId];
   }
   return { scenes, hits };
 }
