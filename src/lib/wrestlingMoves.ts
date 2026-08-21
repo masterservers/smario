@@ -10,6 +10,7 @@
  */
 
 import type { Move } from "@/lib/scenes";
+import { REELS } from "@/lib/reels";
 
 /** p = punch/strike, k = kick, a = aerial/rope, t = throw/slam, m = mat, s = submission/pin */
 type Kind = "p" | "k" | "a" | "t" | "m" | "s";
@@ -184,17 +185,34 @@ function slug(name: string): string {
 }
 
 const counters: Record<Kind, number> = { p: 0, k: 0, a: 0, t: 0, m: 0, s: 0 };
+let reelCursor = 0;
 
+/**
+ * Every technique gets its own slice of footage: the reel rotates, the window
+ * inside the reel rotates, and the entry point drifts a little further on each
+ * pass. Three masters x ten windows x a moving offset means hundreds of
+ * visually distinct spots instead of the same ten clips on repeat.
+ */
 function build(entry: [string, Kind, number]): Move {
   const [name, kind, tier] = entry;
   const pool = POOLS[kind];
-  const win = pool[counters[kind]++ % pool.length]!;
-  const [start, end, rate] = win;
+  const n = counters[kind]++;
+  const win = pool[n % pool.length]!;
+  const src = REELS[reelCursor++ % REELS.length]!;
+  const [rawStart, rawEnd, rate] = win;
+  // Slide the window further into the reel on every full rotation of the pool,
+  // so pass 2 of a pool never shows the exact frames of pass 1.
+  const lap = Math.floor(n / pool.length);
+  const drift = ((lap * 0.37 + (n % 3) * 0.13) % 1.1) - 0.2;
+  const span = rawEnd - rawStart;
+  const start = Math.min(38.6 - span, Math.max(0.1, rawStart + drift));
+  const end = start + span;
   return {
     id: slug(name),
-    start,
-    end,
-    impact: Number((start + (end - start) * 0.85).toFixed(2)),
+    src,
+    start: Number(start.toFixed(2)),
+    end: Number(end.toFixed(2)),
+    impact: Number((start + span * 0.85).toFixed(2)),
     label: name.toUpperCase(),
     rate,
     tier,
