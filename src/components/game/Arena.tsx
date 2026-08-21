@@ -138,10 +138,10 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         preload="auto"
         aria-label={`${names.ru} versus ${names.us}`}
         onLoadedMetadata={(event) => {
-          event.currentTarget.currentTime = 4.4;
+          event.currentTarget.currentTime = 8.2;
         }}
         onTimeUpdate={handleTimeUpdate}
-        className={`absolute inset-0 size-full object-contain transition-transform duration-300 ${attacker === "ru" ? "-scale-x-100" : "scale-x-100"}`}
+        className={`absolute inset-0 size-full object-cover transition-transform duration-300 ${attacker === "ru" ? "-scale-x-100" : "scale-x-100"}`}
       />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background/60 to-transparent" />
 
