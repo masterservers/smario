@@ -52,7 +52,7 @@ export function RoundSummaryCard({ lang, data, onClose }: Props) {
               key={g.gift}
               className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs"
             >
-              <span aria-hidden>{GIFT_BY_ID[g.gift]?.emoji ?? "🎁"}</span>
+              <span aria-hidden>{(GIFT_BY_ID as Record<string, { emoji?: string }>)[g.gift]?.emoji ?? "🎁"}</span>
               <span className="text-muted-foreground">{g.name}</span>
               <span className="font-semibold">×{g.count}</span>
             </li>
