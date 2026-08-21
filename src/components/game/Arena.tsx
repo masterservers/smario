@@ -46,14 +46,19 @@ type HitProfile = {
   settleRate: number;
   cheer: number;
   koHold: number;
+  /** Extra push-in at the moment of impact (kept small — never a close-up). */
+  impactZoom: number;
+  /** Camera tilt down + push-in while the action settles on the mat. */
+  matY: number;
+  matZoom: number;
 };
 
 const HIT_PROFILE: Record<HitKind, HitProfile> = {
-  punch:   { stun: 380, force: 0.85, recovery: 0.45, settleRate: 0.95, cheer: 1,   koHold: 1100 },
-  kick:    { stun: 700, force: 1.15, recovery: 0.9,  settleRate: 0.9,  cheer: 1.2, koHold: 1400 },
-  grapple: { stun: 900, force: 0.9,  recovery: 1.6,  settleRate: 0.85, cheer: 1.2, koHold: 1600 },
-  aerial:  { stun: 1200, force: 1.35, recovery: 2.2, settleRate: 0.82, cheer: 1.6, koHold: 1900 },
-  throw:   { stun: 1400, force: 1.6,  recovery: 2.6, settleRate: 0.78, cheer: 1.8, koHold: 2200 },
+  punch:   { stun: 380, force: 0.85, recovery: 0.45, settleRate: 0.95, cheer: 1,   koHold: 1100, impactZoom: 0.01, matY: 0.4, matZoom: 0.01 },
+  kick:    { stun: 700, force: 1.15, recovery: 0.9,  settleRate: 0.9,  cheer: 1.2, koHold: 1400, impactZoom: 0.02, matY: 0.8, matZoom: 0.02 },
+  grapple: { stun: 900, force: 0.9,  recovery: 1.6,  settleRate: 0.85, cheer: 1.2, koHold: 1600, impactZoom: 0.025, matY: 1.6, matZoom: 0.03 },
+  aerial:  { stun: 1200, force: 1.35, recovery: 2.2, settleRate: 0.82, cheer: 1.6, koHold: 1900, impactZoom: 0.035, matY: 2.4, matZoom: 0.045 },
+  throw:   { stun: 1400, force: 1.6,  recovery: 2.6, settleRate: 0.78, cheer: 1.8, koHold: 2200, impactZoom: 0.04, matY: 2.8, matZoom: 0.05 },
 };
 
 /**
@@ -87,6 +92,16 @@ function frameFor(move: Move): Frame {
   };
 }
 
+
+/** Clamp every camera move so the shot stays wide and readable. */
+function clampFrame(frame: Frame): Frame {
+  return {
+    x: Math.max(-7, Math.min(7, frame.x)),
+    y: Math.max(-3.5, Math.min(4, frame.y)),
+    scale: Math.max(0.96, Math.min(1.09, frame.scale)),
+    rotate: Math.max(-1.6, Math.min(1.6, frame.rotate)),
+  };
+}
 
 /**
  * The reel is one continuous wide camera, 40s long, built from four blocks:
@@ -497,8 +512,30 @@ export function Arena({
   >(null);
   /** Hit kind that scored the knockout — drives how long the KO reaction holds. */
   const koKind = useRef<HitKind>("throw");
+  /** Base framing of the current spot; impact and mat-work move relative to it. */
+  const baseFrame = useRef<Frame>({ x: 0, y: 0, scale: 1, rotate: 0 });
 
   const [damages, setDamages] = useState<DamageItem[]>([]);
+
+  // Slow "breathing" of the wide shot between spots: the camera keeps living
+  // without ever cutting in close. Only the video layer moves — the scoreboard
+  // and the top bar sit outside this transform, so the HUD never shifts.
+  useEffect(() => {
+    if (ko) return;
+    const timer = window.setInterval(() => {
+      if (playing.current || settling.current) return;
+      const shot = baseFrame.current;
+      const drift = clampFrame({
+        x: shot.x + (Math.random() - 0.5) * 1.6,
+        y: shot.y + (Math.random() - 0.5) * 0.6,
+        scale: shot.scale + (Math.random() - 0.5) * 0.012,
+        rotate: shot.rotate + (Math.random() - 0.5) * 0.25,
+      });
+      baseFrame.current = drift;
+      setFrame(drift);
+    }, 3800);
+    return () => window.clearInterval(timer);
+  }, [ko]);
 
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
@@ -722,7 +759,9 @@ export function Arena({
 
       logRef.current?.("move", `${event.side.toUpperCase()} · ${move.label}`);
       // Move the wide shot to this block's corner of the ring.
-      setFrame(frameFor(move));
+      const shot = frameFor(move);
+      baseFrame.current = shot;
+      setFrame(clampFrame(shot));
       switchScene(move.start, move.rate * cfgRef.current.speed, true);
 
     }, cfg.tickMs);
@@ -758,6 +797,16 @@ export function Arena({
         profile.stun,
       );
       cheer(profile.cheer * (move.tier >= 4 ? 1.15 : 1));
+      // Dynamic camera: a light push-in on contact, drifting towards the hit.
+      const shot = baseFrame.current;
+      setFrame(
+        clampFrame({
+          x: shot.x + (defender === "ru" ? -1.2 : 1.2) * profile.force,
+          y: shot.y + profile.impactZoom * 8,
+          scale: shot.scale + profile.impactZoom,
+          rotate: shot.rotate + (defender === "ru" ? -0.3 : 0.3),
+        }),
+      );
       setDamages((previous) => [
         ...previous.slice(-1),
         { id: event.id, side: defender, amount: gift?.damage ?? 4 },
@@ -782,6 +831,16 @@ export function Arena({
           settling.current = true;
           stopAt.current = limit;
           lockUntil.current = performance.now() + ((limit - video.currentTime) / settleRate) * 1000;
+          // Camera follows the slam down to the mat: tilt down, a touch nearer.
+          const shot = baseFrame.current;
+          setFrame(
+            clampFrame({
+              x: shot.x * 0.6,
+              y: shot.y + profile.matY,
+              scale: shot.scale + profile.matZoom,
+              rotate: shot.rotate * 0.4,
+            }),
+          );
           // Slightly slower so the landing and the struggle read clearly.
           video.playbackRate = settleRate;
           void video.play();
@@ -799,12 +858,14 @@ export function Arena({
       if (pendingKo.current) setCompletedSequences((value) => value + 1);
       idleScene.current = pick(IDLE_SCENES);
       // Between spots the fighters keep circling: drift the framing back.
-      setFrame({
+      const rest = clampFrame({
         x: (Math.random() - 0.5) * 5,
         y: (Math.random() - 0.5) * 1.5,
         scale: 1 + (Math.random() - 0.5) * 0.03,
         rotate: (Math.random() - 0.5) * 0.8,
       });
+      baseFrame.current = rest;
+      setFrame(rest);
       switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed, true);
 
       window.setTimeout(
