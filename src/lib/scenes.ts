@@ -614,13 +614,20 @@ const VARIETY_IDLE: IdleScene[] = [
   { id: "i-v6", start: 36.8, end: 39.0, rate: 0.78, label: "STARE DOWN AT THE ROPES" },
 ];
 
-export const MOVES: Move[] = [...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES, ...VARIETY_MOVES];
+export const MOVES: Move[] = [
+  ...BASE_MOVES,
+  ...EXTRA_MOVES,
+  ...ROPE_MOVES,
+  ...VARIETY_MOVES,
+  ...WRESTLING_MOVES,
+];
 
 export const FOLLOW_UPS: Move[] = [
   ...BASE_FOLLOW_UPS,
   ...EXTRA_FOLLOW_UPS,
   ...ROPE_FOLLOW_UPS,
   ...VARIETY_FOLLOW_UPS,
+  ...WRESTLING_FOLLOW_UPS,
 ];
 export const IDLE_SCENES: IdleScene[] = [...BASE_IDLE, ...EXTRA_IDLE, ...ROPE_IDLE, ...VARIETY_IDLE];
 
