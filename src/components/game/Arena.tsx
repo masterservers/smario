@@ -270,9 +270,6 @@ const SPAR_MOVES: Move[] = [
   ...MOVES.filter((move) => move.tier >= 4),
 ];
 
-/** Legacy constant kept for reference; the live value comes from decideSpar(). */
-const SPAR_CHANCE_LEGACY = 0.72;
-void SPAR_CHANCE_LEGACY;
 
 
 
