@@ -10,12 +10,6 @@ type LeaderRow = { sender: string; total: number; side: Side };
 /** Keep the defeated fighter visible on the mat for a full twenty seconds. */
 const KO_HOLD_MS = 20000;
 
-// Client-side guard mirroring the database limits: a small token bucket keeps
-// honest users from ever hitting the server rejection.
-const BUCKET_SIZE = 6;
-const REFILL_MS = 1500;
-const MIN_GAP_MS = 700;
-
 function readNickname(): string {
   if (typeof window === "undefined") return "guest";
   const stored = window.localStorage.getItem("pvt-nick");
@@ -40,9 +34,6 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
   const [nickname, setNickname] = useState("guest");
   const [ready, setReady] = useState(false);
   const finishing = useRef(false);
-  const tokens = useRef(BUCKET_SIZE);
-  const lastRefill = useRef(Date.now());
-  const lastSend = useRef(0);
 
   useEffect(() => {
     setNickname(readNickname());
