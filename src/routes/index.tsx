@@ -161,9 +161,9 @@ function BattlePage() {
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
-      {/* The ring always uses the whole screen; HUD rows float over it so the
-          fight never shrinks in landscape or gets pushed down in portrait. */}
-      <div className="absolute inset-0 bg-background">
+      {/* The ring keeps the full area under the HUD strip, so the whole mat is
+          visible in portrait and in landscape — never hidden by the scoreboard. */}
+      <div className="absolute inset-x-0 bottom-0 top-[3.4rem] bg-background sm:top-[3.8rem]">
         <Arena
           difficulty={difficulty}
           variety={variety}
@@ -177,6 +177,11 @@ function BattlePage() {
           onLog={pushLog}
           onHit={announceHit}
           onScene={announceScene}
+        />
+        <MrBeanReferee
+          lang={lang}
+          beat={events.length}
+          counting={referee.count > 0 && !referee.koConfirmed}
         />
         <RefereeCount lang={lang} referee={referee} />
         <SceneDebugPanel />
