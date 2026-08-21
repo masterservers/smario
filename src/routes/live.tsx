@@ -36,13 +36,13 @@ export const Route = createFileRoute("/live")({
   }),
   head: () => ({
     meta: [
-      { title: "Live Ring Cam — Putin vs Trump Battle" },
+      { title: "Live Ring Cam — Fight Putin vs Trump" },
       {
         name: "description",
         content:
           "Spectator mode for the Putin vs Trump gift battle: low-latency ring cam, live score, HP bars, referee count and multilingual commentary.",
       },
-      { property: "og:title", content: "Live Ring Cam — Putin vs Trump Battle" },
+      { property: "og:title", content: "Live Ring Cam — Fight Putin vs Trump" },
       {
         property: "og:description",
         content: "Watch the live wrestling battle in real time with the multilingual commentator.",

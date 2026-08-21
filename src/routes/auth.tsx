@@ -15,13 +15,13 @@ import {
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Staff sign in — Putin vs Trump Battle Arena" },
+      { title: "Staff sign in — Fight Putin vs Trump" },
       {
         name: "description",
         content:
           "Sign in to reach the battle arena admin console: fighters, gifts, TikTok sources, live link and the audit log.",
       },
-      { property: "og:title", content: "Staff sign in — Putin vs Trump Battle Arena" },
+      { property: "og:title", content: "Staff sign in — Fight Putin vs Trump" },
       { property: "og:description", content: "Admin and moderator access to the battle console." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

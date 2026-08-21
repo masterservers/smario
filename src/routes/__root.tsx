@@ -80,13 +80,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Putin vs Trump — Live Gift Battle Arena" },
+      { title: "Fight Putin vs Trump — Live Gift Arena" },
       {
         name: "description",
         content:
           "Live gift-powered wrestling battle: Russia vs USA, with a multilingual ring commentator.",
       },
-      { property: "og:title", content: "Putin vs Trump — Live Gift Battle Arena" },
+      { property: "og:title", content: "Fight Putin vs Trump — Live Gift Arena" },
       {
         property: "og:description",
         content:

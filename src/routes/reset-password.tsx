@@ -7,13 +7,13 @@ import { Input } from "@/components/ui/input";
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Set a new password — Putin vs Trump Battle Arena" },
+      { title: "Set a new password — Fight Putin vs Trump" },
       {
         name: "description",
         content:
           "Choose a new password for the battle arena admin console after opening the reset link sent by email.",
       },
-      { property: "og:title", content: "Set a new password — Battle Arena" },
+      { property: "og:title", content: "Set a new password — Fight Putin vs Trump" },
       { property: "og:description", content: "Finish the password reset for the admin console." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
