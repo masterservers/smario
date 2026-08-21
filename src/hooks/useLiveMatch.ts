@@ -200,16 +200,20 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
       if (!matchId) return;
       const t = UI_TEXT[lang];
 
+      // Putin vs Trump rules: a gift locked to a fighter always lands on him.
+      const target = resolveHitSide(gift, side);
+
       // No throttling: a viewer may tap a gift as often as they want.
       const { data, error } = await supabase
         .from("gift_events")
         .insert({
           match_id: matchId,
-          side,
+          side: target,
           gift,
           sender: nickname,
           message: message ?? null,
         })
+
         .select("id, side, gift, value, sender, created_at")
         .single();
 
