@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { TitleSync } from "@/components/game/TitleSync";
 import { Toaster } from "@/components/ui/sonner";
 import {
   Outlet,
