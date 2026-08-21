@@ -84,3 +84,32 @@ export const listAuditLog = createServerFn({ method: "POST" })
       };
     });
   });
+
+/**
+ * One-time bootstrap: the first signed-in account can claim the admin role
+ * while no administrator exists yet. Once one exists this always refuses.
+ */
+export const claimFirstAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { count, error } = await supabaseAdmin
+      .from("user_roles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin");
+    if (error) throw new Error("Unable to verify existing administrators");
+    if ((count ?? 0) > 0) return { granted: false as const };
+    const { error: insertError } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: context.userId, role: "admin" });
+    if (insertError) throw new Error("Unable to grant the admin role");
+    const email = (context.claims as { email?: string } | null)?.email ?? null;
+    await supabaseAdmin.from("admin_audit_log").insert({
+      actor_id: context.userId,
+      actor_email: email,
+      section: "roles",
+      action: "bootstrap admin",
+      details: { text: "First administrator claimed the console" },
+    });
+    return { granted: true as const };
+  });

@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  claimFirstAdmin,
   getMyStaffRole,
   listAuditLog,
   logAdminChange,
@@ -231,7 +232,25 @@ function AdminPage() {
           {actor ? `${actor} has no ` : "This account has no "}admin or moderator role, so the
           battle console stays locked. Ask an administrator to grant you a role.
         </p>
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            onClick={() => {
+              void claimFirstAdmin()
+                .then(async (result) => {
+                  if (result.granted) {
+                    const me = await getMyStaffRole();
+                    setRole(me.role);
+                    void loadAudit();
+                  } else {
+                    window.alert("An administrator already exists — ask them for access.");
+                  }
+                })
+                .catch(() => window.alert("Could not claim the admin role."));
+            }}
+          >
+            Claim admin (first account only)
+          </Button>
           <Button type="button" variant="outline" onClick={() => void signOut()}>
             Sign out
           </Button>
