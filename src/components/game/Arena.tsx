@@ -29,6 +29,8 @@ import {
   impactTimeOf,
 } from "@/lib/collision";
 import { commitPendingConfig } from "@/lib/pendingConfig";
+import { usePerfMode } from "@/lib/perfMode";
+
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
 import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
 
