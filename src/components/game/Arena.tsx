@@ -1,4 +1,5 @@
 import { DIFFICULTY_CONFIG, type Difficulty } from "@/lib/difficulty";
+import { VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
 import { useEffect, useRef, useState } from "react";
 import fightVideo from "@/assets/arena-heights2.webm.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
@@ -510,6 +511,7 @@ type Props = {
 export function Arena({
   lang,
   difficulty = "normal",
+  variety = VARIETY_DEFAULT,
   events,
   ko,
   combo,
@@ -556,6 +558,12 @@ export function Arena({
   /** A KO may be scored during a move, but its replay must never cut that move. */
   const handledKo = useRef<Side | null>(null);
   const pendingKo = useRef<Side | null>(null);
+
+  const varietyRef = useRef(variety);
+  varietyRef.current = variety;
+  /** Last time each move was played — drives the referee cooldown control. */
+  const moveCooldowns = useRef<Map<string, number>>(new Map());
+  const followCooldowns = useRef<Map<string, number>>(new Map());
 
   const cfg = DIFFICULTY_CONFIG[difficulty];
   const cfgRef = useRef(cfg);
@@ -849,15 +857,29 @@ export function Arena({
       const tier = GIFT_TIER[event.gift] ?? 1;
       const move = pendingFollow
         ? pendingFollow.move
-        : drawMove(movesForTier(tier), recentMoves.current, moveUsage.current);
-      recentMoves.current = [...recentMoves.current, move.id].slice(-cfgRef.current.moveMemory);
+        : drawMove(
+            movesForTier(tier),
+            recentMoves.current,
+            moveUsage.current,
+            moveCooldowns.current,
+            varietyRef.current.cooldownMs,
+          );
+      recentMoves.current = [...recentMoves.current, move.id].slice(
+        -Math.max(cfgRef.current.moveMemory, varietyRef.current.rotation),
+      );
 
       // Chance of a follow-up: high after a big spot, still possible after a
       // chained one so we get 2-3 spot sequences without visible repetition.
       const base = pendingFollow ? 0.4 : tier >= 4 ? 0.85 : tier === 3 ? 0.55 : 0.15;
       const chance = Math.min(0.95, base * cfgRef.current.followChance);
       if (Math.random() < chance) {
-        const next = drawMove(FOLLOW_UPS, recentFollows.current, followUsage.current);
+        const next = drawMove(
+          FOLLOW_UPS,
+          recentFollows.current,
+          followUsage.current,
+          followCooldowns.current,
+          varietyRef.current.cooldownMs * 0.5,
+        );
         recentFollows.current = [...recentFollows.current, next.id].slice(
           -cfgRef.current.followMemory,
         );
@@ -875,7 +897,7 @@ export function Arena({
       impacted.current = false;
       settling.current = false;
       stopAt.current = move.end;
-      const entry = entryOf(move);
+      const entry = entryOf(move, varietyRef.current.entryJitter);
       // Hold the lock for at least the length of this move at its playback rate,
       // so nothing can cut the scene before it has played out.
       lockUntil.current =
