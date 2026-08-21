@@ -117,10 +117,11 @@ const PHASE_BLEND: Record<Phase, { camera: number; ease: string; fade: number }>
 /** Clamp every camera move so the shot stays wide and readable. */
 function clampFrame(frame: Frame): Frame {
   return {
-    x: Math.max(-7, Math.min(7, frame.x)),
-    y: Math.max(-3.5, Math.min(4, frame.y)),
-    scale: Math.max(0.96, Math.min(1.09, frame.scale)),
-    rotate: Math.max(-1.6, Math.min(1.6, frame.rotate)),
+    x: Math.max(-3.5, Math.min(3.5, frame.x)),
+    y: Math.max(-2, Math.min(2, frame.y)),
+    // Never zoom past 1: the whole ring must stay inside the screen.
+    scale: Math.max(0.92, Math.min(1, frame.scale)),
+    rotate: Math.max(-0.9, Math.min(0.9, frame.rotate)),
   };
 }
 
