@@ -7,6 +7,7 @@ import { EventLog, type LogEntry, type LogKind } from "@/components/game/EventLo
 import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
 import { FightControls } from "@/components/game/FightControls";
 import { DifficultyPicker } from "@/components/game/DifficultyPicker";
+import { useHudHeight } from "@/hooks/useHudHeight";
 import { loadDifficulty, saveDifficulty, type Difficulty } from "@/lib/difficulty";
 import { MatchSummary } from "@/components/game/MatchSummary";
 import { RefereeCount } from "@/components/game/RefereeCount";
@@ -59,6 +60,7 @@ function BattleRoute() {
 function BattlePage() {
   const { lang } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const hud = useHudHeight();
   const [muted, setMuted] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
 
@@ -128,14 +130,20 @@ function BattlePage() {
     state.scoreRu === state.scoreUs ? null : state.scoreRu > state.scoreUs ? "ru" : "us";
 
   return (
-    <main className="fixed inset-0 h-[100dvh] w-screen overflow-hidden bg-background">
+    <main
+      className="fixed inset-0 h-[100dvh] w-screen touch-pan-x overflow-hidden overscroll-none bg-background"
+      style={{ ["--hud" as string]: `${hud.height}px` }}
+    >
       <h1 className="sr-only">
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
       {/* Fixed wide ring stage. On phones it is centred in the clear space
           between the compact HUD rows, never pushed down by controls. */}
-      <div className="absolute inset-x-0 bottom-[9.75rem] top-11 bg-background md:inset-0">
+      <div
+        className="absolute inset-x-0 top-11 bg-background [@media(min-width:768px)_and_(min-height:520px)]:inset-0 [@media(min-width:768px)_and_(min-height:520px)]:bottom-0!"
+        style={{ bottom: "var(--hud)" }}
+      >
         <Arena
           difficulty={difficulty}
           lang={lang}
@@ -165,7 +173,10 @@ function BattlePage() {
       </div>
 
       {/* Slim HUD strip at the bottom — gifts only */}
-      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 p-1.5 sm:p-2">
+      <div
+        ref={hud.ref}
+        className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] sm:p-2"
+      >
         {showChat && (
           <div className="mx-auto flex max-h-[30dvh] w-full max-w-3xl min-h-0 flex-col justify-end overflow-hidden">
             <ChatPanel
@@ -212,7 +223,7 @@ function BattlePage() {
           muted={muted}
           onMute={() => setMuted((m) => !m)}
           onChat={() => setShowChat((s) => !s)}
-          className="mx-auto flex w-full max-w-2xl items-center justify-center gap-1.5 md:hidden"
+          className="mx-auto flex w-full max-w-2xl items-center justify-center gap-1.5 [@media(min-width:768px)_and_(min-height:520px)]:hidden"
         >
           <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
           <Button
@@ -259,7 +270,7 @@ function BattlePage() {
         muted={muted}
         onMute={() => setMuted((m) => !m)}
         onChat={() => setShowChat((s) => !s)}
-        className="fight-controls absolute right-2 top-14 z-20 hidden flex-col items-center gap-2 md:flex"
+        className="fight-controls absolute right-2 top-14 z-20 hidden flex-col items-center gap-2 [@media(min-width:768px)_and_(min-height:520px)]:flex"
       >
         <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
         <Button

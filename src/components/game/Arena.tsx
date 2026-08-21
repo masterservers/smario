@@ -386,6 +386,29 @@ export function Arena({
   const cfgRef = useRef(cfg);
   cfgRef.current = cfg;
 
+  // Low-power phones: skip the per-hit colour grading repaint, which is the
+  // most expensive effect during a fast exchange.
+  const [lite, setLite] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const cores = navigator.hardwareConcurrency ?? 8;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    setLite(reduced || cores <= 4 || (coarse && window.innerWidth < 480));
+  }, []);
+
+  // Stop decoding frames while the tab is in the background.
+  useEffect(() => {
+    const onVisibility = () => {
+      const video = videoRef.current;
+      if (!video) return;
+      if (document.hidden) video.pause();
+      else void video.play();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
   const [attacker, setAttacker] = useState<Side>("us");
   const [crowd, setCrowd] = useState(0);
   const [replay, setReplay] = useState(false);
@@ -514,7 +537,9 @@ export function Arena({
       const chance = Math.min(0.95, base * cfgRef.current.followChance);
       if (Math.random() < chance) {
         const next = pick(FOLLOW_UPS, recentFollows.current, (m) => m.id);
-        recentFollows.current = [...recentFollows.current, next.id].slice(-cfgRef.current.followMemory);
+        recentFollows.current = [...recentFollows.current, next.id].slice(
+          -cfgRef.current.followMemory,
+        );
         follow.current = {
           event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` },
           move: next,
@@ -531,7 +556,7 @@ export function Arena({
       impactAt.current = move.impact;
       setAttacker(event.side);
       setFloats((previous) => [
-        ...previous.slice(-8),
+        ...previous.slice(-3),
         {
           id: event.id,
           emoji: gift?.emoji ?? "🌹",
@@ -562,7 +587,7 @@ export function Arena({
       setImpact({ id: event.id, side: defender, label: move.label });
       cheer(move.tier >= 4 ? 1.5 : 1);
       setDamages((previous) => [
-        ...previous.slice(-3),
+        ...previous.slice(-1),
         { id: event.id, side: defender, amount: gift?.damage ?? 4 },
       ]);
       window.setTimeout(() => setImpact(null), 600);
@@ -604,10 +629,15 @@ export function Arena({
           void event.currentTarget.play();
         }}
         onTimeUpdate={handleTimeUpdate}
+        disablePictureInPicture
         style={{
           // Crowd/lighting: the arena lifts in brightness and contrast on every
           // landed hit so the audience in the stands stays clearly readable.
-          filter: `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
+          filter: lite
+            ? "brightness(1.1) contrast(1.12) saturate(1.08)"
+            : `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
+          contain: "paint",
+          willChange: lite ? undefined : "filter",
         }}
         className="absolute inset-0 size-full object-contain object-center transition-[filter] duration-200"
       />
