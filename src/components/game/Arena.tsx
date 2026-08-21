@@ -3,7 +3,7 @@ import { VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
 import { useEffect, useRef, useState } from "react";
 import fightVideo from "@/assets/arena-heights2.webm.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
-import { ruleFor, type HitKind } from "@/lib/hitConfig";
+import { ruleFor, ruleForEvent, type HitKind } from "@/lib/hitConfig";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 import { getGiftConfig } from "@/lib/giftConfig";
 import { giftName } from "@/lib/giftCatalog";
@@ -767,7 +767,7 @@ export function Arena({
 
 
 
-      const tier = ruleFor(event.gift).tier;
+      const tier = ruleForEvent(event.id, event.gift).tier;
       const move = pendingFollow
         ? pendingFollow.move
         : drawMove(
@@ -868,7 +868,7 @@ export function Arena({
       const base = HIT_PROFILE[kind];
       // Admin tuning: the gift decides how hard this blow reads and how long
       // the defender stays shaken.
-      const rule = ruleFor(event.gift);
+      const rule = ruleForEvent(event.id, event.gift);
       const profile = {
         ...base,
         force: base.force * rule.force,

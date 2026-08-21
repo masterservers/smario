@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { UI_TEXT, type Lang } from "@/lib/i18n";
 import { finishMatch, getCurrentMatch } from "@/lib/match.functions";
 import { reduceEvents, randomNickname, type GiftEvent, type GiftId, type Side } from "@/lib/battle";
+import { resolveRing } from "@/lib/referee.functions";
+import { setServerRules } from "@/lib/hitConfig";
 
 type LeaderRow = { sender: string; total: number; side: Side };
 
@@ -130,7 +132,51 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
     };
   }, []);
 
-  const state = useMemo(() => reduceEvents(events), [events]);
+  const localState = useMemo(() => reduceEvents(events), [events]);
+  const [verdict, setVerdict] = useState<Awaited<ReturnType<typeof resolveRing>> | null>(null);
+
+  // Server-side referee: the score, the knockdown and the strength of every
+  // blow are recomputed from the stored feed, never trusted from the browser.
+  useEffect(() => {
+    if (!matchId) return;
+    let alive = true;
+    const judge = async () => {
+      try {
+        const result = await resolveRing({ data: { matchId } });
+        if (!alive) return;
+        setServerRules(
+          result.decisions.map((d) => ({
+            eventId: d.eventId,
+            rule: { kinds: d.kinds, tier: d.tier, force: d.force, stun: d.stun },
+          })),
+        );
+        setVerdict(result);
+      } catch {
+        /* keep playing on the local mapping until the referee answers again */
+      }
+    };
+    void judge();
+    const timer = window.setInterval(judge, 4000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [matchId, events.length]);
+
+  // The referee's verdict is authoritative; local reduction only bridges the
+  // few hundred milliseconds before the next server answer.
+  const state = useMemo(() => {
+    if (!verdict || verdict.matchId !== matchId) return localState;
+    return {
+      scoreRu: Math.max(verdict.scoreRu, localState.scoreRu),
+      scoreUs: Math.max(verdict.scoreUs, localState.scoreUs),
+      hpRu: Math.min(verdict.hpRu, localState.hpRu),
+      hpUs: Math.min(verdict.hpUs, localState.hpUs),
+      combo: localState.combo,
+      comboSide: localState.comboSide,
+      ko: verdict.ko ?? localState.ko,
+    };
+  }, [verdict, localState, matchId]);
 
   // First client to see the knockout closes the match and opens the next one.
   useEffect(() => {
@@ -183,7 +229,7 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
     [matchId, nickname, lang, log],
   );
 
-  return { matchId, round, events, state, leaders, viewers, nickname, ready, sendGift };
+  return { matchId, round, events, state, leaders, viewers, nickname, ready, sendGift, verdict };
 }
 
 // Hook signatures change often during development; a partial HMR patch would

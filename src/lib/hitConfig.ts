@@ -191,3 +191,28 @@ export function ruleFor(gift: string, round: number = activeRound): GiftHitRule 
   const id = gift as GiftId;
   return cfg.rounds[String(round)]?.[id] ?? cfg.gifts[id] ?? DEFAULT_RULES.rose;
 }
+
+/**
+ * Rules handed down by the server-side referee, keyed by gift event id. The
+ * arena prefers these over the local mapping so a tampered browser cannot
+ * decide how hard a gift lands.
+ */
+const serverRules = new Map<string, GiftHitRule>();
+
+export function setServerRules(entries: { eventId: string; rule: GiftHitRule }[]) {
+  for (const entry of entries) serverRules.set(entry.eventId, entry.rule);
+  // Keep the map bounded: only recent events can still be waiting in the queue.
+  if (serverRules.size > 400) {
+    const extra = serverRules.size - 400;
+    let i = 0;
+    for (const key of serverRules.keys()) {
+      if (i++ >= extra) break;
+      serverRules.delete(key);
+    }
+  }
+}
+
+/** The rule for one recorded gift: server verdict first, local mapping second. */
+export function ruleForEvent(eventId: string, gift: string, round: number = activeRound): GiftHitRule {
+  return serverRules.get(eventId) ?? ruleFor(gift, round);
+}
