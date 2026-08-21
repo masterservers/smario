@@ -132,7 +132,9 @@ export async function judgeRing(matchId: string): Promise<RingVerdict> {
     .select("id, round, ended_at")
     .eq("id", matchId)
     .maybeSingle();
-  if (!matchRow) throw new Error("Unknown match");
+  // The browser can hold a match id that was just reset/rotated. That is not an
+  // error: answer with a neutral verdict instead of failing the request.
+  if (!matchRow) return emptyVerdict(matchId);
 
   const { data: rows, error } = await supabase
     .from("gift_events")
