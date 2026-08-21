@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSceneConfig } from "@/lib/sceneConfig";
 import { useSceneDebug } from "@/lib/sceneDebug";
+import { visualSequenceStats } from "@/lib/visualSequences";
+
 
 /**
  * Live scheduler read-out: which scene is on screen, how long it has been
@@ -24,6 +26,9 @@ export function SceneDebugPanel() {
   const progress =
     debug.plannedMs > 0 ? Math.min(100, Math.round((elapsed / debug.plannedMs) * 100)) : 0;
   const blockedAgo = debug.blockedAt > 0 ? Math.round(now - debug.blockedAt) : null;
+  // Development diagnostic: how much of the catalog is actually distinct footage.
+  const stats = visualSequenceStats();
+
 
   return (
     <div className="pointer-events-none absolute bottom-2 left-2 z-30 w-[16.5rem] rounded-xl border border-border/70 bg-background/85 p-2 font-mono text-[10px] leading-tight text-foreground backdrop-blur">
@@ -51,6 +56,19 @@ export function SceneDebugPanel() {
         {transitions.lockIdle ? "idle locked" : "idle free"} ·{" "}
         {transitions.allowGiftInterrupt ? "gift may cut" : "no cuts"}
       </div>
+      <div className="mt-1 border-t border-border/60 pt-1 text-muted-foreground">
+        <div className="uppercase tracking-widest">visual sequences</div>
+        <div>
+          names {stats.totalMoveNames} · unique footage {stats.uniqueVisualSequences} · dup{" "}
+          {stats.duplicateMappings}
+        </div>
+        <div>
+          avg {stats.averageMovesPerSequence} names/seq · most reused {stats.mostReused.id} (
+          {stats.mostReused.count})
+        </div>
+        <div className="truncate">recent: {stats.recent.join(" › ") || "—"}</div>
+      </div>
+
     </div>
   );
 }

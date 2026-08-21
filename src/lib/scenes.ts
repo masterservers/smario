@@ -24,6 +24,12 @@ export type Move = {
   rate: number;
   /** 1 = light strike, 5 = finisher */
   tier: number;
+  /**
+   * Identity of the footage this move plays. Optional: when absent it is
+   * resolved from src+start+end through the registry in `visualSequences.ts`,
+   * so moves that share a window share a sequence.
+   */
+  visualSequenceId?: string;
 };
 
 export type IdleScene = {

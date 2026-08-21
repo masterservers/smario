@@ -23,6 +23,13 @@ import {
 } from "@/lib/scenes";
 import { moveKind } from "@/lib/moveKind";
 import {
+  isVisualSequenceRecent,
+  lastVisualSequence,
+  noteVisualSequence,
+  visualSequenceIdOf,
+} from "@/lib/visualSequences";
+
+import {
   completionEndOf,
   contactPointOf,
   followThroughOf,
@@ -195,8 +202,20 @@ function drawLRU<T extends { id: string }>(
   let lowest = Infinity;
   for (const item of unique) lowest = Math.min(lowest, cost(item.id));
   let list = unique.filter((item) => cost(item.id) <= lowest + 1e-6);
-  // Inside the cycle, avoid what was just seen and what is still cooling down.
   const now = performance.now();
+  // Highest priority: the *footage*. Many move names share one video window, so
+  // a different label is not a different animation. Never play the same visual
+  // sequence twice in a row, and strongly avoid it for the next few scenes.
+  const seqOf = (item: T) => visualSequenceIdOf(item as unknown as { id: string });
+  const freshVisual = list.filter((item) => !isVisualSequenceRecent(seqOf(item)));
+  if (freshVisual.length > 0) list = freshVisual;
+  else {
+    const last = lastVisualSequence();
+    const notLast = list.filter((item) => seqOf(item) !== last);
+    if (notLast.length > 0) list = notLast;
+    else sceneBlocked("visual sequence pool exhausted");
+  }
+  // Inside the cycle, avoid what was just seen and what is still cooling down.
   const blocked = new Set(recent.slice(-Math.max(1, Math.floor(unique.length / 2))));
   const notRecent = list.filter((item) => !blocked.has(item.id));
   if (notRecent.length > 0) list = notRecent;
@@ -211,6 +230,7 @@ function drawLRU<T extends { id: string }>(
     (item) => !familyBlocked(item as { label?: string }, recentFamilies, maxFamilyStreak),
   );
   if (varied.length > 0) list = varied;
+
   // Continuity: among the eligible scenes, favour the ones that carry on from
   // where the picture is right now, so the cut reads as one continuous action.
   if (prefer) {
@@ -232,6 +252,8 @@ function drawLRU<T extends { id: string }>(
   if (recent.length > unique.length) recent.shift();
   recentFamilies.push(familyOf(chosen as { id: string; label?: string }));
   if (recentFamilies.length > 12) recentFamilies.shift();
+  noteVisualSequence(seqOf(chosen));
+
   return chosen;
 }
 
