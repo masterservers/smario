@@ -167,7 +167,7 @@ function BattlePage() {
 
       {/* The ring keeps the full area under the HUD strip, so the whole mat is
           visible in portrait and in landscape — never hidden by the scoreboard. */}
-      <div className="absolute inset-x-0 bottom-0 top-[3.4rem] bg-background sm:top-[3.8rem]">
+      <div className="absolute inset-x-0 bottom-0 top-[var(--hud-h)] bg-background">
         <Arena
           difficulty={difficulty}
           variety={variety}

@@ -604,6 +604,26 @@
 }
 
 
+/* --- HUD strip height ----------------------------------------------
+   Single source of truth for the scoreboard strip, so the arena always
+   starts exactly under it in both orientations. */
+:root {
+  --hud-h: 3.4rem;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --hud-h: 3.8rem;
+  }
+}
+
+/* Landscape phones: keep the strip slim so the ring keeps its height. */
+@media (orientation: landscape) and (max-height: 600px) {
+  :root {
+    --hud-h: 3rem;
+  }
+}
+
 /* --- Arena scaling rules -------------------------------------------
    One rule for every device and orientation: the reel is ALWAYS `contain`,
    so the whole ring stays inside the frame and nothing is cropped when the
