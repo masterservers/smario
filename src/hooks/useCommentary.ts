@@ -94,7 +94,7 @@ export function useCommentary(
   const push = (text: string, tone: CommentaryLine["tone"]) => {
     // Never repeat one of the last lines twice in a row.
     if (recent.current.includes(text)) return;
-    recent.current = [...recent.current, text].slice(-8);
+    recent.current = [...recent.current, text].slice(-4);
     setLines((prev) => [
       ...prev.slice(-(MAX_LINES - 1)),
       { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, text, tone },
@@ -190,6 +190,16 @@ export function useCommentary(
     const names = SIDE_NAME[lang];
     push(pick(COMMENTARY[lang].roundStart)(names.ru, names.us), "idle");
   }, [lang]);
+
+  // Voice list loads asynchronously in most browsers; warm it up so the very
+  // first call already uses the male voice.
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const warm = () => void window.speechSynthesis.getVoices();
+    warm();
+    window.speechSynthesis.addEventListener("voiceschanged", warm);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", warm);
+  }, []);
 
   useEffect(() => {
     if (muted && typeof window !== "undefined" && "speechSynthesis" in window) {
