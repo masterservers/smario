@@ -1,7 +1,7 @@
 import { DIFFICULTY_CONFIG, type Difficulty } from "@/lib/difficulty";
 import { VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
 import { useEffect, useRef, useState } from "react";
-import fightVideo from "@/assets/arena-premium2.mp4.asset.json";
+import fightVideo from "@/assets/arena-clean.mp4.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { ruleFor, ruleForEvent, type HitKind } from "@/lib/hitConfig";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
