@@ -1234,26 +1234,36 @@ export function Arena({
           labels and gift particles stay off the ring so both fighters remain
           unobstructed on small screens. */}
 
-      {/* Knockout: no overlay panel over the ring — the loser stays down on the
-          mat and only a headline sits at the top-centre of the screen. */}
-      {ko && koConfirmed && (
-        <div className="pointer-events-none absolute inset-x-0 top-[8%] z-20 flex flex-col items-center gap-1 text-center">
+      {/* Knockout: nothing covers the ring. The loser stays down on the mat, the
+          referee counts to ten, and a small "KNOCKDOWN" tag sits on the side
+          opposite the fighter who is down. */}
+      {ko && (
+        <div
+          className={`pointer-events-none absolute top-[26%] z-20 flex max-w-[36vw] flex-col gap-0.5 ${
+            ko === "ru"
+              ? "left-[3%] items-start text-left"
+              : "right-[3%] items-end text-right"
+          }`}
+        >
           {replay && (
-            <div className="display animate-fade-in text-xs tracking-widest text-outline opacity-80 sm:text-sm">
+            <div className="display animate-fade-in text-[10px] tracking-widest text-outline opacity-80 sm:text-xs">
               ● REPLAY
             </div>
           )}
-          <div className="display text-5xl text-gold text-outline sm:text-7xl">{t.knockout}</div>
-          <div className="display text-xl text-outline sm:text-3xl">
+          <div className="display animate-fade-in text-base tracking-widest text-gold text-outline sm:text-2xl">
+            {t.knockdown.toUpperCase()}
+          </div>
+          <div className="display text-[10px] text-outline opacity-90 sm:text-sm">
             {ko === "ru" ? names.us : names.ru} — {t.knockedDown}
           </div>
-          {champion && (
-            <div className="display animate-fade-in text-lg text-gold text-outline sm:text-2xl">
+          {champion && koConfirmed && (
+            <div className="display animate-fade-in text-xs text-gold text-outline sm:text-lg">
               🏆 {ko === "ru" ? names.ru : names.us}
             </div>
           )}
         </div>
       )}
+
 
       {/* Instant replay controls — same camera, no cut away from the ring. */}
       {ko && koConfirmed && showReplayPanel && (
