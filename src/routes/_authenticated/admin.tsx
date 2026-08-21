@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { GIFTS, GIFT_BY_ID, type GiftId, type Side } from "@/lib/battle";
 import { LANG_META, LANGS, isLang, type Lang } from "@/lib/i18n";
 import {
@@ -19,8 +19,15 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  getMyStaffRole,
+  listAuditLog,
+  logAdminChange,
+  type AuditEntry,
+  type StaffRole,
+} from "@/lib/admin.functions";
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/_authenticated/admin")({
   validateSearch: (search: Record<string, unknown>) => ({
     lang: isLang(search['lang']) ? (search['lang'] as Lang) : ("en" as Lang),
   }),
@@ -62,11 +69,58 @@ function AdminPage() {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [role, setRole] = useState<StaffRole | "loading">("loading");
+  const [actor, setActor] = useState<string | null>(null);
+  const [audit, setAudit] = useState<AuditEntry[]>([]);
   const names = sideNames(lang);
+  const pending = useRef<Map<string, number>>(new Map());
+
+  const loadAudit = useCallback(async () => {
+    try {
+      setAudit((await listAuditLog()) as AuditEntry[]);
+    } catch {
+      setAudit([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const me = await getMyStaffRole();
+        setRole(me.role);
+        setActor(me.email);
+        if (me.role) void loadAudit();
+      } catch {
+        setRole(null);
+      }
+    })();
+  }, [loadAudit]);
+
+  /**
+   * Writes an audit entry. Field edits fire on every keystroke, so identical
+   * actions are coalesced into one entry per one and a half seconds.
+   */
+  const record = useCallback(
+    (section: string, action: string, details: Record<string, unknown>) => {
+      const text = JSON.stringify(details);
+      const key = `${section}:${action}`;
+      const previous = pending.current.get(key);
+      if (previous) window.clearTimeout(previous);
+      const timer = window.setTimeout(() => {
+        pending.current.delete(key);
+        void logAdminChange({ data: { section, action, details: text } })
+          .then(() => loadAudit())
+          .catch(() => undefined);
+      }, 1500);
+      pending.current.set(key, timer);
+    },
+    [loadAudit],
+  );
 
   const update = (id: GiftId, patch: Partial<GiftConfig[GiftId]>) => {
     setConfig((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
     setSaved(false);
+    record("gifts", `edit ${id}`, patch as Record<string, unknown>);
   };
 
   const updatePhrase = (id: GiftId, phraseLang: Lang, value: string) => {
@@ -75,14 +129,16 @@ function AdminPage() {
       [id]: { ...current[id], phrases: { ...current[id].phrases, [phraseLang]: value } },
     }));
     setSaved(false);
+    record("gifts", `phrase ${id} · ${phraseLang}`, { value });
   };
 
-  const patchAdmin = (patch: Partial<AdminConfig>) => {
+  const patchAdmin = (patch: Partial<AdminConfig>, section = "settings", action = "update") => {
     setAdmin((current) => {
       const next = { ...current, ...patch };
       saveAdminConfig(next);
       return next;
     });
+    record(section, action, patch as Record<string, unknown>);
   };
 
   const loadHistory = useCallback(async () => {
@@ -104,17 +160,117 @@ function AdminPage() {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const liveLink = `${origin}/live?lang=${lang}&s=${admin.liveSession}`;
 
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/auth";
+  };
+
+  if (role === "loading") {
+    return (
+      <main className="mx-auto w-full max-w-4xl px-4 py-16 text-sm text-muted-foreground">
+        Checking your access…
+  
+      {/* Audit log ------------------------------------------------------ */}
+      <section className="panel mt-8 rounded-2xl p-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+            Audit log
+          </h2>
+          <Button type="button" size="sm" variant="outline" onClick={() => void loadAudit()}>
+            Refresh
+          </Button>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Every change made in this console: who did it, when, and exactly what changed.
+        </p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="text-muted-foreground">
+              <tr>
+                <th className="py-1 pr-3">When</th>
+                <th className="py-1 pr-3">Who</th>
+                <th className="py-1 pr-3">Section</th>
+                <th className="py-1 pr-3">Change</th>
+                <th className="py-1">Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {audit.map((entry) => (
+                <tr key={entry.id} className="border-t border-border/60 align-top">
+                  <td className="py-1.5 pr-3 text-muted-foreground">
+                    {new Date(entry.created_at).toLocaleString()}
+                  </td>
+                  <td className="py-1.5 pr-3">{entry.actor_email ?? "—"}</td>
+                  <td className="py-1.5 pr-3">{entry.section}</td>
+                  <td className="py-1.5 pr-3">{entry.action}</td>
+                  <td className="py-1.5 break-all text-muted-foreground">
+                    {entry.details}
+                  </td>
+                </tr>
+              ))}
+              {audit.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-3 text-muted-foreground">
+                    No changes recorded yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    );
+  }
+
+  if (!role) {
+    return (
+      <main className="mx-auto w-full max-w-md px-4 py-16">
+        <h1 className="display text-2xl text-gold">No access</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {actor ? `${actor} has no ` : "This account has no "}admin or moderator role, so the
+          battle console stays locked. Ask an administrator to grant you a role.
+        </p>
+        <div className="mt-4 flex gap-2">
+          <Button type="button" variant="outline" onClick={() => void signOut()}>
+            Sign out
+          </Button>
+          <Link
+            to="/"
+            search={{ lang }}
+            className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground"
+          >
+            ← Arena
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const readOnly = role === "moderator";
+
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="display text-2xl text-gold">Battle admin</h1>
-        <Link
-          to="/"
-          search={{ lang }}
-          className="rounded-md border border-border px-3 py-1 text-sm text-muted-foreground"
-        >
-          ← Arena
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="display text-2xl text-gold">Battle admin</h1>
+          <p className="text-xs text-muted-foreground">
+            {actor} · role: {role}
+            {readOnly ? " (moderator — changes are logged and reviewed)" : ""}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => void signOut()}>
+            Sign out
+          </Button>
+          <Link
+            to="/"
+            search={{ lang }}
+            className="rounded-md border border-border px-3 py-1 text-sm text-muted-foreground"
+          >
+            ← Arena
+          </Link>
+        </div>
       </div>
 
       {/* Fighters ------------------------------------------------------- */}
@@ -142,7 +298,7 @@ function AdminPage() {
                         ...admin.fighters,
                         [side]: { ...admin.fighters[side], name: e.target.value },
                       },
-                    })
+                    }, "fighters", `${side} name`)
                   }
                   className="mt-1 h-9"
                   aria-label={`${side} fighter name`}
@@ -158,7 +314,7 @@ function AdminPage() {
                         ...admin.fighters,
                         [side]: { ...admin.fighters[side], nickname: e.target.value },
                       },
-                    })
+                    }, "fighters", `${side} nickname`)
                   }
                   className="mt-1 h-9"
                   aria-label={`${side} fighter nickname`}
@@ -180,7 +336,7 @@ function AdminPage() {
             <Input
               value={admin.tiktok.username}
               placeholder="@account"
-              onChange={(e) => patchAdmin({ tiktok: { ...admin.tiktok, username: e.target.value } })}
+              onChange={(e) => patchAdmin({ tiktok: { ...admin.tiktok, username: e.target.value } }, "tiktok", "username")}
               className="mt-1 h-9"
             />
           </label>
@@ -189,7 +345,7 @@ function AdminPage() {
             <Input
               value={admin.tiktok.liveUrl}
               placeholder="https://www.tiktok.com/@account/live"
-              onChange={(e) => patchAdmin({ tiktok: { ...admin.tiktok, liveUrl: e.target.value } })}
+              onChange={(e) => patchAdmin({ tiktok: { ...admin.tiktok, liveUrl: e.target.value } }, "tiktok", "live url")}
               className="mt-1 h-9"
             />
           </label>
@@ -199,7 +355,7 @@ function AdminPage() {
               value={admin.tiktok.webhookUrl}
               placeholder="https://…/api/public/tiktok"
               onChange={(e) =>
-                patchAdmin({ tiktok: { ...admin.tiktok, webhookUrl: e.target.value } })
+                patchAdmin({ tiktok: { ...admin.tiktok, webhookUrl: e.target.value } }, "tiktok", "relay endpoint")
               }
               className="mt-1 h-9"
             />
@@ -210,7 +366,7 @@ function AdminPage() {
             type="button"
             size="sm"
             variant={admin.tiktok.enabled ? "default" : "outline"}
-            onClick={() => patchAdmin({ tiktok: { ...admin.tiktok, enabled: !admin.tiktok.enabled } })}
+            onClick={() => patchAdmin({ tiktok: { ...admin.tiktok, enabled: !admin.tiktok.enabled } }, "tiktok", "source toggle")}
           >
             {admin.tiktok.enabled ? "Source active" : "Source paused"}
           </Button>
@@ -256,7 +412,7 @@ function AdminPage() {
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => patchAdmin({ liveSession: newSessionId() })}
+            onClick={() => patchAdmin({ liveSession: newSessionId() }, "live", "new session")}
           >
             New session
           </Button>
@@ -396,6 +552,7 @@ function AdminPage() {
           onClick={() => {
             saveGiftConfig(config);
             setSaved(true);
+            record("gifts", "save", { gifts: Object.keys(config).length });
           }}
         >
           Save gifts
@@ -408,6 +565,7 @@ function AdminPage() {
             setConfig(fresh);
             saveGiftConfig(fresh);
             setSaved(true);
+            record("gifts", "reset", {});
           }}
         >
           Reset gifts
