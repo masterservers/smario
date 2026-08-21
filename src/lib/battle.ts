@@ -1,6 +1,24 @@
 export type Side = "ru" | "us";
 
-export type GiftId = "rose" | "donut" | "tiktok" | "gift" | "rocket";
+export type GiftId =
+  | "rose"
+  | "donut"
+  | "tiktok"
+  | "gift"
+  | "rocket"
+  | "burger"
+  | "vodka"
+  | "lightning"
+  | "glove"
+  | "eagle"
+  | "bear"
+  | "matryoshka"
+  | "statue"
+  | "kremlin"
+  | "tank"
+  | "bomb"
+  | "crown"
+  | "trophy";
 
 export type Gift = {
   id: GiftId;
@@ -15,6 +33,20 @@ export const GIFTS: Gift[] = [
   { id: "tiktok", emoji: "🎵", value: 5, damage: 12 },
   { id: "gift", emoji: "🎁", value: 10, damage: 20 },
   { id: "rocket", emoji: "🚀", value: 25, damage: 34 },
+  // Themed catalog: America / Trump on one side, Russia / Putin on the other.
+  { id: "burger", emoji: "🍔", value: 3, damage: 8 },
+  { id: "vodka", emoji: "🥃", value: 4, damage: 10 },
+  { id: "lightning", emoji: "⚡", value: 5, damage: 12 },
+  { id: "glove", emoji: "🥊", value: 6, damage: 14 },
+  { id: "eagle", emoji: "🦅", value: 8, damage: 17 },
+  { id: "bear", emoji: "🐻", value: 8, damage: 17 },
+  { id: "matryoshka", emoji: "🪆", value: 10, damage: 20 },
+  { id: "statue", emoji: "🗽", value: 12, damage: 22 },
+  { id: "kremlin", emoji: "🏰", value: 12, damage: 22 },
+  { id: "tank", emoji: "🪖", value: 15, damage: 26 },
+  { id: "bomb", emoji: "💣", value: 18, damage: 28 },
+  { id: "crown", emoji: "👑", value: 20, damage: 30 },
+  { id: "trophy", emoji: "🏆", value: 30, damage: 38 },
 ];
 
 export const GIFT_BY_ID = Object.fromEntries(GIFTS.map((g) => [g.id, g])) as Record<GiftId, Gift>;
