@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MAX_HP, type Side } from "@/lib/battle";
+import { getHitConfig, useHitConfig } from "@/lib/hitConfig";
 
-/** One second per number, like a real ring count. */
-const COUNT_MS = 950;
 /** Below this share of HP the fighter goes down and the referee starts counting. */
 const KD_RATIO = 0.22;
 
@@ -11,48 +10,59 @@ export type RefereeState = {
   side: Side | null;
   /** Current number the referee is at (0 = no count). */
   count: number;
-  /** True while counting to ten — the finish. */
+  /** True while counting the finish. */
   final: boolean;
-  /** Set once the ten-count is complete: the knockout is official. */
+  /** Set once the full count is complete: the knockout is official. */
   koConfirmed: boolean;
+  /** True during the short, quiet transition back into the fight. */
+  resuming: boolean;
 };
 
-const IDLE: RefereeState = { side: null, count: 0, final: false, koConfirmed: false };
+const IDLE: RefereeState = { side: null, count: 0, final: false, koConfirmed: false, resuming: false };
 
 /**
- * Ring referee: counts a downed fighter up to eight (he beats the count and the
- * fight resumes) or all the way to ten when his HP is gone, which makes the
- * knockout official and stops the sequence.
+ * Ring referee. The count length, its rhythm and the transition back into the
+ * fight are all configurable in /admin, so they can be tuned during a live show.
  */
 export function useReferee(hpRu: number, hpUs: number, ko: Side | null): RefereeState {
   const [state, setState] = useState<RefereeState>(IDLE);
   const armed = useRef<Side | null>(null);
+  // Re-subscribe when the admin changes the rules.
+  const cfg = useHitConfig().referee;
 
-  // Final ten-count after a knockout blow.
+  // Final count after a knockout blow.
   useEffect(() => {
     if (!ko) {
       setState(IDLE);
       armed.current = null;
       return;
     }
+    const rules = getHitConfig().referee;
     const downed: Side = ko === "ru" ? "us" : "ru";
     let n = 1;
-    setState({ side: downed, count: 1, final: true, koConfirmed: false });
+    setState({ side: downed, count: 1, final: true, koConfirmed: false, resuming: false });
     const timer = window.setInterval(() => {
       n += 1;
-      if (n > 10) {
+      if (n > rules.finalCount) {
         window.clearInterval(timer);
-        setState({ side: downed, count: 10, final: true, koConfirmed: true });
+        setState({
+          side: downed,
+          count: rules.finalCount,
+          final: true,
+          koConfirmed: true,
+          resuming: false,
+        });
         return;
       }
-      setState({ side: downed, count: n, final: true, koConfirmed: false });
-    }, COUNT_MS);
+      setState({ side: downed, count: n, final: true, koConfirmed: false, resuming: false });
+    }, rules.countMs);
     return () => window.clearInterval(timer);
-  }, [ko]);
+  }, [ko, cfg.finalCount, cfg.countMs]);
 
-  // Knockdown count during the fight — eight, then the fighter is back up.
+  // Knockdown count during the fight — the fighter beats it and is back up.
   useEffect(() => {
     if (ko) return;
+    const rules = getHitConfig().referee;
     const limit = MAX_HP * KD_RATIO;
     const downed: Side | null = hpRu <= limit ? "ru" : hpUs <= limit ? "us" : null;
     if (!downed) {
@@ -63,18 +73,31 @@ export function useReferee(hpRu: number, hpUs: number, ko: Side | null): Referee
     armed.current = downed;
 
     let n = 1;
-    setState({ side: downed, count: 1, final: false, koConfirmed: false });
+    let resume = 0;
+    setState({ side: downed, count: 1, final: false, koConfirmed: false, resuming: false });
     const timer = window.setInterval(() => {
       n += 1;
-      if (n > 8) {
+      if (n > rules.knockdownCount) {
         window.clearInterval(timer);
-        setState(IDLE);
+        // Soft hand-over: the fighter is up, the arena eases back into the
+        // action instead of cutting straight to the next scene.
+        setState({
+          side: downed,
+          count: rules.knockdownCount,
+          final: false,
+          koConfirmed: false,
+          resuming: true,
+        });
+        resume = window.setTimeout(() => setState(IDLE), rules.resumeDelayMs);
         return;
       }
-      setState({ side: downed, count: n, final: false, koConfirmed: false });
-    }, COUNT_MS);
-    return () => window.clearInterval(timer);
-  }, [hpRu, hpUs, ko]);
+      setState({ side: downed, count: n, final: false, koConfirmed: false, resuming: false });
+    }, rules.countMs);
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(resume);
+    };
+  }, [hpRu, hpUs, ko, cfg.knockdownCount, cfg.countMs, cfg.resumeDelayMs]);
 
   return state;
 }
