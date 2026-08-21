@@ -35,10 +35,10 @@ export function defaultSceneConfig(): SceneConfig {
     disabled: [],
     weights: {},
     transitions: {
-      minSceneMs: 900,
+      minSceneMs: 1800,
       allowGiftInterrupt: false,
       lockIdle: true,
-      tailMs: 120,
+      tailMs: 260,
       debug: false,
     },
   };

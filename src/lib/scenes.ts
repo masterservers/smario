@@ -631,27 +631,57 @@ const VARIETY_IDLE: IdleScene[] = [
   { id: "i-v6", start: 36.8, end: 39.0, rate: 0.78, label: "STARE DOWN AT THE ROPES" },
 ];
 
-export const MOVES: Move[] = [
+/**
+ * Continuity pass: a technique must read as one uninterrupted action, so every
+ * window is stretched to a minimum length, the playback rate is kept close to
+ * real time (no "fast-forward rounds") and the impact sits inside the window
+ * with enough tail left for the follow-through.
+ */
+const REEL_LEN = 40.2;
+
+function flow<T extends { start: number; end: number; rate: number }>(scene: T, min: number): T {
+  const rate = Math.min(1.04, Math.max(0.92, scene.rate));
+  const span = Math.max(min, scene.end - scene.start);
+  let start = Math.max(0.1, scene.start);
+  if (start + span > REEL_LEN) start = Math.max(0.1, REEL_LEN - span);
+  const end = start + span;
+  const next = {
+    ...scene,
+    start: Number(start.toFixed(2)),
+    end: Number(end.toFixed(2)),
+    rate: Number(rate.toFixed(2)),
+  } as T & { impact?: number };
+  if (typeof (scene as { impact?: number }).impact === "number") {
+    next.impact = Number((start + span * 0.62).toFixed(2));
+  }
+  return next;
+}
+
+const move = (list: Move[]) => list.map((m) => flow(m, 2.8));
+const idle = (list: IdleScene[]) => list.map((s) => flow(s, 4));
+
+export const MOVES: Move[] = move([
   ...spread(BASE_MOVES, 0),
   ...spread(EXTRA_MOVES, 1),
   ...spread(ROPE_MOVES, 2),
   ...spread(VARIETY_MOVES, 1),
   ...WRESTLING_MOVES,
-];
+]);
 
-export const FOLLOW_UPS: Move[] = [
+export const FOLLOW_UPS: Move[] = move([
   ...spread(BASE_FOLLOW_UPS, 2),
   ...spread(EXTRA_FOLLOW_UPS, 0),
   ...spread(ROPE_FOLLOW_UPS, 1),
   ...spread(VARIETY_FOLLOW_UPS, 2),
   ...WRESTLING_FOLLOW_UPS,
-];
-export const IDLE_SCENES: IdleScene[] = [
+]);
+export const IDLE_SCENES: IdleScene[] = idle([
   ...spread(BASE_IDLE, 0),
   ...spread(EXTRA_IDLE, 1),
   ...spread(ROPE_IDLE, 2),
   ...spread(VARIETY_IDLE, 0),
-];
+]);
+
 
 /** Every scene the scheduler can pick, for the admin list and the debug panel. */
 export const ALL_SCENES = [
