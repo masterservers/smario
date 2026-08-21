@@ -162,7 +162,7 @@ export function Scoreboard({
 
       <div
         key={`${matchId ?? "match"}-${round}`}
-        className="display mx-auto mt-0.5 flex w-full max-w-full animate-fade-in items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap text-center font-semibold uppercase leading-tight text-gold [font-size:clamp(0.6rem,2.6vw,1.05rem)] [letter-spacing:clamp(0.04em,0.5vw,0.18em)]"
+        className="display mx-auto mt-1 flex w-full max-w-full animate-fade-in items-center justify-center gap-2 overflow-hidden whitespace-nowrap text-center font-bold uppercase leading-tight text-gold [font-size:clamp(1rem,4.2vw,2rem)] [letter-spacing:clamp(0.04em,0.5vw,0.16em)]"
         style={{
           textShadow:
             "0 1px 2px hsl(var(--background) / 0.95), 0 0 10px hsl(var(--background) / 0.8)",
