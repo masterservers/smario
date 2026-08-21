@@ -173,6 +173,49 @@ export function familyTrace(): SceneFamily[] {
   return recentFamilies.slice(-8);
 }
 
+/**
+ * Rotation on the *kind* of blow — punch, kick, aerial, throw, grapple.
+ * Families already stop "another rope spot" from chaining; this second guard
+ * keeps the categories themselves alternating, so a round never turns into ten
+ * punches with the odd kick. Two rules:
+ *   1. hard — no more than `maxKindStreak` scenes of the same kind in a row,
+ *      and no kind may fill more than half of the recent window;
+ *   2. soft — among the scenes that survive, prefer the categories that have
+ *      been waiting the longest, so the round cycles through all five.
+ */
+const ROTATION_KINDS: HitKind[] = ["punch", "kick", "aerial", "throw", "grapple"];
+const recentKinds: HitKind[] = [];
+let maxKindStreak = 2;
+
+export function setKindStreak(value: number) {
+  maxKindStreak = Math.max(1, Math.round(value));
+}
+
+/** Live snapshot for the debug panel. */
+export function kindTrace(): HitKind[] {
+  return recentKinds.slice(-8);
+}
+
+/** Resets the category rotation, e.g. when a new round starts. */
+export function resetKindRotation() {
+  recentKinds.length = 0;
+}
+
+function kindBlocked(kind: HitKind, window = 6): boolean {
+  let streak = 0;
+  for (let i = recentKinds.length - 1; i >= 0 && recentKinds[i] === kind; i--) streak++;
+  if (streak >= maxKindStreak) return true;
+  const slice = recentKinds.slice(-window);
+  const share = slice.filter((k) => k === kind).length;
+  return slice.length >= window && share > Math.ceil(window / 2);
+}
+
+/** How long ago this category last ran; larger = more overdue. */
+function kindAge(kind: HitKind): number {
+  const index = recentKinds.lastIndexOf(kind);
+  return index === -1 ? Number.MAX_SAFE_INTEGER : recentKinds.length - index;
+}
+
 function drawLRU<T extends { id: string }>(
   pool: T[],
   usage: Map<string, number>,
@@ -204,6 +247,26 @@ function drawLRU<T extends { id: string }>(
     (item) => !familyBlocked(item as { label?: string }, recentFamilies, maxFamilyStreak),
   );
   if (varied.length > 0) list = varied;
+  // Category rotation (hard rule): punch / kick / aerial / throw / grapple may
+  // not chain past `maxKindStreak` or take over the recent window.
+  const rotated = list.filter((item) => {
+    const label = (item as { label?: string }).label;
+    return typeof label !== "string" || !kindBlocked(kindOf(item as unknown as Move));
+  });
+  if (rotated.length > 0) list = rotated;
+  // Category rotation (soft rule): favour the categories that have been waiting
+  // the longest, so a round walks through all five instead of two.
+  const labelled = list.filter((item) => typeof (item as { label?: string }).label === "string");
+  if (labelled.length > 0 && recentKinds.length > 0 && Math.random() < 0.75) {
+    let best = -1;
+    const ages = new Map<HitKind, number>();
+    for (const kind of ROTATION_KINDS) ages.set(kind, kindAge(kind));
+    for (const item of labelled) best = Math.max(best, ages.get(kindOf(item as unknown as Move)) ?? 0);
+    const overdue = labelled.filter(
+      (item) => (ages.get(kindOf(item as unknown as Move)) ?? 0) >= best,
+    );
+    if (overdue.length > 0) list = overdue;
+  }
   // Continuity: among the eligible scenes, favour the ones that carry on from
   // where the picture is right now, so the cut reads as one continuous action.
   if (prefer) {
@@ -225,6 +288,10 @@ function drawLRU<T extends { id: string }>(
   if (recent.length > unique.length) recent.shift();
   recentFamilies.push(familyOf(chosen as { id: string; label?: string }));
   if (recentFamilies.length > 12) recentFamilies.shift();
+  if (typeof (chosen as { label?: string }).label === "string") {
+    recentKinds.push(kindOf(chosen as unknown as Move));
+    if (recentKinds.length > 12) recentKinds.shift();
+  }
   return chosen;
 }
 
@@ -633,8 +700,10 @@ export function Arena({
       koReplayRef.current = null;
       // A new round starts here: staged configuration imports go live now.
       commitPendingConfig("round");
-      // Next round leans on a different family of scenes.
+      // Next round leans on a different family of scenes and restarts the
+      // punch/kick/aerial/throw/grapple rotation from a clean slate.
       roundNo.current += 1;
+      resetKindRotation();
       setSceneRound(roundNo.current);
       // Smooth return to live speed after the slow-motion finish.
       const video = activeVideoRef.current;
