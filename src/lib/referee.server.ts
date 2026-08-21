@@ -66,7 +66,15 @@ export async function loadActiveHitConfig(): Promise<HitConfig> {
         base.rounds[round] = bucket;
       }
     }
+    if (hits.routing) {
+      for (const [id, value] of Object.entries(hits.routing)) {
+        if (value === "ru" || value === "us" || value === "auto") {
+          base.routing[id as GiftId] = value;
+        }
+      }
+    }
     if (hits.referee) base.referee = { ...base.referee, ...hits.referee };
+
   } catch {
     /* published config unavailable: run on defaults */
   }
