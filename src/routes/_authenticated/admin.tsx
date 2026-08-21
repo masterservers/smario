@@ -32,6 +32,7 @@ import { SessionLinks } from "@/components/admin/SessionLinks";
 import { GuestChat } from "@/components/admin/GuestChat";
 import { RoundMapping } from "@/components/admin/RoundMapping";
 import { MatchReset } from "@/components/admin/MatchReset";
+import { MatchTitleControl } from "@/components/admin/MatchTitle";
 import { TwoFactorGate, TwoFactorSettings, useMfaState } from "@/components/admin/TwoFactor";
 import { ALL_SCENES } from "@/lib/scenes";
 import {
@@ -494,6 +495,19 @@ function AdminPage() {
           lang={lang}
           onAudit={(action, details) => record("sessions", action, { details })}
         />
+      </section>
+
+      {/* Match title ------------------------------------------------------ */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Match title · presets &amp; validation
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          Pick an approved title or type your own — anything political or otherwise banned on
+          TikTok is rejected and falls back to the approved variant on every page, tab title and
+          notification.
+        </p>
+        <MatchTitleControl onAudit={(action, details) => record("branding", action, details)} />
       </section>
 
       {/* Match reset ------------------------------------------------------ */}

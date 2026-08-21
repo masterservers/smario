@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { SIDE_NAME, type Lang } from "@/lib/i18n";
+import { DEFAULT_TITLE, normalizeTitle } from "@/lib/matchTitle";
 
 export type FighterSetting = {
   /** Official name shown in the scoreboard and summaries. */
@@ -24,6 +25,8 @@ export type AdminConfig = {
   tiktok: TikTokSetting;
   /** Unique id appended to the shareable live link. */
   liveSession: string;
+  /** Approved match title used on every page and notification. */
+  matchTitle: string;
 };
 
 export function newSessionId(): string {
@@ -38,6 +41,7 @@ export function defaultAdminConfig(): AdminConfig {
     },
     tiktok: { username: "", liveUrl: "", webhookUrl: "", enabled: false },
     liveSession: "arena",
+    matchTitle: DEFAULT_TITLE,
   };
 }
 
@@ -68,6 +72,7 @@ function normalize(raw: unknown): AdminConfig {
     };
   }
   base.liveSession = str(parsed.liveSession, base.liveSession);
+  base.matchTitle = normalizeTitle(parsed.matchTitle ?? base.matchTitle);
   return base;
 }
 
@@ -122,4 +127,14 @@ export function sideVoiceNames(lang: Lang): Names {
     ru: cfg.fighters.ru.nickname || cfg.fighters.ru.name,
     us: cfg.fighters.us.nickname || cfg.fighters.us.name,
   };
+}
+
+/** The approved match title (validated on every read). */
+export function matchTitle(): string {
+  return normalizeTitle(getAdminConfig().matchTitle);
+}
+
+/** Reactive approved match title for components and page heads. */
+export function useMatchTitle(): string {
+  return normalizeTitle(useAdminConfig().matchTitle);
 }

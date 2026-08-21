@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { TitleSync } from "@/components/game/TitleSync";
 import { Toaster } from "@/components/ui/sonner";
 import {
   Outlet,
@@ -136,8 +137,10 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <TitleSync />
       <Outlet />
       <Toaster position="top-center" richColors />
+
     </QueryClientProvider>
   );
 }

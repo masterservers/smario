@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MAX_HP, type Side } from "@/lib/battle";
 import { UI_TEXT, type Lang } from "@/lib/i18n";
-import { sideNames, useAdminConfig } from "@/lib/adminConfig";
+import { sideNames, useAdminConfig, useMatchTitle } from "@/lib/adminConfig";
 
 type Props = {
   lang: Lang;
@@ -86,6 +86,16 @@ export function Scoreboard({
   const t = UI_TEXT[lang];
   useAdminConfig();
   const names = sideNames(lang);
+  // The approved title is split around "vs" so both camps keep their colour.
+  const title = useMatchTitle();
+  const titleParts = (() => {
+    const m = title.match(/^(.*?)\s+vs\.?\s+(.*)$/i);
+    if (!m) return { lead: "", left: title, right: "" };
+    const head = m[1] ?? "";
+    const words = head.split(" ");
+    const left = words.pop() ?? head;
+    return { lead: words.join(" "), left, right: m[2] ?? "" };
+  })();
   const { time, elapsed } = useRoundClock(matchId, round, ko);
 
   // Referee calls and gift ticker — driven by useTopBanner, which speaks the
@@ -166,30 +176,37 @@ export function Scoreboard({
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        aria-label={`Fight ${names.ru} vs ${names.us}`}
+        aria-label={title}
       >
-        <span className="shrink-0 opacity-90" aria-hidden="true">
-          Fight
-        </span>
+        {titleParts.lead && (
+          <span className="shrink-0 opacity-90" aria-hidden="true">
+            {titleParts.lead}
+          </span>
+        )}
         <span
           className="min-w-0 truncate"
           style={{ color: "var(--ru-glow)" }}
           aria-hidden="true"
         >
-          {names.ru}
+          {titleParts.left}
         </span>
 
-        <span className="shrink-0 opacity-90" aria-hidden="true">
-          vs
-        </span>
-        <span
-          className="min-w-0 truncate"
-          style={{ color: "var(--us-glow)" }}
-          aria-hidden="true"
-        >
-          {names.us}
-        </span>
+        {titleParts.right && (
+          <>
+            <span className="shrink-0 opacity-90" aria-hidden="true">
+              vs
+            </span>
+            <span
+              className="min-w-0 truncate"
+              style={{ color: "var(--us-glow)" }}
+              aria-hidden="true"
+            >
+              {titleParts.right}
+            </span>
+          </>
+        )}
       </div>
+
     </div>
   );
 }
