@@ -535,7 +535,7 @@ function AdminPage() {
           arena tab and on the spectator links, and it is kept for the running match across reloads
           and restarts.
         </p>
-        <OutfitControl onAudit={(action, details) => record("outfit", action, details)} />
+        <OutfitControl onAudit={(action, details) => record("outfit", action, { details })} />
       </section>
 
       {/* Commentator control --------------------------------------------- */}
