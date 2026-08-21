@@ -51,7 +51,7 @@ function BattlePage() {
   const [showLog, setShowLog] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
 
-  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch();
+  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(lang);
   const referee = useReferee(state.hpRu, state.hpUs, state.ko);
   useCommentary(lang, events, state, muted, referee);
 

@@ -17,6 +17,7 @@ export type Database = {
       gift_events: {
         Row: {
           created_at: string
+          flagged: boolean
           gift: string
           id: string
           match_id: string
@@ -27,6 +28,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          flagged?: boolean
           gift: string
           id?: string
           match_id: string
@@ -37,6 +39,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          flagged?: boolean
           gift?: string
           id?: string
           match_id?: string

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { UI_TEXT, type Lang } from "@/lib/i18n";
 import { finishMatch, getCurrentMatch } from "@/lib/match.functions";
 import {
   reduceEvents,
@@ -13,6 +15,12 @@ type LeaderRow = { sender: string; total: number; side: Side };
 
 const KO_HOLD_MS = 14000;
 
+// Client-side guard mirroring the database limits: a small token bucket keeps
+// honest users from ever hitting the server rejection.
+const BUCKET_SIZE = 6;
+const REFILL_MS = 1500;
+const MIN_GAP_MS = 700;
+
 function readNickname(): string {
   if (typeof window === "undefined") return "guest";
   const stored = window.localStorage.getItem("pvt-nick");
@@ -22,7 +30,7 @@ function readNickname(): string {
   return nick;
 }
 
-export function useLiveMatch() {
+export function useLiveMatch(lang: Lang = "en") {
   const [matchId, setMatchId] = useState<string | null>(null);
   const [round, setRound] = useState(1);
   const [events, setEvents] = useState<GiftEvent[]>([]);
@@ -31,6 +39,9 @@ export function useLiveMatch() {
   const [nickname, setNickname] = useState("guest");
   const [ready, setReady] = useState(false);
   const finishing = useRef(false);
+  const tokens = useRef(BUCKET_SIZE);
+  const lastRefill = useRef(Date.now());
+  const lastSend = useRef(0);
 
   useEffect(() => {
     setNickname(readNickname());
@@ -50,6 +61,7 @@ export function useLiveMatch() {
       .from("gift_events")
       .select("id, side, gift, value, sender, created_at")
       .eq("match_id", match.id)
+      .eq("flagged", false)
       .order("created_at", { ascending: true })
       .limit(400);
     setEvents((rows ?? []) as GiftEvent[]);
@@ -81,7 +93,8 @@ export function useLiveMatch() {
           filter: `match_id=eq.${matchId}`,
         },
         (payload) => {
-          const row = payload.new as GiftEvent;
+          const row = payload.new as GiftEvent & { flagged?: boolean };
+          if (row.flagged) return; // fraud-flagged gifts never affect the score
           setEvents((prev) => (prev.some((e) => e.id === row.id) ? prev : [...prev, row]));
         },
       )
@@ -146,9 +159,25 @@ export function useLiveMatch() {
   const sendGift = useCallback(
     async (side: Side, gift: GiftId, message?: string) => {
       if (!matchId || state.ko) return;
+      const t = UI_TEXT[lang];
+      const now = Date.now();
+
+      // refill the bucket, then spend a token
+      const refilled = Math.floor((now - lastRefill.current) / REFILL_MS);
+      if (refilled > 0) {
+        tokens.current = Math.min(BUCKET_SIZE, tokens.current + refilled);
+        lastRefill.current = now;
+      }
+      if (now - lastSend.current < MIN_GAP_MS || tokens.current <= 0) {
+        toast.warning(t.tooFast);
+        return;
+      }
+      tokens.current -= 1;
+      lastSend.current = now;
+
       // Insert and take the row straight back, so the sender sees the strike
       // land immediately instead of waiting for the realtime round trip.
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("gift_events")
         .insert({
           match_id: matchId,
@@ -157,13 +186,27 @@ export function useLiveMatch() {
           sender: nickname,
           message: message ?? null,
         })
-        .select("id, side, gift, value, sender, created_at")
+        .select("id, side, gift, value, sender, created_at, flagged")
         .single();
+
+      if (error) {
+        const reason = error.message ?? "";
+        if (reason.includes("sender_cap")) toast.warning(t.capReached);
+        else if (reason.includes("rate_limited") || reason.includes("too_fast") || reason.includes("match_flood"))
+          toast.warning(t.tooFast);
+        else toast.error(t.tooFast);
+        return;
+      }
+
+      if (data?.flagged) {
+        toast.warning(t.fraudFlagged);
+        return;
+      }
       if (data) {
         setEvents((prev) => (prev.some((e) => e.id === data.id) ? prev : [...prev, data as GiftEvent]));
       }
     },
-    [matchId, nickname, state.ko],
+    [matchId, nickname, state.ko, lang],
   );
 
   return { matchId, round, events, state, leaders, viewers, nickname, ready, sendGift };
