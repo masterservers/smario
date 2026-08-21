@@ -16,6 +16,15 @@ const IDLE_MS = 5000;
 const IMPACT_DELAY_MS = 520;
 const MAX_LINES = 6;
 
+/** Minimum spacing between two calls of the same kind. */
+const TONE_COOLDOWN_MS: Record<CommentaryLine["tone"], number> = {
+  ko: 0, // never delay a knockout call
+  big: 900,
+  hit: 1600,
+  idle: 6000,
+};
+
+
 function pick<T>(list: T[]): T {
   return list[Math.floor(Math.random() * list.length)]!;
 }
