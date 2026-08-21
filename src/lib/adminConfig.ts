@@ -29,6 +29,10 @@ export type AdminConfig = {
   matchTitle: string;
   /** Font scale of the public match title (1 = base size). */
   titleScale: number;
+  /** Font scale of the scoreboard numbers, clock and round line. */
+  scoreboardScale: number;
+  /** Font scale of the fighter names shown in the scoreboard. */
+  nameScale: number;
 
 };
 
@@ -46,6 +50,8 @@ export function defaultAdminConfig(): AdminConfig {
     liveSession: "arena",
     matchTitle: DEFAULT_TITLE,
     titleScale: 3,
+    scoreboardScale: 1,
+    nameScale: 1,
 
   };
 }
@@ -79,6 +85,8 @@ function normalize(raw: unknown): AdminConfig {
   base.liveSession = str(parsed.liveSession, base.liveSession);
   base.matchTitle = normalizeTitle(parsed.matchTitle ?? base.matchTitle);
   base.titleScale = clampScale(parsed.titleScale ?? base.titleScale);
+  base.scoreboardScale = clampScale(parsed.scoreboardScale ?? base.scoreboardScale, 1);
+  base.nameScale = clampScale(parsed.nameScale ?? base.nameScale, 1);
 
   return base;
 }
@@ -147,13 +155,23 @@ export function useMatchTitle(): string {
 }
 
 /** Keeps the title scale inside a readable range (50% – 500%). */
-export function clampScale(raw: unknown): number {
+export function clampScale(raw: unknown, fallback = 3): number {
   const n = typeof raw === "number" ? raw : Number(raw);
-  if (!Number.isFinite(n)) return 3;
+  if (!Number.isFinite(n)) return fallback;
   return Math.min(5, Math.max(0.5, Math.round(n * 20) / 20));
 }
 
 /** Reactive font scale of the match title. */
 export function useTitleScale(): number {
   return clampScale(useAdminConfig().titleScale);
+}
+
+/** Reactive font scale of the scoreboard (scores, clock, round line). */
+export function useScoreboardScale(): number {
+  return clampScale(useAdminConfig().scoreboardScale, 1);
+}
+
+/** Reactive font scale of the fighter names in the scoreboard. */
+export function useNameScale(): number {
+  return clampScale(useAdminConfig().nameScale, 1);
 }

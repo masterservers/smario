@@ -7,6 +7,8 @@ import {
   getAdminConfig,
   saveAdminConfig,
   useMatchTitle,
+  useNameScale,
+  useScoreboardScale,
   useTitleScale,
 } from "@/lib/adminConfig";
 import { TITLE_PRESETS, validateTitle } from "@/lib/matchTitle";
@@ -19,6 +21,8 @@ type Props = {
 export function MatchTitleControl({ onAudit }: Props) {
   const active = useMatchTitle();
   const scale = useTitleScale();
+  const scoreScale = useScoreboardScale();
+  const nameScale = useNameScale();
   const [draft, setDraft] = useState(active);
   const check = validateTitle(draft);
 
@@ -28,6 +32,18 @@ export function MatchTitleControl({ onAudit }: Props) {
     onAudit?.("titleScale", { scale: next });
   };
 
+
+  const applyScoreScale = (value: number) => {
+    const next = clampScale(value, 1);
+    saveAdminConfig({ ...getAdminConfig(), scoreboardScale: next });
+    onAudit?.("scoreboardScale", { scale: next });
+  };
+
+  const applyNameScale = (value: number) => {
+    const next = clampScale(value, 1);
+    saveAdminConfig({ ...getAdminConfig(), nameScale: next });
+    onAudit?.("nameScale", { scale: next });
+  };
 
   const apply = (value: string) => {
     const result = validateTitle(value);
@@ -101,6 +117,65 @@ export function MatchTitleControl({ onAudit }: Props) {
       </div>
 
 
+
+
+      <div className="space-y-2 rounded-md border border-border p-3">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-medium">Scoreboard size</span>
+          <span className="tabular-nums text-muted-foreground">{Math.round(scoreScale * 100)}%</span>
+        </div>
+        <input
+          type="range"
+          min={0.5}
+          max={5}
+          step={0.05}
+          value={scoreScale}
+          onChange={(e) => applyScoreScale(Number(e.target.value))}
+          className="w-full accent-primary"
+          aria-label="Scoreboard size"
+        />
+        <div className="flex flex-wrap gap-2">
+          {[1, 1.25, 1.5, 2, 3].map((preset) => (
+            <Button
+              key={preset}
+              size="sm"
+              variant={Math.abs(scoreScale - preset) < 0.01 ? "default" : "secondary"}
+              onClick={() => applyScoreScale(preset)}
+            >
+              {preset * 100}%
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2 rounded-md border border-border p-3">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-medium">Player name size</span>
+          <span className="tabular-nums text-muted-foreground">{Math.round(nameScale * 100)}%</span>
+        </div>
+        <input
+          type="range"
+          min={0.5}
+          max={5}
+          step={0.05}
+          value={nameScale}
+          onChange={(e) => applyNameScale(Number(e.target.value))}
+          className="w-full accent-primary"
+          aria-label="Player name size"
+        />
+        <div className="flex flex-wrap gap-2">
+          {[1, 1.25, 1.5, 2, 3].map((preset) => (
+            <Button
+              key={preset}
+              size="sm"
+              variant={Math.abs(nameScale - preset) < 0.01 ? "default" : "secondary"}
+              onClick={() => applyNameScale(preset)}
+            >
+              {preset * 100}%
+            </Button>
+          ))}
+        </div>
+      </div>
 
       {!check.ok && (
         <ul className="text-xs text-destructive">
