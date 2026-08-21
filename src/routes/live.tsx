@@ -9,6 +9,7 @@ import { DifficultyPicker } from "@/components/game/DifficultyPicker";
 import { useHudHeight } from "@/hooks/useHudHeight";
 import { loadDifficulty, saveDifficulty, type Difficulty } from "@/lib/difficulty";
 import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
+import { SyncMeter } from "@/components/game/SyncMeter";
 import { useRemoteConfig } from "@/lib/useRemoteConfig";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
@@ -185,6 +186,7 @@ function LivePage() {
         />
         <RefereeCount lang={lang} referee={referee} />
         <SceneDebugPanel />
+        <SyncMeter />
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]">
