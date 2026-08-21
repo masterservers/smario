@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import fightVideo from "@/assets/putin-trump-wide-fight.mp4.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
@@ -10,15 +11,15 @@ type Sequence = {
 };
 
 const SEQUENCES: Record<string, Sequence> = {
-  rose: { start: 4.4, end: 8.2, impact: 6.2, label: "BODY SHOT" },
-  donut: { start: 8.1, end: 12.2, impact: 10.4, label: "COUNTER" },
-  tiktok: { start: 12.1, end: 17.4, impact: 15.2, label: "GRAPPLE" },
-  gift: { start: 19.1, end: 24.8, impact: 23.1, label: "TAKEDOWN" },
-  rocket: { start: 23.0, end: 29.8, impact: 25.2, label: "FINISHER" },
+  rose: { start: 0.3, end: 3.1, impact: 2.35, label: "BODY SHOT" },
+  donut: { start: 2.2, end: 5.1, impact: 3.65, label: "COUNTER" },
+  tiktok: { start: 3.4, end: 6.7, impact: 5.05, label: "GRAPPLE" },
+  gift: { start: 5.1, end: 8.2, impact: 6.75, label: "TAKEDOWN" },
+  rocket: { start: 6.5, end: 9.7, impact: 8.15, label: "FINISHER" },
 };
 
-const IDLE_START = 8.2;
-const IDLE_END = 11.6;
+const IDLE_START = 0.2;
+const IDLE_END = 9.7;
 
 type FloatItem = { id: string; emoji: string; side: Side; left: number };
 type DamageItem = { id: string; side: Side; amount: number };
@@ -144,28 +145,28 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     <div className="absolute inset-0 overflow-hidden bg-background">
       <video
         ref={videoRef}
-        src="/media/arena-fight.webm"
+        src={fightVideo.url}
         muted
+        autoPlay
+        loop
         playsInline
         preload="auto"
         aria-label={`${names.ru} versus ${names.us}`}
         onLoadedData={(event) => {
-          if (event.currentTarget.currentTime < 8) event.currentTarget.currentTime = 8.2;
+          event.currentTarget.currentTime = IDLE_START;
+          void event.currentTarget.play();
         }}
         onTimeUpdate={handleTimeUpdate}
-        className={`absolute inset-0 size-full object-cover transition-transform duration-300 ${attacker === "ru" ? "-scale-x-100" : "scale-x-100"}`}
+        className={`absolute inset-0 size-full object-contain transition-transform duration-300 ${attacker === "ru" ? "-scale-x-100" : "scale-x-100"}`}
       />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background/60 to-transparent" />
-
-
 
       {impact && (
         <div className="pointer-events-none absolute inset-0 animate-arena-impact">
-          <div className="display absolute left-1/2 top-[22%] -translate-x-1/2 text-4xl text-gold text-outline sm:text-6xl">
+          <div className="display absolute left-1/2 top-[14%] -translate-x-1/2 text-2xl text-gold text-outline sm:text-4xl">
             {impact.label}
           </div>
           <div
-            className={`absolute top-[43%] text-7xl ${impact.side === "ru" ? "left-[24%]" : "right-[24%]"}`}
+            className={`absolute top-[46%] text-5xl ${impact.side === "ru" ? "left-[27%]" : "right-[27%]"}`}
           >
             💥
           </div>
@@ -175,7 +176,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
       {damages.map((damage) => (
         <div
           key={damage.id}
-          className={`display pointer-events-none absolute top-[34%] animate-pop-damage text-5xl text-destructive text-outline ${damage.side === "ru" ? "left-[18%]" : "right-[18%]"}`}
+          className={`display pointer-events-none absolute top-[34%] animate-pop-damage text-4xl text-destructive text-outline ${damage.side === "ru" ? "left-[22%]" : "right-[22%]"}`}
         >
           -{damage.amount}
         </div>
@@ -184,7 +185,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
       {floats.map((item) => (
         <div
           key={item.id}
-          className="pointer-events-none absolute bottom-[18%] animate-float-gift text-5xl"
+          className="pointer-events-none absolute bottom-[13%] animate-float-gift text-4xl"
           style={{ left: `${item.left}%` }}
         >
           {item.emoji}
@@ -193,7 +194,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
 
       {combo > 2 && comboSide && !ko && (
         <div
-          className={`display absolute top-[18%] z-10 border border-border bg-background/75 px-3 py-1 text-2xl text-outline backdrop-blur-md ${comboSide === "ru" ? "left-3" : "right-3"}`}
+          className={`display absolute top-[13%] z-10 border border-border bg-background/75 px-2 py-0.5 text-xl text-outline ${comboSide === "ru" ? "left-3" : "right-3"}`}
         >
           +{combo} COMBO
         </div>

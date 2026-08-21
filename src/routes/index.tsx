@@ -67,13 +67,13 @@ function BattlePage() {
     state.scoreRu === state.scoreUs ? null : state.scoreRu > state.scoreUs ? "ru" : "us";
 
   return (
-    <main className="fixed inset-0 h-[100dvh] w-screen overflow-hidden bg-black">
+    <main className="fixed inset-0 h-[100dvh] w-screen overflow-hidden bg-background">
       <h1 className="sr-only">
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
       {/* Ring: fills the entire viewport, kept clean */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 bg-background">
         <Arena
           lang={lang}
           events={events}
@@ -98,7 +98,7 @@ function BattlePage() {
       </div>
 
       {/* Slim HUD strip at the bottom — gifts only */}
-      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 p-2 sm:p-3">
+      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 p-1.5 sm:p-2">
         {showChat && (
           <div className="mx-auto flex max-h-[30dvh] w-full max-w-3xl min-h-0 flex-col justify-end overflow-hidden">
             <ChatPanel
@@ -116,7 +116,7 @@ function BattlePage() {
             <Leaderboard lang={lang} rows={leaders} />
           </div>
         )}
-        <div className="mx-auto grid w-full max-w-3xl grid-cols-2 gap-2">
+        <div className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1.5 opacity-90">
           <GiftDock lang={lang} side="ru" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
           <GiftDock lang={lang} side="us" overlay disabled={!ready || !!state.ko} onSend={handleSend} />
         </div>
