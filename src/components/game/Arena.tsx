@@ -611,7 +611,7 @@ export function Arena({
           contain: "paint",
           willChange: lite ? undefined : "filter",
         }}
-        className="absolute inset-0 size-full object-contain object-center transition-[filter] duration-200"
+        className="absolute inset-0 size-full object-contain object-center transition-[filter] duration-200 [@media(orientation:portrait)]:scale-[1.18] [@media(orientation:portrait)]:object-[center_38%]"
       />
 
       {/* Impact state remains synchronized for commentary and logs, but visual
