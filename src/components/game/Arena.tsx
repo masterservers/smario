@@ -12,6 +12,9 @@ import {
   MOVES,
   inRoundTheme,
   setSceneRound,
+  familyOf,
+  familyBlocked,
+  type SceneFamily,
   type IdleScene,
   type Move,
 } from "@/lib/scenes";
@@ -145,6 +148,24 @@ function enabled<T extends { id: string }>(list: T[]): T[] {
  * before any repetition. A weight above 1 simply lets a scene come round sooner
  * inside the next cycles.
  */
+/**
+ * Anti-repetition on the *type* of scene, not just the id: the last families
+ * played (punch, kick, rope, throw, mat, clinch, taunt). Two different punches
+ * still read as "another punch", so the scheduler refuses to chain more than
+ * `maxFamilyStreak` of them, even inside one round.
+ */
+const recentFamilies: SceneFamily[] = [];
+let maxFamilyStreak = VARIETY_DEFAULT.familyStreak;
+
+export function setFamilyStreak(value: number) {
+  maxFamilyStreak = Math.max(1, Math.round(value));
+}
+
+/** Live snapshot for the debug panel. */
+export function familyTrace(): SceneFamily[] {
+  return recentFamilies.slice(-8);
+}
+
 function drawLRU<T extends { id: string }>(
   pool: T[],
   usage: Map<string, number>,
@@ -168,6 +189,13 @@ function drawLRU<T extends { id: string }>(
     const cool = list.filter((item) => now - (cooldowns.get(item.id) ?? -Infinity) >= cooldownMs);
     if (cool.length > 0) list = cool;
   }
+  // Type-level anti-repetition: drop the families that already ran too often
+  // in a row (or that dominate the recent window). Applied before the softer
+  // continuity/round filters so those can never bring a tired family back.
+  const varied = list.filter(
+    (item) => !familyBlocked(item as { label?: string }, recentFamilies, maxFamilyStreak),
+  );
+  if (varied.length > 0) list = varied;
   // Continuity: among the eligible scenes, favour the ones that carry on from
   // where the picture is right now, so the cut reads as one continuous action.
   if (prefer) {
@@ -187,8 +215,11 @@ function drawLRU<T extends { id: string }>(
   cooldowns?.set(chosen.id, now);
   recent.push(chosen.id);
   if (recent.length > unique.length) recent.shift();
+  recentFamilies.push(familyOf(chosen as { id: string; label?: string }));
+  if (recentFamilies.length > 12) recentFamilies.shift();
   return chosen;
 }
+
 
 function drawIdle(
   usage: Map<string, number>,
@@ -344,6 +375,8 @@ export function Arena({
 
   const varietyRef = useRef(variety);
   varietyRef.current = variety;
+  // Keep the type-level anti-repetition guard in sync with the referee slider.
+  setFamilyStreak(variety.familyStreak);
   /** Last time each move was played — drives the referee cooldown control. */
   const moveCooldowns = useRef<Map<string, number>>(new Map());
   const followCooldowns = useRef<Map<string, number>>(new Map());

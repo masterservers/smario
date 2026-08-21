@@ -456,6 +456,74 @@ export function inRoundTheme(item: { label?: string }): boolean {
   return typeof item.label === "string" && theme.test(item.label);
 }
 
+/* ------------------------------------------------------------------ *
+ * Scene families — the unit the anti-repetition guard works on.
+ * Two different punches are still "punches": without this, the LRU cycle
+ * can happily play six strikes in a row because every id is new. The guard
+ * below limits how many scenes of the same family may run back to back and
+ * how dense one family may be inside the recent window.
+ * ------------------------------------------------------------------ */
+export type SceneFamily =
+  | "punch"
+  | "kick"
+  | "rope"
+  | "throw"
+  | "mat"
+  | "clinch"
+  | "taunt"
+  | "other";
+
+const FAMILY_RULES: Array<[SceneFamily, RegExp]> = [
+  ["rope", /ROPE|TURNBUCKLE|CLIMB|VAULT|SPRINGBOARD|LEAP|JUMP|DIVE|SOMERSAULT|MOONSAULT|SPLASH|CORNER CLIMB/],
+  ["throw", /SLAM|THROW|TOSS|SUPLEX|POWERBOMB|CARRY|SPINEBUSTER|TAKEDOWN|BOMB|WHIP/],
+  ["mat", /MAT|GROUND|STOMP|DROP|MOUNT|PIN|DOWN|CRAWL|RISE|GET UP/],
+  ["clinch", /CLINCH|GRAPPLE|KNEE|LOCK|HOLD|COLLAR|PUSH|SHOVE/],
+  ["kick", /KICK|TEEP|SPIN|CLOTHESLINE|SHOULDER|CHARGE|RUSH/],
+  ["punch", /JAB|HOOK|CROSS|UPPERCUT|SHOT|COMBO|COMBINATION|ELBOW|SLAP|BACKFIST|PUNCH|COUNTER/],
+  ["taunt", /LOOK|STARE|CIRCL|BREATH|POSE|TAUNT|WAIT|GUARD|FEEL|WALK|PACE/],
+];
+
+const familyCache = new Map<string, SceneFamily>();
+
+/** The physical family a scene belongs to, derived from its label. */
+export function familyOf(item: { id?: string; label?: string }): SceneFamily {
+  const label = (item.label ?? "").toUpperCase();
+  const key = item.id ?? label;
+  const cached = familyCache.get(key);
+  if (cached) return cached;
+  let family: SceneFamily = "other";
+  for (const [name, rule] of FAMILY_RULES) {
+    if (rule.test(label)) {
+      family = name;
+      break;
+    }
+  }
+  familyCache.set(key, family);
+  return family;
+}
+
+/**
+ * True when playing `item` now would break the anti-repetition rules:
+ * more than `maxStreak` scenes of the same family back to back, or that
+ * family filling more than half of the recent window.
+ */
+export function familyBlocked(
+  item: { id?: string; label?: string },
+  recentFamilies: SceneFamily[],
+  maxStreak: number,
+  window = 6,
+): boolean {
+  if (maxStreak <= 0) return false;
+  const family = familyOf(item);
+  let streak = 0;
+  for (let i = recentFamilies.length - 1; i >= 0 && recentFamilies[i] === family; i--) streak++;
+  if (streak >= maxStreak) return true;
+  const slice = recentFamilies.slice(-window);
+  const share = slice.filter((f) => f === family).length;
+  return slice.length >= window && share > Math.ceil(window / 2);
+}
+
+
 export const MOVES: Move[] = [...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES];
 
 export const FOLLOW_UPS: Move[] = [...BASE_FOLLOW_UPS, ...EXTRA_FOLLOW_UPS, ...ROPE_FOLLOW_UPS];
