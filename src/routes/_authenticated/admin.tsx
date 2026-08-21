@@ -28,7 +28,9 @@ import {
 
 import { ALL_SCENES } from "@/lib/scenes";
 import {
+  exportSceneConfig,
   getSceneConfig,
+  importSceneConfig,
   resetSceneConfig,
   saveSceneConfig,
   type SceneConfig,
@@ -88,6 +90,10 @@ function AdminPage() {
   const [config, setConfig] = useState<GiftConfig>(() => getGiftConfig());
   const [hits, setHits] = useState<HitConfig>(() => getHitConfig());
   const [scenes, setScenes] = useState<SceneConfig>(() => getSceneConfig());
+  /** JSON editor for the rotation: text, result message and the file input. */
+  const [sceneJson, setSceneJson] = useState("");
+  const [sceneIo, setSceneIo] = useState<{ ok: boolean; text: string } | null>(null);
+  const sceneFile = useRef<HTMLInputElement>(null);
   const [admin, setAdmin] = useState<AdminConfig>(() => getAdminConfig());
 
   const [saved, setSaved] = useState(false);
@@ -166,6 +172,17 @@ function AdminPage() {
       return next;
     });
     record("hits", "referee rules", patch);
+  };
+
+  /** Applies a pasted or imported JSON and refreshes the checkboxes. */
+  const applySceneJson = (text: string) => {
+    const result = importSceneConfig(text);
+    setSceneIo({ ok: result.ok, text: result.message });
+    if (result.ok && result.config) {
+      setScenes(result.config);
+      setSceneJson(exportSceneConfig());
+      record("scenes", "import", { message: result.message });
+    }
   };
 
   /** Scene rotation: enabled ids and weights, saved live. */
