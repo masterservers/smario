@@ -699,7 +699,7 @@ const MAT_CLIPS = [REEL_CLIPS[7]!, REEL_CLIPS[8]!, REEL_CLIPS[9]!, REEL_CLIPS[0]
 const AMBIENT_CLIPS = [REEL_CLIPS[0]!, REEL_CLIPS[4]!, REEL_CLIPS[5]!, REEL_CLIPS[6]!, REEL_CLIPS[10]!];
 
 /** Victory pose: the winner stands over the ring with both hands raised. */
-export const CHAMPION_POSE = { start: 455.4, end: 457.6, rate: 0.7 };
+export const CHAMPION_POSE = { start: 451.8, end: 454.2, rate: 0.7 };
 
 export const MOVES: Move[] = layout(
   [...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES, ...VARIETY_MOVES],
