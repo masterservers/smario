@@ -1167,7 +1167,8 @@ export function Arena({
               key={burst.id}
               className="spark-burst"
               style={{
-                left: burst.side === "ru" ? "38%" : "62%",
+                left: `${burst.left}%`,
+                top: `${burst.top}%`,
                 ["--spark-life" as string]: `${burst.life}ms`,
               }}
             >
