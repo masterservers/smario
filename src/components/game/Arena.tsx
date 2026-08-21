@@ -1,7 +1,7 @@
 import { DIFFICULTY_CONFIG, type Difficulty } from "@/lib/difficulty";
 import { VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
 import { useEffect, useRef, useState } from "react";
-import fightVideo from "@/assets/arena-heights2.webm.asset.json";
+import { PRIMARY_REEL, REELS, reelIndexOf } from "@/lib/reels";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { ruleFor, ruleForEvent, type HitKind } from "@/lib/hitConfig";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
@@ -26,7 +26,9 @@ import { commitPendingConfig } from "@/lib/pendingConfig";
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
 import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
 
-const FIGHT_VIDEO = fightVideo.url;
+const FIGHT_VIDEO = PRIMARY_REEL;
+/** Two decode slots per master reel, so any reel can be cut to instantly. */
+const SLOTS = REELS.length * 2;
 
 
 /** How a hit reads physically on screen (kinds are configurable in /admin). */
@@ -343,7 +345,7 @@ export function Arena({
   hitRef.current = onHit;
   const sceneRef = useRef(onScene);
   sceneRef.current = onScene;
-  const videoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>(Array(SLOTS).fill(null));
   const activeLayerRef = useRef(0);
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
   const switchingRef = useRef(false);
@@ -489,13 +491,15 @@ export function Arena({
    * `force` is reserved for sequences that own the lock (a move start, the KO
    * replay); every other call is refused while the lock is held.
    */
-  const switchScene = (time: number, rate: number, force = false) => {
+  const switchScene = (time: number, rate: number, force = false, src?: string) => {
     if (!force && isLocked()) return false;
     const previous = activeVideoRef.current;
-    const nextLayer = activeLayerRef.current === 0 ? 1 : 0;
+    const reel = reelIndexOf(src);
+    // Pick the free decode slot of the target reel (never the visible one).
+    const first = reel * 2;
+    const nextLayer = activeLayerRef.current === first ? first + 1 : first;
     const next = videoRefs.current[nextLayer];
     if (!next || switchingRef.current) return false;
-
 
     switchingRef.current = true;
     const token = ++switchTokenRef.current;
@@ -516,6 +520,18 @@ export function Arena({
         switchingRef.current = false;
       });
     };
+    if (next.readyState < 1) {
+      next.addEventListener(
+        "loadedmetadata",
+        () => {
+          next.addEventListener("seeked", reveal, { once: true });
+          seek(next, time);
+        },
+        { once: true },
+      );
+      next.load();
+      return true;
+    }
     next.addEventListener("seeked", reveal, { once: true });
     seek(next, time);
     return true;
@@ -650,14 +666,14 @@ export function Arena({
 
     // Replay: rewind slightly before the finish and play it back in slow motion.
     video.playbackRate = 0.45;
-    switchScene(Math.max(0, finisher.impact - 1.2), 0.45, true);
+    switchScene(Math.max(0, finisher.impact - 1.2), 0.45, true, finisher.src);
 
     // Instant replay of the finish, re-runnable from the panel below.
     const runReplay = () => {
       setShowReplayPanel(false);
       setReplay(true);
       logRef.current?.("replay", "instant replay");
-      switchScene(Math.max(0, finisher.impact - 1.2), 0.4, true);
+      switchScene(Math.max(0, finisher.impact - 1.2), 0.4, true, finisher.src);
       window.setTimeout(() => {
         setReplay(false);
         // Return to the champion shot in the very same camera framing.
@@ -671,7 +687,7 @@ export function Arena({
     let panel = 0;
     const settle = window.setTimeout(() => {
       setReplay(false);
-      switchScene(finisher.impact, 0.35, true);
+      switchScene(finisher.impact, 0.35, true, finisher.src);
       window.setTimeout(() => activeVideoRef.current?.pause(), 900);
 
       // The winner then walks the ring with both hands raised.
@@ -736,7 +752,7 @@ export function Arena({
           const next = drawIdle(idleUsage.current, recentIdle.current, video.currentTime);
           idleScene.current = next;
           const rate = next.rate * cfgRef.current.speed;
-          switchScene(next.start, rate);
+          switchScene(next.start, rate, false, next.src);
           sceneStartedAt.current = performance.now();
           // Hold the scene for its full window: nothing may cut into it.
           if (rules.lockIdle && !rules.allowGiftInterrupt) {
@@ -840,7 +856,7 @@ export function Arena({
       baseFrame.current = shot;
       setPhase("windup");
       setFrame(clampFrame(shot));
-      switchScene(entry, move.rate * cfgRef.current.speed, true);
+      switchScene(entry, move.rate * cfgRef.current.speed, true, move.src);
       sceneStartedAt.current = performance.now();
       sceneStarted({
         id: move.id,
@@ -1019,7 +1035,12 @@ export function Arena({
         setPhase("idle");
         setFrame(rest);
       }, 620);
-      switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed, true);
+      switchScene(
+        idleScene.current.start,
+        idleScene.current.rate * cfgRef.current.speed,
+        true,
+        idleScene.current.src,
+      );
 
       window.setTimeout(
         () => setFloats((previous) => previous.filter((item) => item.id !== event.id)),
@@ -1062,7 +1083,7 @@ export function Arena({
             ...(reaction ? { animationDuration: `${reaction.stun}ms` } : {}),
           }}
         >
-          {[0, 1].map((layer) => (
+          {Array.from({ length: SLOTS }, (_, i) => i).map((layer) => (
             <video
               key={layer}
               ref={(element) => {
@@ -1071,12 +1092,12 @@ export function Arena({
                   activeVideoRef.current = element;
                 }
               }}
-              src={FIGHT_VIDEO}
+              src={REELS[Math.floor(layer / 2)] ?? FIGHT_VIDEO}
               muted
               autoPlay={layer === 0}
               loop
               playsInline
-              preload="auto"
+              preload={layer < 2 ? "auto" : "metadata"}
               aria-label={layer === activeLayer ? `${names.ru} versus ${names.us}` : undefined}
               aria-hidden={layer !== activeLayer}
               onLoadedData={(event) => {
