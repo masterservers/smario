@@ -263,7 +263,21 @@ function AdminPage() {
     window.location.href = "/auth";
   };
 
-  if (role === "loading") {
+  // Two-factor gate: a session that has not passed the authenticator (or an
+  // account with a role but no authenticator yet) never reaches the console.
+  if (mfa !== "loading" && (mfaRequired || (role !== "loading" && role && mfa === "enroll"))) {
+    return (
+      <TwoFactorGate
+        state={mfa === "ready" ? "challenge" : mfa}
+        onPassed={() => {
+          void refreshMfa();
+          void reloadRole();
+        }}
+      />
+    );
+  }
+
+  if (role === "loading" || mfa === "loading") {
     return (
       <main className="mx-auto w-full max-w-4xl px-4 py-16 text-sm text-muted-foreground">
         Checking your access…
