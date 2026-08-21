@@ -19,6 +19,13 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  getMyStaffRole,
+  listAuditLog,
+  logAdminChange,
+  type AuditEntry,
+  type StaffRole,
+} from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   validateSearch: (search: Record<string, unknown>) => ({
