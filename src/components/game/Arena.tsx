@@ -10,6 +10,8 @@ import {
   FOLLOW_UPS,
   IDLE_SCENES,
   MOVES,
+  inRoundTheme,
+  setSceneRound,
   type IdleScene,
   type Move,
 } from "@/lib/scenes";
