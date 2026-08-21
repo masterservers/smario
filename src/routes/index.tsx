@@ -152,9 +152,44 @@ function BattlePage() {
   );
 
 
+  // The scoreboard grows with the viewport (round line, title, banners), so the
+  // arena band is derived from its measured height instead of a fixed guess.
+  const shellRef = useRef<HTMLElement | null>(null);
+  const hudRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const shell = shellRef.current;
+    const hud = hudRef.current;
+    if (!shell || !hud) return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const h = Math.ceil(hud.getBoundingClientRect().height);
+      if (h > 0) shell.style.setProperty("--hud-h", `${h}px`);
+      // Captions sit at the bottom; reserve just enough so they never cover
+      // the mat, and keep it small on short landscape screens.
+      const caption = window.innerHeight < 480 ? 28 : 36;
+      shell.style.setProperty("--caption-h", `${caption}px`);
+    };
+    const queue = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(measure);
+    };
+    queue();
+    const observer = new ResizeObserver(queue);
+    observer.observe(hud);
+    window.addEventListener("resize", queue);
+    window.addEventListener("orientationchange", queue);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", queue);
+      window.removeEventListener("orientationchange", queue);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const leader: Side | null =
     state.scoreRu === state.scoreUs ? null : state.scoreRu > state.scoreUs ? "ru" : "us";
+
 
   return (
     <main
