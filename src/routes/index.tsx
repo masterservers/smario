@@ -166,6 +166,8 @@ function BattlePage() {
           hpRu={state.hpRu}
           hpUs={state.hpUs}
           leader={leader}
+          matchId={matchId}
+          ko={state.ko}
         />
       </div>
 
