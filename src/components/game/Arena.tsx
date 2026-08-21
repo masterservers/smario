@@ -1,6 +1,6 @@
 import { DIFFICULTY_CONFIG, type Difficulty } from "@/lib/difficulty";
 import { useEffect, useRef, useState } from "react";
-import fightVideo from "@/assets/arena-heights.webm.asset.json";
+import fightVideo from "@/assets/arena-heights2.webm.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
