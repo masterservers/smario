@@ -458,8 +458,8 @@ export function inRoundTheme(item: { label?: string }): boolean {
 
 export const MOVES: Move[] = [...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES];
 
-export const FOLLOW_UPS: Move[] = [...BASE_FOLLOW_UPS, ...EXTRA_FOLLOW_UPS];
-export const IDLE_SCENES: IdleScene[] = [...BASE_IDLE, ...EXTRA_IDLE];
+export const FOLLOW_UPS: Move[] = [...BASE_FOLLOW_UPS, ...EXTRA_FOLLOW_UPS, ...ROPE_FOLLOW_UPS];
+export const IDLE_SCENES: IdleScene[] = [...BASE_IDLE, ...EXTRA_IDLE, ...ROPE_IDLE];
 
 /** Every scene the scheduler can pick, for the admin list and the debug panel. */
 export const ALL_SCENES = [
