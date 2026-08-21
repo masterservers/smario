@@ -609,6 +609,11 @@ export function Arena({
       if (!video || ko) return;
       // Animation lock: no new command while a sequence is still running.
       if (isLocked()) return;
+      // Lock released and a KO is waiting: hand control to the replay sequence.
+      if (pendingKo.current) {
+        setCompletedSequences((value) => value + 1);
+        return;
+      }
 
       // Feeling-out phase: rotate through different idle scenarios.
       const scene = idleScene.current;
