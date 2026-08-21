@@ -135,6 +135,8 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
             alt="Referee Mr. Bean stepping between the fighters"
             loading="lazy"
             className={`h-full min-h-0 w-auto object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.65)] ${
+              debug ? "outline outline-1 outline-rose-400/90" : ""
+            } ${
               takesHit
                 ? "bean-ref-hit"
                 : separating
