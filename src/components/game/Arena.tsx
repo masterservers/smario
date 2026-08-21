@@ -7,6 +7,7 @@ import { ruleFor, ruleForEvent, type HitKind } from "@/lib/hitConfig";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 import { getGiftConfig } from "@/lib/giftConfig";
 import { giftName } from "@/lib/giftCatalog";
+import { RefereeBean } from "@/components/game/RefereeBean";
 import { useOutfits } from "@/lib/outfits";
 import {
   CHAMPION_POSE,
@@ -1279,6 +1280,10 @@ export function Arena({
           ))}
         </div>
       </div>
+
+      {/* Mr. Bean officiates: between the real exchanges he wanders in for a
+          gag, gets clipped by a stray punch, or staggers across the apron. */}
+      <RefereeBean ko={ko} paused={paused} />
 
       {/* Gift effects live on the ring itself: symbol, name and value rise out
           of the fighter's corner. No widgets, no chat, nothing under the mat. */}
