@@ -576,10 +576,15 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-arena-impact,
   .animate-pop-damage,
+  .animate-hit-punch,
+  .animate-hit-kick,
+  .animate-hit-grapple,
+  .animate-hit-heavy,
   .animate-float-gift {
     animation: none;
   }
 }
+
 
 /* A landscape phone is wide enough to trigger desktop breakpoints but not tall
    enough for a vertical tool rail. Keep every control above the action. */
