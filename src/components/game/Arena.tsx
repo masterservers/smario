@@ -19,8 +19,7 @@ type Move = {
   tier: number;
 };
 
-/** How a hit reads physically on screen. */
-type HitKind = "punch" | "kick" | "grapple" | "aerial" | "throw";
+/** How a hit reads physically on screen (kinds are configurable in /admin). */
 
 function kindOf(move: Move): HitKind {
   const l = move.label;
