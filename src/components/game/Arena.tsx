@@ -453,7 +453,16 @@ export function Arena({
   const [damages, setDamages] = useState<DamageItem[]>([]);
   /** Impact sparks: count and spread scale with the force of the hit. */
   const [sparks, setSparks] = useState<
-    { id: string; side: Side; force: number; life: number; count: number }[]
+    {
+      id: string;
+      side: Side;
+      force: number;
+      life: number;
+      count: number;
+      /** Contact point in the ring frame (%), so sparks sit on the bodies. */
+      left: number;
+      top: number;
+    }[]
   >([]);
   /** Instant-replay panel shown after the count is confirmed. */
   const [showReplayPanel, setShowReplayPanel] = useState(false);
