@@ -20,6 +20,13 @@ export type BeanConfig = {
   visibleMs: number;
   /** Minimum quiet time after any appearance, so the fight stays fluid. */
   cooldownSec: number;
+  /** Put Mr. Bean's face on the referee who is already inside the footage. */
+  headEnabled: boolean;
+  /** Head anchor, in % of the painted video rectangle. */
+  headX: number;
+  headY: number;
+  /** Head width, in % of the video width. */
+  headSize: number;
 };
 
 export const BEAN_DEFAULTS: BeanConfig = {
@@ -30,6 +37,10 @@ export const BEAN_DEFAULTS: BeanConfig = {
   comboTrigger: 3,
   visibleMs: 4200,
   cooldownSec: 6,
+  headEnabled: true,
+  headX: 39.5,
+  headY: 40.5,
+  headSize: 3.2,
 };
 
 const KEY = "pvt.bean";
@@ -51,6 +62,10 @@ export function normalizeBeanConfig(input: Partial<BeanConfig> | null | undefine
     comboTrigger: clamp(Math.round(Number(raw.comboTrigger) || 0), 0, 20),
     visibleMs: clamp(Math.round(Number(raw.visibleMs) || BEAN_DEFAULTS.visibleMs), 1500, 12000),
     cooldownSec: clamp(Math.round(Number(raw.cooldownSec) || 0), 0, 60),
+    headEnabled: raw.headEnabled === undefined ? true : Boolean(raw.headEnabled),
+    headX: clamp(Number(raw.headX) || BEAN_DEFAULTS.headX, 0, 100),
+    headY: clamp(Number(raw.headY) || BEAN_DEFAULTS.headY, 0, 100),
+    headSize: clamp(Number(raw.headSize) || BEAN_DEFAULTS.headSize, 1, 15),
   };
 }
 

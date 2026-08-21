@@ -10,7 +10,7 @@ import { loadSubtitlesOn } from "@/lib/subtitles";
 import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
 import { useRemoteConfig } from "@/lib/useRemoteConfig";
 import { RefereeCount } from "@/components/game/RefereeCount";
-import { MrBeanReferee } from "@/components/game/MrBeanReferee";
+import { BeanRefHead } from "@/components/game/BeanRefHead";
 import { LayoutDebug } from "@/components/game/LayoutDebug";
 import { useDebugView } from "@/lib/debugView";
 import { Scoreboard } from "@/components/game/Scoreboard";
@@ -219,13 +219,7 @@ function BattlePage() {
           onHit={announceHit}
           onScene={announceScene}
         />
-        <MrBeanReferee
-          lang={lang}
-          beat={events.length}
-          combo={state.combo}
-          muted={muted}
-          counting={referee.count > 0 && !referee.koConfirmed}
-        />
+        <BeanRefHead />
         <RefereeCount lang={lang} referee={referee} />
         <SceneDebugPanel />
         {/* Bounding boxes and safe-area guides — toggled with the "D" key or ?debug=1. */}
