@@ -845,14 +845,18 @@ export function Arena({
       playing.current = true;
       impacted.current = false;
       settling.current = false;
-      stopAt.current = move.end;
+      // Collisions: contact is clamped inside the window and the end of the
+      // scene is stretched when needed, so the blow always plays through its
+      // follow-through instead of being cut on the frame of impact.
+      const moveKindNow = kindOf(move);
+      stopAt.current = completionEndOf(move, moveKindNow);
       const entry = entryOf(move, varietyRef.current.entryJitter);
       // Hold the lock for at least the length of this move at its playback rate,
       // so nothing can cut the scene before it has played out.
       lockUntil.current =
-        performance.now() + ((move.end - entry) / (move.rate * cfgRef.current.speed)) * 1000;
+        performance.now() + ((stopAt.current - entry) / (move.rate * cfgRef.current.speed)) * 1000;
 
-      impactAt.current = move.impact;
+      impactAt.current = impactTimeOf(move, moveKindNow);
       setAttacker(event.side);
       setFloats((previous) => [
         ...previous.slice(-3),
