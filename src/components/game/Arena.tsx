@@ -896,11 +896,7 @@ export function Arena({
       const scene = idleScene.current;
       if (video.paused || video.currentTime < scene.start || video.currentTime > scene.end) {
         if (video.currentTime < scene.start || video.currentTime > scene.end) {
-          idleScene.current = pick(
-            IDLE_SCENES,
-            [`${idleScene.current.start}`],
-            (scene) => `${scene.start}`,
-          );
+          idleScene.current = drawIdle(idleUsage.current, recentIdle.current, idleScene.current);
           switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed);
           return;
         }
@@ -921,12 +917,13 @@ export function Arena({
       const move = pendingFollow
         ? pendingFollow.move
         : drawMove(
-            movesForTier(tier),
+            movesForGift(event.gift, tier),
             recentMoves.current,
             moveUsage.current,
             moveCooldowns.current,
             varietyRef.current.cooldownMs,
           );
+
       recentMoves.current = [...recentMoves.current, move.id].slice(
         -Math.max(cfgRef.current.moveMemory, varietyRef.current.rotation),
       );
