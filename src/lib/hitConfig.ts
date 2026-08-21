@@ -234,3 +234,18 @@ export function setServerRules(entries: { eventId: string; rule: GiftHitRule }[]
 export function ruleForEvent(eventId: string, gift: string, round: number = activeRound): GiftHitRule {
   return serverRules.get(eventId) ?? ruleFor(gift, round);
 }
+
+/**
+ * Putin vs Trump routing: a gift locked to a side always hits that fighter,
+ * whatever side the sender picked; "auto" keeps the sender's choice.
+ */
+export function resolveHitSide(gift: string, requested: "ru" | "us"): "ru" | "us" {
+  const rule = getHitConfig().routing[gift as GiftId] ?? "auto";
+  return rule === "auto" ? requested : rule;
+}
+
+/** Writes the routing table (used by the admin gift settings). */
+export function setGiftRouting(routing: Partial<Record<GiftId, GiftTargetRule>>) {
+  const cfg = getHitConfig();
+  saveHitConfig({ ...cfg, routing: { ...cfg.routing, ...routing } as Record<GiftId, GiftTargetRule> });
+}
