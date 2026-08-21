@@ -17,6 +17,8 @@ type Props = {
   ko?: Side | null;
   /** True once the referee's ten-count is complete. */
   koConfirmed?: boolean;
+  /** Referee / gift announcement currently on air, spoken in the same language. */
+  banner?: { text: string; tone: "ref" | "gift" | "hit" } | null;
 };
 
 function clock(ms: number) {
@@ -78,16 +80,17 @@ export function Scoreboard({
   matchId,
   ko,
   koConfirmed,
+  banner,
 }: Props) {
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
   const { time, elapsed } = useRoundClock(matchId, round, ko);
 
-  // Referee calls, synced with the round clock.
-  let call: string | null = null;
-  if (koConfirmed) call = t.refKoConfirmed;
-  else if (!ko && elapsed < 3200) call = round > 1 ? t.refNextRound : t.refRoundStart;
-  else if (!ko && round > 1 && elapsed < 6400) call = t.refRoundStart;
+  // Referee calls and gift ticker — driven by useTopBanner, which speaks the
+  // very same line. Fallback keeps the round call visible right after a start.
+  let call: string | null = banner?.text ?? null;
+  if (!call && koConfirmed) call = t.refKoConfirmed;
+  else if (!call && !ko && elapsed < 3200) call = round > 1 ? t.refNextRound : t.refRoundStart;
 
   return (
     <div className="pointer-events-none mx-auto mt-1 w-full max-w-[44rem] rounded-full border border-border bg-background/55 px-3 py-1 backdrop-blur-md">
@@ -119,7 +122,15 @@ export function Scoreboard({
           </span>
           {call && (
             <span
-              className="display mt-0.5 animate-pulse whitespace-nowrap text-[9px] uppercase tracking-wide text-gold sm:text-[11px]"
+              className="display mt-0.5 max-w-[42vw] truncate whitespace-nowrap text-[9px] uppercase tracking-wide sm:text-[11px]"
+              style={{
+                color:
+                  banner?.tone === "gift"
+                    ? "var(--ru-glow)"
+                    : banner?.tone === "hit"
+                      ? "var(--us-glow)"
+                      : "var(--gold, currentColor)",
+              }}
               role="status"
             >
               {call}
