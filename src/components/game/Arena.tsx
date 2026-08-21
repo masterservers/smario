@@ -441,8 +441,13 @@ export function Arena({
   const [champion, setChampion] = useState(false);
   const [impact, setImpact] = useState<{ id: string; side: Side; label: string } | null>(null);
   const [floats, setFloats] = useState<FloatItem[]>([]);
+  /** Current camera framing: where in the ring the action sits. */
+  const [frame, setFrame] = useState<Frame>({ x: 0, y: 0, scale: 1, rotate: 0 });
+  /** Physical reaction to the last landed hit (drives the shake/stagger). */
+  const [reaction, setReaction] = useState<{ id: string; kind: HitKind; dir: number } | null>(null);
 
   const [damages, setDamages] = useState<DamageItem[]>([]);
+
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
 
