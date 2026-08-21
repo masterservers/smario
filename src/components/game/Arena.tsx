@@ -963,16 +963,19 @@ export function Arena({
         id: event.id,
         side: defender,
         force: profile.force,
-        life: sparkLife,
-        count: Math.round(8 + profile.force * 10 + move.tier * 2),
+        life: lite ? Math.min(sparkLife, 420) : sparkLife,
+        // Weak devices still get a spark hit, just with far fewer nodes.
+        count: lite ? 5 : Math.round(8 + profile.force * 10 + move.tier * 2),
         left: point.left,
         top: point.top,
       };
-      if (!lite) {
-        setSparks((previous) => [...previous.slice(-2), burst]);
+      {
+        // One burst at a time on lite devices, up to three otherwise.
+        setSparks((previous) => [...previous.slice(lite ? -0 : -2), burst]);
         window.setTimeout(
           () => setSparks((previous) => previous.filter((item) => item.id !== burst.id)),
-          sparkLife,
+          burst.life,
+
         );
       }
       setDamages((previous) => [
