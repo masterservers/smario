@@ -14,7 +14,8 @@ import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Subtitles } from "@/components/game/Subtitles";
 import { Button } from "@/components/ui/button";
-import { announceHit, announceScene, announceSpar, useCommentary } from "@/hooks/useCommentary";
+import { announce, announceHit, announceScene, announceSpar, useCommentary } from "@/hooks/useCommentary";
+import { setCrowdEnabled } from "@/lib/crowd";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
 import { useTopBanner } from "@/hooks/useTopBanner";
@@ -28,7 +29,6 @@ import { ACCESS_TEXT, useViewerAccess } from "@/lib/liveSession";
 import { setActiveRound } from "@/lib/hitConfig";
 import { publishSubtitle } from "@/lib/subtitles";
 
-const VOICE_LOCALE: Record<Lang, string> = {'en': 'en-US', 'de': 'de-DE', 'sr': 'sr-RS', 'ro': 'ro-RO', 'ru': 'ru-RU'};
 
 type Search = { lang: Lang; s?: string };
 
