@@ -13,6 +13,7 @@ import {
   IDLE_SCENES,
   MOVES,
   inRoundTheme,
+  advanceSceneBeat,
   setSceneRound,
   familyOf,
   familyBlocked,
@@ -176,6 +177,7 @@ function drawLRU<T extends { id: string }>(
   cooldownMs = 0,
   prefer?: (item: T) => boolean,
 ): T {
+  advanceSceneBeat();
   const unique = enabled(Array.from(new Map(pool.map((item) => [item.id, item])).values()));
   // Everything with the lowest weighted usage is still "unplayed" in this cycle.
   const cost = (id: string) => (usage.get(id) ?? 0);
