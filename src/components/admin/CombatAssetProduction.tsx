@@ -155,7 +155,8 @@ export function CombatAssetProduction() {
       if (!head.ok) return { loaded: false, error: `HTTP ${head.status}` };
       const length = head.headers.get("content-length");
       if (length) result.fileSizeBytes = Number(length);
-      result.mimeType = head.headers.get("content-type") ?? undefined;
+      const type = head.headers.get("content-type");
+      if (type) result.mimeType = type;
     } catch (error) {
       return { loaded: false, error: (error as Error).message };
     }

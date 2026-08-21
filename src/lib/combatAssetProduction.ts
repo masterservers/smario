@@ -29,17 +29,17 @@ export type CombatAssetProductionRecord = {
   assetId: string;
   status: CombatAssetProductionStatus;
 
-  actualSrc?: string;
+  actualSrc?: string | undefined;
 
-  duration?: number;
-  width?: number;
-  height?: number;
-  fps?: number;
+  duration?: number | undefined;
+  width?: number | undefined;
+  height?: number | undefined;
+  fps?: number | undefined;
 
-  measuredImpactSeconds?: number;
+  measuredImpactSeconds?: number | undefined;
 
-  fileSizeBytes?: number;
-  mimeType?: string;
+  fileSizeBytes?: number | undefined;
+  mimeType?: string | undefined;
 
   technicalWarnings: string[];
   visualWarnings: string[];
@@ -47,10 +47,10 @@ export type CombatAssetProductionRecord = {
   reviewChecklist: Record<string, boolean>;
   rejectionReasons: string[];
 
-  reviewedAt?: string;
-  approvedAt?: string;
-  registeredAt?: string;
-  updatedAt?: string;
+  reviewedAt?: string | undefined;
+  approvedAt?: string | undefined;
+  registeredAt?: string | undefined;
+  updatedAt?: string | undefined;
 };
 
 export function emptyProductionRecord(assetId: string): CombatAssetProductionRecord {
@@ -109,11 +109,11 @@ export function checklistMissing(record: CombatAssetProductionRecord): string[] 
 
 export type TechnicalProbe = {
   loaded: boolean;
-  duration?: number;
-  width?: number;
-  height?: number;
-  fileSizeBytes?: number;
-  mimeType?: string;
+  duration?: number | undefined;
+  width?: number | undefined;
+  height?: number | undefined;
+  fileSizeBytes?: number | undefined;
+  mimeType?: string | undefined;
   error?: string;
 };
 
@@ -261,7 +261,7 @@ export function buildCombatClipFromProduction(
     id: productionClipId(asset.id),
     src: record.actualSrc!,
     duration,
-    impact,
+    ...(typeof impact === "number" ? { impact } : {}),
     sourceType: asset.sourceType,
     role: asset.role,
     moveFamily: asset.family,
@@ -274,9 +274,9 @@ export function buildCombatClipFromProduction(
     defenderEndState: asset.defenderEndState,
     locationStart: asset.locationStart,
     locationEnd: asset.locationEnd,
-    requiresGroundedOpponent: asset.requiresGroundedOpponent,
-    requiresCorner: asset.requiresCorner,
-    requiresRopes: asset.requiresRopes,
+    ...(asset.requiresGroundedOpponent ? { requiresGroundedOpponent: true } : {}),
+    ...(asset.requiresCorner ? { requiresCorner: true } : {}),
+    ...(asset.requiresRopes ? { requiresRopes: true } : {}),
     tags: ["production", asset.priority, asset.batch],
     enabled: true,
   };
