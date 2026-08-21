@@ -107,57 +107,78 @@ export function commentaryLanePriority() {
   return Math.max(speaking ? speakingPriority : -1, queued);
 }
 
+function toneOf(priority: number): VoiceTone {
+  return priority >= 3 ? "ko" : priority >= 2 ? "big" : "normal";
+}
+
+/** Browser synthesis, used only when the neural voice is unavailable. */
+function speakFallback(next: Spoken, done: () => void) {
+  const synth = window.speechSynthesis;
+  const speechLang = LANG_META[next.lang].speech;
+  const utterance = new SpeechSynthesisUtterance(next.text);
+  utterance.lang = speechLang;
+  const voice = pickVoice(speechLang);
+  if (voice) utterance.voice = voice;
+  utterance.rate = next.priority >= 3 ? 1.14 : 1.08;
+  utterance.pitch = 0.78;
+  utterance.volume = 1;
+  utterance.onend = done;
+  utterance.onerror = done;
+  synth.speak(utterance);
+  window.setTimeout(
+    () => {
+      if (speaking && !synth.speaking) done();
+    },
+    800 + next.text.length * 90,
+  );
+}
+
 function drain() {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  if (typeof window === "undefined") return;
   if (speaking || speechQueue.length === 0 || drainTimer) return;
   const wait = Math.max(0, lastEndAt + MIN_GAP_MS - Date.now());
   drainTimer = window.setTimeout(() => {
     drainTimer = 0;
     const next = speechQueue.shift();
     if (!next) return;
-    const synth = window.speechSynthesis;
-    const speechLang = LANG_META[next.lang].speech;
-    const utterance = new SpeechSynthesisUtterance(next.text);
-    utterance.lang = speechLang;
-    const voice = pickVoice(speechLang);
-    if (voice) utterance.voice = voice;
-    utterance.rate = next.priority >= 3 ? 1.14 : 1.08;
-    utterance.pitch = 0.78; // deeper, male broadcast tone
-    utterance.volume = 1;
+    const generation = ++laneGeneration;
     const done = () => {
+      if (generation !== laneGeneration) return;
       speaking = false;
       speakingPriority = -1;
       lastEndAt = Date.now();
+      duckCrowd(false);
       drain();
     };
-    utterance.onend = done;
-    utterance.onerror = done;
     speaking = true;
     speakingPriority = next.priority;
-    synth.speak(utterance);
-    // Safety net: some engines never fire onend, so release the lane anyway.
-    window.setTimeout(
-      () => {
-        if (speaking && !synth.speaking) done();
-      },
-      800 + next.text.length * 90,
-    );
+    duckCrowd(true);
+    void getVoiceClip(next.text, next.lang, toneOf(next.priority)).then((url) => {
+      if (generation !== laneGeneration) return;
+      if (url) playVoiceClip(url, done);
+      else if ("speechSynthesis" in window) speakFallback(next, done);
+      else done();
+    });
   }, wait);
 }
 
 function clearLane() {
+  laneGeneration += 1;
   speechQueue.length = 0;
   window.clearTimeout(drainTimer);
   drainTimer = 0;
   speaking = false;
   speakingPriority = -1;
-  window.speechSynthesis.cancel();
+  stopVoiceClip();
+  duckCrowd(false);
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 
 export function stopCommentary() {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  if (typeof window === "undefined") return;
   clearLane();
 }
+
 
 function speak(text: string, lang: Lang, priority: number) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
