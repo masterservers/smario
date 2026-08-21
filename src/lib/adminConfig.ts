@@ -45,6 +45,8 @@ export function defaultAdminConfig(): AdminConfig {
     tiktok: { username: "", liveUrl: "", webhookUrl: "", enabled: false },
     liveSession: "arena",
     matchTitle: DEFAULT_TITLE,
+    titleScale: 3,
+
   };
 }
 
