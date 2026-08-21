@@ -22,6 +22,12 @@ import {
   type Move,
 } from "@/lib/scenes";
 import { moveKind } from "@/lib/moveKind";
+import {
+  completionEndOf,
+  contactPointOf,
+  followThroughOf,
+  impactTimeOf,
+} from "@/lib/collision";
 import { commitPendingConfig } from "@/lib/pendingConfig";
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
 import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
@@ -453,7 +459,16 @@ export function Arena({
   const [damages, setDamages] = useState<DamageItem[]>([]);
   /** Impact sparks: count and spread scale with the force of the hit. */
   const [sparks, setSparks] = useState<
-    { id: string; side: Side; force: number; life: number; count: number }[]
+    {
+      id: string;
+      side: Side;
+      force: number;
+      life: number;
+      count: number;
+      /** Contact point in the ring frame (%), so sparks sit on the bodies. */
+      left: number;
+      top: number;
+    }[]
   >([]);
   /** Instant-replay panel shown after the count is confirmed. */
   const [showReplayPanel, setShowReplayPanel] = useState(false);
@@ -830,14 +845,18 @@ export function Arena({
       playing.current = true;
       impacted.current = false;
       settling.current = false;
-      stopAt.current = move.end;
+      // Collisions: contact is clamped inside the window and the end of the
+      // scene is stretched when needed, so the blow always plays through its
+      // follow-through instead of being cut on the frame of impact.
+      const moveKindNow = kindOf(move);
+      stopAt.current = completionEndOf(move, moveKindNow);
       const entry = entryOf(move, varietyRef.current.entryJitter);
       // Hold the lock for at least the length of this move at its playback rate,
       // so nothing can cut the scene before it has played out.
       lockUntil.current =
-        performance.now() + ((move.end - entry) / (move.rate * cfgRef.current.speed)) * 1000;
+        performance.now() + ((stopAt.current - entry) / (move.rate * cfgRef.current.speed)) * 1000;
 
-      impactAt.current = move.impact;
+      impactAt.current = impactTimeOf(move, moveKindNow);
       setAttacker(event.side);
       setFloats((previous) => [
         ...previous.slice(-3),
@@ -940,14 +959,18 @@ export function Arena({
       window.setTimeout(() => {
         if (playing.current) setFrame(clampFrame(baseFrame.current));
       }, 190);
-      // Sparks live exactly as long as the stun plus the landing/recovery beat.
+      // Sparks live exactly as long as the stun plus the landing/recovery beat,
+      // and they are drawn on the real contact point between the two bodies.
       const sparkLife = Math.round(profile.stun + profile.recovery * 520);
+      const point = contactPointOf(move, kind, event.side, kind === "throw" || kind === "aerial");
       const burst = {
         id: event.id,
         side: defender,
         force: profile.force,
         life: sparkLife,
         count: Math.round(8 + profile.force * 10 + move.tier * 2),
+        left: point.left,
+        top: point.top,
       };
       if (!lite) {
         setSparks((previous) => [...previous.slice(-2), burst]);
@@ -965,6 +988,18 @@ export function Arena({
         () => setDamages((previous) => previous.filter((item) => item.id !== event.id)),
         900,
       );
+      // Guarantee the follow-through: from the frame of contact the scene keeps
+      // rolling long enough for the blow to finish on screen, and the lock is
+      // extended with it so nothing can cut in.
+      const throughTo = Math.min(39.8, video.currentTime + followThroughOf(kind));
+      if (throughTo > stopAt.current) {
+        stopAt.current = throughTo;
+        const rate = Math.max(0.55, move.rate * cfgRef.current.speed);
+        lockUntil.current = Math.max(
+          lockUntil.current,
+          performance.now() + ((throughTo - video.currentTime) / rate) * 1000,
+        );
+      }
     }
 
 
@@ -1132,7 +1167,8 @@ export function Arena({
               key={burst.id}
               className="spark-burst"
               style={{
-                left: burst.side === "ru" ? "38%" : "62%",
+                left: `${burst.left}%`,
+                top: `${burst.top}%`,
                 ["--spark-life" as string]: `${burst.life}ms`,
               }}
             >
