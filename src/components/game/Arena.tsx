@@ -255,6 +255,24 @@ function movesForGift(giftId: string, tier: number): Move[] {
   return pool.length > 0 ? pool : MOVES;
 }
 
+/**
+ * Sparring pool: what the fighters do on their own while no gift is waiting.
+ * Light strikes and kicks carry the rhythm, but the big spots — rope dives,
+ * turnbuckle climbs, suplexes and throws over the ropes — stay in the mix so
+ * the ring keeps showing real action between gifts.
+ */
+const SPAR_MOVES: Move[] = [
+  ...MOVES.filter((move) => move.tier <= 2),
+  ...MOVES.filter((move) => move.tier <= 2),
+  ...MOVES.filter((move) => move.tier === 3),
+  ...MOVES.filter((move) => move.tier >= 4),
+];
+
+/** How often a feeling-out window is replaced by a real sparring spot. */
+const SPAR_CHANCE = 0.72;
+
+
+
 
 /** Moves use the same strict LRU cycle, with the arguments kept in the old order. */
 function drawMove(
@@ -385,7 +403,10 @@ export function Arena({
   const recentIdle = useRef<string[]>([]);
 
   const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
+  /** True while the ring is showing a sparring spot: action only, no score. */
+  const sparring = useRef(false);
   const primed = useRef(false);
+
   /** A KO may be scored during a move, but its replay must never cut that move. */
   const handledKo = useRef<Side | null>(null);
   const pendingKo = useRef<Side | null>(null);
@@ -733,7 +754,61 @@ export function Arena({
           // Safe boundary: the previous scene finished, so a staged
           // configuration import can be applied without cutting the action.
           commitPendingConfig("scene");
+
+          // Sparring: with no gift waiting the two keep fighting on their own —
+          // punches, kicks, rope spots, throws — instead of only circling.
+          if (!giftWaiting && !paused && Math.random() < SPAR_CHANCE) {
+            const move = drawMove(
+              SPAR_MOVES,
+              recentMoves.current,
+              moveUsage.current,
+              moveCooldowns.current,
+              varietyRef.current.cooldownMs,
+            );
+            recentMoves.current = [...recentMoves.current, move.id].slice(
+              -Math.max(cfgRef.current.moveMemory, varietyRef.current.rotation),
+            );
+            const side: Side = Math.random() < 0.5 ? "ru" : "us";
+            currentEvent.current = {
+              id: `spar-${Math.random().toString(36).slice(2, 8)}`,
+              side,
+              gift: "rose",
+              value: 0,
+              sender: "spar",
+              created_at: new Date().toISOString(),
+            };
+            currentMove.current = move;
+            sparring.current = true;
+            playing.current = true;
+            impacted.current = false;
+            settling.current = false;
+            stopAt.current = move.end;
+            impactAt.current = move.impact;
+            const entry = entryOf(move, varietyRef.current.entryJitter);
+            lockUntil.current =
+              performance.now() +
+              ((move.end - entry) / (move.rate * cfgRef.current.speed)) * 1000;
+            setAttacker(side);
+            logRef.current?.("move", `${side.toUpperCase()} · ${move.label}`);
+            const shot = frameFor(move);
+            baseFrame.current = shot;
+            setPhase("windup");
+            setFrame(clampFrame(shot));
+            switchScene(entry, move.rate * cfgRef.current.speed, true);
+            sceneStartedAt.current = performance.now();
+            sceneRef.current?.({ id: move.id, label: move.label });
+            sceneStarted({
+              id: move.id,
+              label: move.label,
+              group: "move",
+              plannedMs: lockUntil.current - performance.now(),
+              reason: "sparring — no gift waiting",
+            });
+            return;
+          }
+
           const next = drawIdle(idleUsage.current, recentIdle.current, video.currentTime);
+
           idleScene.current = next;
           const rate = next.rate * cfgRef.current.speed;
           switchScene(next.start, rate);
@@ -810,6 +885,7 @@ export function Arena({
 
       currentEvent.current = event;
       currentMove.current = move;
+      sparring.current = false;
       playing.current = true;
       impacted.current = false;
       settling.current = false;
@@ -879,7 +955,8 @@ export function Arena({
       koKind.current = kind;
       // Exactly-once confirmation: one gift id, one landed hit, one voice line.
       const rootId = event.id.split("-fu")[0]!;
-      if (!delivered.current.has(rootId)) {
+      // A sparring spot is pure action: it never scores and never speaks.
+      if (!sparring.current && !delivered.current.has(rootId)) {
         delivered.current.add(rootId);
         queuedAt.current.delete(rootId);
         hitRef.current?.({
@@ -939,10 +1016,12 @@ export function Arena({
           sparkLife,
         );
       }
-      setDamages((previous) => [
-        ...previous.slice(-1),
-        { id: event.id, side: defender, amount: gift?.damage ?? 4 },
-      ]);
+      if (!sparring.current) {
+        setDamages((previous) => [
+          ...previous.slice(-1),
+          { id: event.id, side: defender, amount: gift?.damage ?? 4 },
+        ]);
+      }
       window.setTimeout(() => setImpact(null), 600);
       window.setTimeout(
         () => setDamages((previous) => previous.filter((item) => item.id !== event.id)),
@@ -983,6 +1062,7 @@ export function Arena({
 
       settling.current = false;
       playing.current = false;
+      sparring.current = false;
       currentEvent.current = null;
       currentMove.current = null;
       // Short breath after the recovery, unless a KO is waiting to be replayed.
