@@ -8,9 +8,12 @@ import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBounda
 import { FightControls } from "@/components/game/FightControls";
 import { DifficultyPicker } from "@/components/game/DifficultyPicker";
 import { RefereePanel } from "@/components/game/RefereePanel";
+import { Subtitles } from "@/components/game/Subtitles";
 import { useHudHeight } from "@/hooks/useHudHeight";
 import { loadDifficulty, saveDifficulty, type Difficulty } from "@/lib/difficulty";
 import { loadVariety, saveVariety, VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
+import { loadSubtitlesOn, saveSubtitlesOn } from "@/lib/subtitles";
+import { getGiftConfig } from "@/lib/giftConfig";
 import { MatchSummary } from "@/components/game/MatchSummary";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Leaderboard } from "@/components/game/Leaderboard";
@@ -68,10 +71,12 @@ function BattlePage() {
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
 
   const [variety, setVariety] = useState<VarietyConfig>(VARIETY_DEFAULT);
+  const [captions, setCaptions] = useState(true);
 
   useEffect(() => {
     setDifficulty(loadDifficulty());
     setVariety(loadVariety());
+    setCaptions(loadSubtitlesOn());
   }, []);
 
   const changeVariety = useCallback((value: VarietyConfig) => {
@@ -143,7 +148,9 @@ function BattlePage() {
   };
 
   const handleSend = (side: Side, gift: GiftId, message?: string) => {
-    void sendGift(side, gift, message);
+    // The admin panel can pin a gift to one team regardless of the dock used.
+    const target = getGiftConfig()[gift]?.target ?? "auto";
+    void sendGift(target === "auto" ? side : target, gift, message);
   };
 
   const leader: Side | null =
@@ -249,6 +256,30 @@ function BattlePage() {
         >
           <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
         <RefereePanel lang={lang} value={variety} onChange={changeVariety} />
+        <Button
+          type="button"
+          onClick={() =>
+            setCaptions((on) => {
+              saveSubtitlesOn(!on);
+              return !on;
+            })
+          }
+          aria-label={t.commentator}
+          aria-pressed={captions}
+          variant="outline"
+          size="icon"
+          className={`size-8 shrink-0 rounded-full bg-background/80 text-sm backdrop-blur-md sm:size-9 md:size-10 md:text-base ${captions ? "" : "opacity-50"}`}
+        >
+          💬🗒️
+        </Button>
+        <Link
+          to="/admin"
+          search={{ lang }}
+          aria-label="Gift admin"
+          className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-background/80 text-sm backdrop-blur-md sm:size-9 md:size-10"
+        >
+          ⚙️
+        </Link>
           <Button
             type="button"
             onClick={() => setShowBoard((s) => !s)}
@@ -299,6 +330,30 @@ function BattlePage() {
         <RefereePanel lang={lang} value={variety} onChange={changeVariety} />
         <Button
           type="button"
+          onClick={() =>
+            setCaptions((on) => {
+              saveSubtitlesOn(!on);
+              return !on;
+            })
+          }
+          aria-label={t.commentator}
+          aria-pressed={captions}
+          variant="outline"
+          size="icon"
+          className={`size-8 shrink-0 rounded-full bg-background/80 text-sm backdrop-blur-md sm:size-9 md:size-10 md:text-base ${captions ? "" : "opacity-50"}`}
+        >
+          💬🗒️
+        </Button>
+        <Link
+          to="/admin"
+          search={{ lang }}
+          aria-label="Gift admin"
+          className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-background/80 text-sm backdrop-blur-md sm:size-9 md:size-10"
+        >
+          ⚙️
+        </Link>
+        <Button
+          type="button"
           onClick={() => setShowBoard((s) => !s)}
           aria-label={t.leaderboard}
           variant="outline"
@@ -334,6 +389,8 @@ function BattlePage() {
           📡
         </Link>
       </FightControls>
+
+      <Subtitles enabled={captions} />
     </main>
   );
 }

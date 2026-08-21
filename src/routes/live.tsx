@@ -10,6 +10,7 @@ import { useHudHeight } from "@/hooks/useHudHeight";
 import { loadDifficulty, saveDifficulty, type Difficulty } from "@/lib/difficulty";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
+import { Subtitles } from "@/components/game/Subtitles";
 import { Button } from "@/components/ui/button";
 import { useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
@@ -201,6 +202,7 @@ function LivePage() {
           🎁
         </Link>
       </FightControls>
+      <Subtitles />
     </main>
   );
 }

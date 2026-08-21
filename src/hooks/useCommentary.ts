@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GIFT_BY_ID, type BattleState, type GiftEvent, type Side } from "@/lib/battle";
 import { COMMENTARY, LANG_META, REFEREE_LINES, SIDE_NAME, type Lang } from "@/lib/i18n";
+import { publishSubtitle } from "@/lib/subtitles";
 
 export type CommentaryLine = { id: string; text: string; tone: "hit" | "big" | "ko" | "idle" };
 
@@ -213,6 +214,7 @@ export function useCommentary(
       ...prev.slice(-(MAX_LINES - 1)),
       { id: `${now}-${Math.random().toString(36).slice(2)}`, text, tone },
     ]);
+    publishSubtitle(text, "commentary", 3200);
     if (!mutedRef.current) speak(text, langRef.current, PRIORITY[tone]);
   };
 

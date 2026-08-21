@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
+import type { GiftEvent, Side } from "@/lib/battle";
 import { BANNER, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 import { announce } from "@/hooks/useCommentary";
+import { publishSubtitle } from "@/lib/subtitles";
+import { getGiftConfig, giftLabel } from "@/lib/giftConfig";
 
 export type BannerTone = "ref" | "gift" | "hit";
 export type Banner = { id: string; text: string; tone: BannerTone } | null;
@@ -42,6 +44,9 @@ export function useTopBanner({ lang, matchId, round, ko, koConfirmed, events, mu
   const show = (text: string, tone: BannerTone, life: number, priority: number) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     setBanner({ id, text, tone });
+    // Caption first, so the subtitle appears on the same frame as the bar text
+    // and the voice line that follows it.
+    publishSubtitle(text, tone, life);
     if (!mutedRef.current) announce(text, langRef.current, priority);
     const timer = window.setTimeout(
       () => setBanner((current) => (current?.id === id ? null : current)),
@@ -91,8 +96,7 @@ export function useTopBanner({ lang, matchId, round, ko, koConfirmed, events, mu
       seen.current.add(event.id);
       const names = SIDE_NAME[lang];
       const copy = BANNER[lang];
-      const gift = GIFT_BY_ID[event.gift];
-      const giftName = `${gift?.emoji ?? "🎁"} ${UI_TEXT[lang].gifts[event.gift] ?? event.gift}`;
+      const giftName = giftLabel(getGiftConfig(), event.gift, lang);
       const team = event.side === "ru" ? names.ruTeam : names.usTeam;
       const defender = event.side === "ru" ? names.us : names.ru;
       show(copy.giftIn(event.sender, giftName, team), "gift", GIFT_LIFE_MS, 1);
