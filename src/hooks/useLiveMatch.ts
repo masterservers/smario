@@ -55,7 +55,6 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
       .from("gift_events")
       .select("id, side, gift, value, sender, created_at")
       .eq("match_id", match.id)
-      .eq("flagged", false)
       .order("created_at", { ascending: true })
       .limit(400);
     setEvents((rows ?? []) as GiftEvent[]);
@@ -87,8 +86,9 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
           filter: `match_id=eq.${matchId}`,
         },
         (payload) => {
-          const row = payload.new as GiftEvent & { flagged?: boolean };
-          if (row.flagged) return; // fraud-flagged gifts never affect the score
+          // Flagged gifts are filtered out by the database before they ever
+          // reach a viewer, so anything arriving here counts.
+          const row = payload.new as GiftEvent;
           setEvents((prev) => (prev.some((e) => e.id === row.id) ? prev : [...prev, row]));
         },
       )
@@ -210,7 +210,7 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
           sender: nickname,
           message: message ?? null,
         })
-        .select("id, side, gift, value, sender, created_at, flagged")
+        .select("id, side, gift, value, sender, created_at")
         .single();
 
       if (error) {
