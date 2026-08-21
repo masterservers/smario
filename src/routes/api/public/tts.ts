@@ -54,7 +54,7 @@ export const Route = createFileRoute("/api/public/tts")({
             body: JSON.stringify({
               model: "openai/gpt-4o-mini-tts",
               input: text,
-              voice: "onyx",
+              voice: lang === "ru" || lang === "sr" ? "ash" : "onyx",
               instructions,
               speed: tone === "ko" ? 1.15 : 1.05,
               response_format: "mp3",
