@@ -173,58 +173,58 @@ export function familyTrace(): SceneFamily[] {
   return recentFamilies.slice(-8);
 }
 
+/**
+ * Rotation on the *kind* of blow — punch, kick, aerial, throw, grapple.
+ * Families already stop "another rope spot" from chaining; this second guard
+ * keeps the categories themselves alternating, so a round never turns into ten
+ * punches with the odd kick. Two rules:
+ *   1. hard — no more than `maxKindStreak` scenes of the same kind in a row,
+ *      and no kind may fill more than half of the recent window;
+ *   2. soft — among the scenes that survive, prefer the categories that have
+ *      been waiting the longest, so the round cycles through all five.
+ */
+const ROTATION_KINDS: HitKind[] = ["punch", "kick", "aerial", "throw", "grapple"];
+const recentKinds: HitKind[] = [];
+let maxKindStreak = 2;
+
+export function setKindStreak(value: number) {
+  maxKindStreak = Math.max(1, Math.round(value));
+}
+
+/** Live snapshot for the debug panel. */
+export function kindTrace(): HitKind[] {
+  return recentKinds.slice(-8);
+}
+
+/** Resets the category rotation, e.g. when a new round starts. */
+export function resetKindRotation() {
+  recentKinds.length = 0;
+}
+
+function kindBlocked(kind: HitKind, window = 6): boolean {
+  let streak = 0;
+  for (let i = recentKinds.length - 1; i >= 0 && recentKinds[i] === kind; i--) streak++;
+  if (streak >= maxKindStreak) return true;
+  const slice = recentKinds.slice(-window);
+  const share = slice.filter((k) => k === kind).length;
+  return slice.length >= window && share > Math.ceil(window / 2);
+}
+
+/** How long ago this category last ran; larger = more overdue. */
+function kindAge(kind: HitKind): number {
+  const index = recentKinds.lastIndexOf(kind);
+  return index === -1 ? Number.MAX_SAFE_INTEGER : recentKinds.length - index;
+}
+
 function drawLRU<T extends { id: string }>(
-  pool: T[],
-  usage: Map<string, number>,
-  recent: string[],
-  cooldowns?: Map<string, number>,
-  cooldownMs = 0,
-  prefer?: (item: T) => boolean,
-): T {
-  advanceSceneBeat();
-  const unique = enabled(Array.from(new Map(pool.map((item) => [item.id, item])).values()));
-  // Everything with the lowest weighted usage is still "unplayed" in this cycle.
-  const cost = (id: string) => (usage.get(id) ?? 0);
-  let lowest = Infinity;
-  for (const item of unique) lowest = Math.min(lowest, cost(item.id));
-  let list = unique.filter((item) => cost(item.id) <= lowest + 1e-6);
-  // Inside the cycle, avoid what was just seen and what is still cooling down.
-  const now = performance.now();
-  const blocked = new Set(recent.slice(-Math.max(1, Math.floor(unique.length / 2))));
-  const notRecent = list.filter((item) => !blocked.has(item.id));
-  if (notRecent.length > 0) list = notRecent;
-  if (cooldowns && cooldownMs > 0) {
-    const cool = list.filter((item) => now - (cooldowns.get(item.id) ?? -Infinity) >= cooldownMs);
-    if (cool.length > 0) list = cool;
-  }
-  // Type-level anti-repetition: drop the families that already ran too often
-  // in a row (or that dominate the recent window). Applied before the softer
-  // continuity/round filters so those can never bring a tired family back.
-  const varied = list.filter(
-    (item) => !familyBlocked(item as { label?: string }, recentFamilies, maxFamilyStreak),
-  );
-  if (varied.length > 0) list = varied;
-  // Continuity: among the eligible scenes, favour the ones that carry on from
-  // where the picture is right now, so the cut reads as one continuous action.
-  if (prefer) {
-    const smooth = list.filter(prefer);
-    if (smooth.length > 0) list = smooth;
-  }
-  // Round colour: each round leans towards a different family of scenes
-  // (striking, kicks, rope work, throws, mat work) so the match never repeats
-  // the same rhythm. Soft filter — the LRU cycle stays in charge.
-  if (Math.random() < 0.7) {
-    const themed = list.filter((item) => inRoundTheme(item as { label?: string }));
-    if (themed.length > 0) list = themed;
-  }
-  const chosen = list[Math.floor(Math.random() * list.length)]!;
-  // Weighted cost: a heavier scene "ages" more slowly and returns sooner.
-  usage.set(chosen.id, cost(chosen.id) + 1 / Math.max(0.25, weightOf(chosen.id)));
-  cooldowns?.set(chosen.id, now);
-  recent.push(chosen.id);
-  if (recent.length > unique.length) recent.shift();
+...
   recentFamilies.push(familyOf(chosen as { id: string; label?: string }));
   if (recentFamilies.length > 12) recentFamilies.shift();
+  const chosenLabel = (chosen as { label?: string }).label;
+  if (typeof chosenLabel === "string") {
+    recentKinds.push(kindOf(chosen as unknown as Move));
+    if (recentKinds.length > 12) recentKinds.shift();
+  }
   return chosen;
 }
 
