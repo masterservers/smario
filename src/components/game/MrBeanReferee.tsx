@@ -61,23 +61,30 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
   const line = LINES[lang][run.gag];
 
   return (
-    <div
-      key={run.id}
-      className={`bean-ref pointer-events-none absolute bottom-[16%] z-20 flex flex-col items-center ${
-        run.from === "left" ? "bean-ref-left left-[8%]" : "bean-ref-right right-[8%]"
-      }`}
-    >
-      <span className="display mb-1 rounded-full bg-background/70 px-2 py-0.5 text-[9px] tracking-widest text-gold text-outline backdrop-blur sm:text-xs">
-        🧑‍⚖️ {line}
-      </span>
-      <img
-        src={beanImg}
-        alt="Referee Mr. Bean stepping between the fighters"
-        loading="lazy"
-        className={`h-[22vh] max-h-[200px] w-auto object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.65)] ${
-          run.gag === "hit" ? "bean-ref-hit" : run.gag === "comic" ? "bean-ref-comic" : ""
-        }`}
-      />
+    // The reel is 16:9 and letterboxed, so Bean lives inside the same box — he
+    // always stands on the mat, never down in the black bars.
+    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
+      <div className="relative aspect-video max-h-full w-full max-w-full">
+        <div
+          key={run.id}
+          className={`bean-ref absolute bottom-[4%] flex flex-col items-center ${
+            run.from === "left" ? "bean-ref-left left-[6%]" : "bean-ref-right right-[6%]"
+          }`}
+        >
+          <span className="display mb-1 rounded-full bg-background/70 px-2 py-0.5 text-[9px] tracking-widest text-gold text-outline backdrop-blur sm:text-xs">
+            🧑‍⚖️ {line}
+          </span>
+          <img
+            src={beanImg}
+            alt="Referee Mr. Bean stepping between the fighters"
+            loading="lazy"
+            style={{ height: "42%" }}
+            className={`w-auto object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.65)] ${
+              run.gag === "hit" ? "bean-ref-hit" : run.gag === "comic" ? "bean-ref-comic" : ""
+            }`}
+          />
+        </div>
+      </div>
     </div>
   );
 }
