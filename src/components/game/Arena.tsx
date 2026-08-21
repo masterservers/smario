@@ -17,6 +17,9 @@ const SEQUENCES: Record<string, Sequence> = {
   rocket: { start: 23.0, end: 29.8, impact: 25.2, label: "FINISHER" },
 };
 
+const IDLE_START = 8.2;
+const IDLE_END = 11.6;
+
 type FloatItem = { id: string; emoji: string; side: Side; left: number };
 type DamageItem = { id: string; side: Side; amount: number };
 
@@ -65,9 +68,18 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   useEffect(() => {
     const timer = window.setInterval(() => {
       const video = videoRef.current;
-      if (!video || ko || playing.current) return;
+      if (!video || ko) return;
+      if (playing.current) return;
+      // Idle loop: keep both fighters visible and moving in the ring
+      if (video.paused || video.currentTime < IDLE_START || video.currentTime > IDLE_END) {
+        if (video.currentTime < IDLE_START || video.currentTime > IDLE_END) {
+          video.currentTime = IDLE_START;
+        }
+        void video.play();
+      }
       const event = queue.current.shift();
       if (!event) return;
+
 
       const sequence = SEQUENCES[event.gift] ?? SEQUENCES['rose'];
       if (!sequence) return;
@@ -137,13 +149,14 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         playsInline
         preload="auto"
         aria-label={`${names.ru} versus ${names.us}`}
-        onLoadedMetadata={(event) => {
-          event.currentTarget.currentTime = 4.4;
+        onLoadedData={(event) => {
+          if (event.currentTarget.currentTime < 8) event.currentTarget.currentTime = 8.2;
         }}
         onTimeUpdate={handleTimeUpdate}
-        className={`absolute inset-0 size-full object-contain transition-transform duration-300 ${attacker === "ru" ? "-scale-x-100" : "scale-x-100"}`}
+        className={`absolute inset-0 size-full object-cover transition-transform duration-300 ${attacker === "ru" ? "-scale-x-100" : "scale-x-100"}`}
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-background/25" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background/60 to-transparent" />
+
 
 
       {impact && (
