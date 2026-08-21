@@ -3,6 +3,7 @@ import { VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
 import { useEffect, useRef, useState } from "react";
 import fightVideo from "@/assets/arena-heights2.webm.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
+import { ruleFor, type HitKind } from "@/lib/hitConfig";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
 const FIGHT_VIDEO = fightVideo.url;
@@ -18,8 +19,7 @@ type Move = {
   tier: number;
 };
 
-/** How a hit reads physically on screen. */
-type HitKind = "punch" | "kick" | "grapple" | "aerial" | "throw";
+/** How a hit reads physically on screen (kinds are configurable in /admin). */
 
 function kindOf(move: Move): HitKind {
   const l = move.label;
@@ -400,25 +400,11 @@ const FOLLOW_UPS: Move[] = [
 /** Victory pose: the winner stands over the ring with both hands raised. */
 const CHAMPION_POSE = { start: 28.6, end: 30.1, rate: 0.7 };
 
-const GIFT_TIER: Record<string, number> = {
-  rose: 1,
-  donut: 2,
-  tiktok: 3,
-  gift: 4,
-  rocket: 5,
-};
-
 /**
- * Each gift reads as a specific kind of blow, delivered by the fighter the gift
- * was sent to: a rose is a strike, a rocket ends with a throw.
+ * The gift → kind of blow → power mapping is no longer hard-coded: it lives in
+ * the admin panel (`/admin`, tab "Lovituri") and is read live through
+ * `ruleFor()`, so it can be tuned during a live show without a redeploy.
  */
-const GIFT_KIND: Record<string, HitKind[]> = {
-  rose: ["punch"],
-  donut: ["kick", "punch"],
-  tiktok: ["grapple", "kick"],
-  gift: ["aerial", "grapple"],
-  rocket: ["throw", "aerial"],
-};
 
 /**
  * Feeling-out scenarios played when nobody is sending gifts. Deliberately many,
@@ -490,12 +476,10 @@ function drawIdle(
  * tiers so a stream of the same gift still produces different scenes.
  */
 function movesForGift(giftId: string, tier: number): Move[] {
-  const kinds = GIFT_KIND[giftId];
+  const kinds = ruleFor(giftId).kinds;
   const exact = MOVES.filter((move) => move.tier === tier);
   const near = MOVES.filter((move) => Math.abs(move.tier - tier) <= 1);
-  const matching = kinds
-    ? near.filter((move) => kinds.includes(kindOf(move)))
-    : [];
+  const matching = near.filter((move) => kinds.includes(kindOf(move)));
   // Weight: the gift's own kind first, then the exact tier, then the neighbours.
   const pool = [...matching, ...matching, ...exact, ...near];
   return pool.length > 0 ? pool : MOVES;
@@ -564,6 +548,18 @@ type Props = {
   koConfirmed?: boolean;
   /** Real-time trace of triggered moves, impacts, KO and replay. */
   onLog?: (kind: "move" | "impact" | "ko" | "replay", text: string) => void;
+  /**
+   * Confirmation that a gift produced exactly one landed hit. Fired at the
+   * frame of contact, so voice and subtitles are in sync with the impact.
+   */
+  onHit?: (hit: {
+    eventId: string;
+    side: Side;
+    gift: string;
+    kind: HitKind;
+    label: string;
+    force: number;
+  }) => void;
 };
 
 export function Arena({
@@ -577,15 +573,22 @@ export function Arena({
   paused = false,
   koConfirmed = true,
   onLog,
+  onHit,
 }: Props) {
   const logRef = useRef(onLog);
   logRef.current = onLog;
+  const hitRef = useRef(onHit);
+  hitRef.current = onHit;
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
   const activeLayerRef = useRef(0);
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
   const switchingRef = useRef(false);
   const switchTokenRef = useRef(0);
   const seen = useRef<Set<string>>(new Set());
+  /** Gift ids whose hit has already landed — the exactly-once guarantee. */
+  const delivered = useRef<Set<string>>(new Set());
+  /** When each gift entered the queue, used by the reconciliation pass. */
+  const queuedAt = useRef<Map<string, number>>(new Map());
   const queue = useRef<GiftEvent[]>([]);
   const playing = useRef(false);
   const stopAt = useRef(0);
@@ -763,21 +766,57 @@ export function Arena({
     else if (playing.current) void video.play();
   }, [paused, ko]);
 
+  // Gift intake: every gift enters an ordered queue, exactly once. The `seen`
+  // set is the de-duplication guard (realtime can deliver the same row twice,
+  // and a reload re-reads the history), `queued` tracks what is still waiting.
   useEffect(() => {
     if (!primed.current) {
       if (events.length === 0) return;
-      for (const event of events) seen.current.add(event.id);
+      for (const event of events) {
+        seen.current.add(event.id);
+        delivered.current.add(event.id);
+      }
       primed.current = true;
       return;
     }
-    const fresh: GiftEvent[] = [];
     for (const event of events) {
       if (seen.current.has(event.id)) continue;
       seen.current.add(event.id);
-      fresh.push(event);
+      queuedAt.current.set(event.id, performance.now());
+      queue.current.push(event);
     }
-    queue.current.push(...fresh.slice(-5));
+    // Burst protection: keep the queue bounded, always dropping the oldest.
+    if (queue.current.length > 24) {
+      const dropped = queue.current.splice(0, queue.current.length - 24);
+      for (const item of dropped) {
+        queuedAt.current.delete(item.id);
+        delivered.current.add(item.id); // consciously skipped, never retried
+        logRef.current?.("impact", `queue overflow · ${item.gift} (${item.side}) skipped`);
+      }
+    }
   }, [events]);
+
+  // Reconciliation: a gift must trigger exactly one hit. Anything that was
+  // accepted but never landed (a lost scene switch, a tab going to sleep) is
+  // pushed back into the queue; anything already landed can never fire twice.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const now = performance.now();
+      const waiting = new Set(queue.current.map((item) => item.id));
+      for (const event of events) {
+        if (!seen.current.has(event.id)) continue;
+        if (delivered.current.has(event.id) || waiting.has(event.id)) continue;
+        if (currentEvent.current?.id === event.id || follow.current?.event.id === event.id) continue;
+        const since = queuedAt.current.get(event.id) ?? 0;
+        if (now - since < 12000) continue;
+        queuedAt.current.set(event.id, now);
+        queue.current.push(event);
+        logRef.current?.("impact", `reconcile · re-queued ${event.gift} (${event.side})`);
+      }
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [events]);
+
 
   // Knockout: finish the active move first, then replay the finish in slow motion.
   // This prevents a gift that reaches zero HP from cutting a lift, throw or fall.
@@ -912,7 +951,7 @@ export function Arena({
       if (!event) return;
       follow.current = null;
 
-      const tier = GIFT_TIER[event.gift] ?? 1;
+      const tier = ruleFor(event.gift).tier;
       const move = pendingFollow
         ? pendingFollow.move
         : drawMove(
@@ -998,8 +1037,30 @@ export function Arena({
       const defender: Side = event.side === "ru" ? "us" : "ru";
       const gift = GIFT_BY_ID[event.gift];
       const kind = kindOf(move);
-      const profile = HIT_PROFILE[kind];
+      const base = HIT_PROFILE[kind];
+      // Admin tuning: the gift decides how hard this blow reads and how long
+      // the defender stays shaken.
+      const rule = ruleFor(event.gift);
+      const profile = {
+        ...base,
+        force: base.force * rule.force,
+        stun: base.stun * rule.stun,
+      };
       koKind.current = kind;
+      // Exactly-once confirmation: one gift id, one landed hit, one voice line.
+      const rootId = event.id.split("-fu")[0]!;
+      if (!delivered.current.has(rootId)) {
+        delivered.current.add(rootId);
+        queuedAt.current.delete(rootId);
+        hitRef.current?.({
+          eventId: rootId,
+          side: event.side,
+          gift: event.gift,
+          kind,
+          label: move.label,
+          force: profile.force,
+        });
+      }
       setImpact({ id: event.id, side: defender, label: move.label });
       // Distinct physical read per hit type: jitter for punches, a step back for
       // kicks, loss of balance for throws and aerials, then a recovery.

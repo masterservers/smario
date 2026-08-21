@@ -16,6 +16,16 @@ import {
   type GiftConfig,
   type GiftTarget,
 } from "@/lib/giftConfig";
+import {
+  HIT_KINDS,
+  defaultHitConfig,
+  getHitConfig,
+  saveHitConfig,
+  type GiftHitRule,
+  type HitConfig,
+  type RefereeRules,
+} from "@/lib/hitConfig";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,7 +78,9 @@ type HistoryRow = {
 function AdminPage() {
   const { lang } = Route.useSearch();
   const [config, setConfig] = useState<GiftConfig>(() => getGiftConfig());
+  const [hits, setHits] = useState<HitConfig>(() => getHitConfig());
   const [admin, setAdmin] = useState<AdminConfig>(() => getAdminConfig());
+
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<HistoryRow[]>([]);
@@ -125,7 +137,30 @@ function AdminPage() {
     [loadAudit],
   );
 
+  /** Gift → blow mapping; saved immediately so the arena picks it up live. */
+  const patchHit = (id: GiftId, patch: Partial<GiftHitRule>) => {
+    setHits((current) => {
+      const next: HitConfig = {
+        ...current,
+        gifts: { ...current.gifts, [id]: { ...current.gifts[id], ...patch } },
+      };
+      saveHitConfig(next);
+      return next;
+    });
+    record("hits", `gift ${id}`, patch);
+  };
+
+  const patchReferee = (patch: Partial<RefereeRules>) => {
+    setHits((current) => {
+      const next: HitConfig = { ...current, referee: { ...current.referee, ...patch } };
+      saveHitConfig(next);
+      return next;
+    });
+    record("hits", "referee rules", patch);
+  };
+
   const update = (id: GiftId, patch: Partial<GiftConfig[GiftId]>) => {
+
     setConfig((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
     setSaved(false);
     record("gifts", `edit ${id}`, patch as Record<string, unknown>);
@@ -350,6 +385,115 @@ function AdminPage() {
           ))}
         </div>
       </section>
+
+      {/* Hits & referee -------------------------------------------------- */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Hits &amp; referee
+        </h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Maps every gift to a kind of blow, its tier and how hard it lands. Changes apply to the
+          next hit — no redeploy needed.
+        </p>
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          {GIFTS.map((gift) => {
+            const rule = hits.gifts[gift.id];
+            return (
+              <div key={gift.id} className="rounded-xl border border-border p-3">
+                <div className="display text-xs uppercase tracking-widest">
+                  {gift.emoji} {gift.id}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {HIT_KINDS.map((kind) => {
+                    const on = rule.kinds.includes(kind);
+                    return (
+                      <button
+                        key={kind}
+                        type="button"
+                        onClick={() =>
+                          patchHit(gift.id, {
+                            kinds: on
+                              ? rule.kinds.filter((k) => k !== kind)
+                              : [...rule.kinds, kind],
+                          })
+                        }
+                        className={`rounded-md border px-2 py-1 text-xs ${
+                          on
+                            ? "border-primary bg-primary/15 text-primary"
+                            : "border-border text-muted-foreground"
+                        }`}
+                      >
+                        {kind}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      ["tier", 1, 5, 1],
+                      ["force", 0.4, 2, 0.05],
+                      ["stun", 0.4, 2, 0.05],
+                    ] as const
+                  ).map(([field, min, max, step]) => (
+                    <label key={field} className="text-xs text-muted-foreground">
+                      {field} <span className="text-foreground">{rule[field]}</span>
+                      <input
+                        type="range"
+                        min={min}
+                        max={max}
+                        step={step}
+                        value={rule[field]}
+                        onChange={(e) => patchHit(gift.id, { [field]: Number(e.target.value) })}
+                        className="mt-1 w-full accent-primary"
+                        aria-label={`${gift.id} ${field}`}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-4">
+          {(
+            [
+              ["knockdownCount", 4, 10, 1],
+              ["finalCount", 6, 12, 1],
+              ["countMs", 500, 1500, 50],
+              ["resumeDelayMs", 0, 3000, 100],
+            ] as const
+          ).map(([field, min, max, step]) => (
+            <label key={field} className="text-xs text-muted-foreground">
+              {field} <span className="text-foreground">{hits.referee[field]}</span>
+              <input
+                type="range"
+                min={min}
+                max={max}
+                step={step}
+                value={hits.referee[field]}
+                onChange={(e) => patchReferee({ [field]: Number(e.target.value) })}
+                className="mt-1 w-full accent-primary"
+                aria-label={`referee ${field}`}
+              />
+            </label>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          className="mt-3 h-9"
+          onClick={() => {
+            const fresh = defaultHitConfig();
+            setHits(fresh);
+            saveHitConfig(fresh);
+            record("hits", "reset", {});
+          }}
+        >
+          Reset to defaults
+        </Button>
+      </section>
+
+
 
       {/* TikTok --------------------------------------------------------- */}
       <section className="panel mt-4 rounded-2xl p-4">
