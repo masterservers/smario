@@ -169,6 +169,14 @@ function speak(text: string, lang: Lang, priority: number) {
 }
 
 
+/**
+ * Speak a top-bar announcement (referee call or gift ticker) in the selected
+ * language, on the same voice lane as the commentary so the two never overlap.
+ */
+export function announce(text: string, lang: Lang, priority = 2) {
+  speak(text, lang, priority);
+}
+
 export function useCommentary(
   lang: Lang,
   events: GiftEvent[],

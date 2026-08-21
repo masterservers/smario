@@ -427,3 +427,37 @@ export const REFEREE_LINES: Record<Lang, RefLines> = {
     ko: (f) => `Десять! Всё — ${f} остаётся лежать. Нокаут!`,
   },
 };
+
+/**
+ * Top-bar banner copy: the referee's calls plus the gift ticker (who sent what
+ * for whom, and the moment that gift lands as a strike). The same strings are
+ * spoken by the referee/announcer voice, so bar and audio stay identical.
+ */
+export const BANNER: Record<
+  Lang,
+  {
+    giftIn: (sender: string, gift: string, team: string) => string;
+    giftHit: (gift: string, defender: string) => string;
+  }
+> = {
+  en: {
+    giftIn: (s, g, team) => `${s} sends ${g} for ${team}`,
+    giftHit: (g, d) => `${g} lands on ${d}`,
+  },
+  de: {
+    giftIn: (s, g, team) => `${s} schickt ${g} für ${team}`,
+    giftHit: (g, d) => `${g} trifft ${d}`,
+  },
+  sr: {
+    giftIn: (s, g, team) => `${s} šalje ${g} za ${team}`,
+    giftHit: (g, d) => `${g} pogađa ${d}`,
+  },
+  ro: {
+    giftIn: (s, g, team) => `${s} trimite ${g} pentru ${team}`,
+    giftHit: (g, d) => `${g} îl lovește pe ${d}`,
+  },
+  ru: {
+    giftIn: (s, g, team) => `${s} отправляет ${g} за ${team}`,
+    giftHit: (g, d) => `${g} попадает по ${d}`,
+  },
+};
