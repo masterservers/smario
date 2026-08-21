@@ -19,7 +19,7 @@ export type VarietyConfig = {
 export const VARIETY_DEFAULT: VarietyConfig = {
   cooldownMs: 12000,
   rotation: 12,
-  entryJitter: 0.6,
+  entryJitter: 0.15,
   familyStreak: 2,
 };
 
