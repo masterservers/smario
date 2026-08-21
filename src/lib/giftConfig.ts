@@ -67,8 +67,13 @@ export function getGiftConfig(): GiftConfig {
 export function saveGiftConfig(value: GiftConfig) {
   current = normalize(value);
   if (typeof window !== "undefined") window.localStorage.setItem(KEY, JSON.stringify(current));
+  // Keep the authoritative routing table (gift → Putin / Trump) in sync.
+  setGiftRouting(
+    Object.fromEntries(GIFTS.map((g) => [g.id, current![g.id]!.target])) as Record<GiftId, GiftTarget>,
+  );
   for (const listener of listeners) listener(current);
 }
+
 
 export function resetGiftConfig() {
   saveGiftConfig(defaultGiftConfig());
