@@ -158,6 +158,7 @@ function BattlePage() {
 
   return (
     <main
+      ref={shellRef}
       className="fixed inset-0 h-[100dvh] w-screen touch-pan-x overflow-hidden overscroll-none bg-background"
       style={{ ["--hud" as string]: "0px" }}
     >
@@ -165,9 +166,10 @@ function BattlePage() {
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
-      {/* The ring keeps the full area under the HUD strip, so the whole mat is
-          visible in portrait and in landscape — never hidden by the scoreboard. */}
-      <div className="absolute inset-x-0 bottom-0 top-[var(--hud-h)] bg-background">
+      {/* The ring keeps the whole area between the measured scoreboard strip and
+          the caption line, so the full mat stays visible in both orientations. */}
+      <div className="absolute inset-x-0 bottom-[var(--caption-h,2.25rem)] top-[var(--hud-h)] bg-background">
+
         <Arena
           difficulty={difficulty}
           variety={variety}
