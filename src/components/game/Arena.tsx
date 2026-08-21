@@ -154,6 +154,7 @@ function drawLRU<T extends { id: string }>(
   recent: string[],
   cooldowns?: Map<string, number>,
   cooldownMs = 0,
+  prefer?: (item: T) => boolean,
 ): T {
   const unique = enabled(Array.from(new Map(pool.map((item) => [item.id, item])).values()));
   // Everything with the lowest weighted usage is still "unplayed" in this cycle.
@@ -170,6 +171,12 @@ function drawLRU<T extends { id: string }>(
     const cool = list.filter((item) => now - (cooldowns.get(item.id) ?? -Infinity) >= cooldownMs);
     if (cool.length > 0) list = cool;
   }
+  // Continuity: among the eligible scenes, favour the ones that carry on from
+  // where the picture is right now, so the cut reads as one continuous action.
+  if (prefer) {
+    const smooth = list.filter(prefer);
+    if (smooth.length > 0) list = smooth;
+  }
   const chosen = list[Math.floor(Math.random() * list.length)]!;
   // Weighted cost: a heavier scene "ages" more slowly and returns sooner.
   usage.set(chosen.id, cost(chosen.id) + 1 / Math.max(0.25, weightOf(chosen.id)));
@@ -179,8 +186,19 @@ function drawLRU<T extends { id: string }>(
   return chosen;
 }
 
-function drawIdle(usage: Map<string, number>, recent: string[]): IdleScene {
-  return drawLRU(IDLE_SCENES, usage, recent);
+function drawIdle(
+  usage: Map<string, number>,
+  recent: string[],
+  from?: number,
+): IdleScene {
+  return drawLRU(
+    IDLE_SCENES,
+    usage,
+    recent,
+    undefined,
+    0,
+    from === undefined ? undefined : (scene) => Math.abs(scene.start - from) < 2.5,
+  );
 }
 
 /**
@@ -642,18 +660,25 @@ export function Arena({
       // An idle scenario is played to its end as well, unless the admin allows
       // a gift to cut in.
       if (!idleOver && giftWaiting && rules.lockIdle && !rules.allowGiftInterrupt) {
-        if (!video.paused) {
-          sceneBlocked("idle scene protected until its end");
-          return;
+        if (video.paused && !paused) {
+          video.playbackRate = scene.rate * cfgRef.current.speed;
+          void video.play();
         }
+        sceneBlocked("idle scene protected until its end");
+        return;
       }
       if (video.paused || idleOver) {
         if (idleOver) {
-          const next = drawIdle(idleUsage.current, recentIdle.current);
+          const next = drawIdle(idleUsage.current, recentIdle.current, video.currentTime);
           idleScene.current = next;
           const rate = next.rate * cfgRef.current.speed;
           switchScene(next.start, rate);
           sceneStartedAt.current = performance.now();
+          // Hold the scene for its full window: nothing may cut into it.
+          if (rules.lockIdle && !rules.allowGiftInterrupt) {
+            lockUntil.current =
+              performance.now() + Math.max(0, ((next.end - next.start) / rate) * 1000 - 120);
+          }
           sceneStarted({
             id: next.id,
             label: next.label,
@@ -663,6 +688,7 @@ export function Arena({
           });
           return;
         }
+
 
         video.playbackRate = idleScene.current.rate * cfgRef.current.speed;
         void video.play();
@@ -895,7 +921,7 @@ export function Arena({
       lockUntil.current = pendingKo.current ? 0 : performance.now() + 350;
       // Wake the deferred-KO effect only after the complete landing/recovery.
       if (pendingKo.current) setCompletedSequences((value) => value + 1);
-      idleScene.current = drawIdle(idleUsage.current, recentIdle.current);
+      idleScene.current = drawIdle(idleUsage.current, recentIdle.current, video.currentTime);
       sceneStartedAt.current = performance.now();
       sceneStarted({
         id: idleScene.current.id,

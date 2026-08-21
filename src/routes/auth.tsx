@@ -24,7 +24,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"in" | "up">("in");
+  const [mode, setMode] = useState<"in" | "up" | "reset">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -36,7 +36,13 @@ function AuthPage() {
     setBusy(true);
     setError(null);
     setNotice(null);
-    if (mode === "in") {
+    if (mode === "reset") {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (resetError) setError(resetError.message);
+      else setNotice("Reset link sent. Check the inbox and open the link to set a new password.");
+    } else if (mode === "in") {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) setError(signInError.message);
       else void navigate({ to: "/admin", search: { lang: "en" as const } });
@@ -69,6 +75,7 @@ function AuthPage() {
             className="mt-1 h-9"
           />
         </label>
+        {mode !== "reset" && (
         <label className="block text-xs text-muted-foreground">
           Password
           <Input
@@ -80,18 +87,28 @@ function AuthPage() {
             className="mt-1 h-9"
           />
         </label>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
         {notice && <p className="text-sm text-gold">{notice}</p>}
         <Button type="submit" disabled={busy} className="w-full">
-          {mode === "in" ? "Sign in" : "Create account"}
+          {mode === "in" ? "Sign in" : mode === "up" ? "Create account" : "Send reset link"}
         </Button>
-        <button
-          type="button"
-          className="w-full text-xs text-muted-foreground underline"
-          onClick={() => setMode(mode === "in" ? "up" : "in")}
-        >
-          {mode === "in" ? "Need an account? Sign up" : "Already have an account? Sign in"}
-        </button>
+        <div className="flex flex-col gap-1">
+          <button
+            type="button"
+            className="w-full text-xs text-muted-foreground underline"
+            onClick={() => setMode(mode === "in" ? "up" : "in")}
+          >
+            {mode === "in" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+          </button>
+          <button
+            type="button"
+            className="w-full text-xs text-muted-foreground underline"
+            onClick={() => setMode(mode === "reset" ? "in" : "reset")}
+          >
+            {mode === "reset" ? "Back to sign in" : "Forgot password?"}
+          </button>
+        </div>
       </form>
     </main>
   );
