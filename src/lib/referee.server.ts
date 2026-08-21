@@ -119,11 +119,30 @@ export type RingVerdict = {
   serverTime: number;
 };
 
+/** A quiet ring: no score, no knockdown, no decisions to apply. */
+function emptyVerdict(matchId: string, round: number, config: HitConfig): RingVerdict {
+  return {
+    matchId,
+    round,
+    scoreRu: 0,
+    scoreUs: 0,
+    hpRu: 100,
+    hpUs: 100,
+    combo: 0,
+    comboSide: null,
+    ko: null,
+    referee: config.referee,
+    decisions: [],
+    serverTime: Date.now(),
+  };
+}
+
 /**
  * Recomputes the whole ring state from the stored gift feed and decides which
  * blow every gift produces. Nothing here trusts the browser: score, knockdown
  * and knockout all come from the database rows.
  */
+
 export async function judgeRing(matchId: string): Promise<RingVerdict> {
   const supabase = await adminClient();
 
@@ -132,7 +151,9 @@ export async function judgeRing(matchId: string): Promise<RingVerdict> {
     .select("id, round, ended_at")
     .eq("id", matchId)
     .maybeSingle();
-  if (!matchRow) throw new Error("Unknown match");
+  // A match that was reset, ended or is not on air yet is not an error: the
+  // referee simply has nothing to judge, so it answers with a neutral ring.
+  if (!matchRow) return emptyVerdict(matchId, 1, await loadActiveHitConfig());
 
   const { data: rows, error } = await supabase
     .from("gift_events")
@@ -141,9 +162,9 @@ export async function judgeRing(matchId: string): Promise<RingVerdict> {
     .eq("flagged", false)
     .order("created_at", { ascending: true })
     .limit(1000);
-  if (error) throw new Error("Unable to read the gift feed");
 
-  const events = (rows ?? []) as GiftEvent[];
+  const events = (error ? [] : (rows ?? [])) as GiftEvent[];
+
   const state = reduceEvents(events);
   const config = await loadActiveHitConfig();
   const round = (matchRow.round as number) ?? 1;
