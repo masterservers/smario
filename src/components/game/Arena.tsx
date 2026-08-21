@@ -465,17 +465,22 @@ function pick<T>(items: T[], avoid: string[] = [], key?: (item: T) => string): T
 }
 
 /**
- * Pool for a gift tier: the exact tier plus the neighbouring ones, so a stream
- * of small gifts still produces punches, kicks, rope work and takedowns instead
- * of cycling the same handful of jabs.
+ * Pool for a gift: the moves whose physical kind matches the gift (rose = a
+ * strike, rocket = a throw) at that power tier, widened to the neighbouring
+ * tiers so a stream of the same gift still produces different scenes.
  */
-function movesForTier(tier: number): Move[] {
-  const near = MOVES.filter((move) => Math.abs(move.tier - tier) <= 1);
+function movesForGift(giftId: string, tier: number): Move[] {
+  const kinds = GIFT_KIND[giftId];
   const exact = MOVES.filter((move) => move.tier === tier);
-  // Weight the exact tier twice so the gift still reads at the right power.
-  const pool = [...exact, ...exact, ...near];
+  const near = MOVES.filter((move) => Math.abs(move.tier - tier) <= 1);
+  const matching = kinds
+    ? near.filter((move) => kinds.includes(kindOf(move)))
+    : [];
+  // Weight: the gift's own kind first, then the exact tier, then the neighbours.
+  const pool = [...matching, ...matching, ...exact, ...near];
   return pool.length > 0 ? pool : MOVES;
 }
+
 
 /**
  * Least-recently-used draw: every move in the pool is played before any of them
