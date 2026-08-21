@@ -23,7 +23,9 @@ export const saveMatchOutfits = createServerFn({ method: "POST" })
       _user_id: context.userId,
       _role: "moderator",
     });
-    if (!isAdmin && !isMod) throw new Error("Forbidden");
+    // Viewers simply don't persist the look; this is not an error condition.
+    if (!isAdmin && !isMod) return { ok: false as const };
+
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
