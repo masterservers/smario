@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import headImg from "@/assets/mr-bean-head.png";
 import { useDebugView } from "@/lib/debugView";
 import { useBeanConfig } from "@/lib/beanConfig";
+import { createRefTracker, type RefSpot } from "@/lib/refTracker";
 
 /**
  * Mr. Bean's head, pinned on top of the referee who is already inside the
@@ -63,6 +64,38 @@ export function BeanRefHead() {
     };
   }, []);
 
+  // Follow the striped official across the frame: a light stripe detector runs
+  // a few times per second on a downscaled copy of the reel, and the result is
+  // smoothed so the face glides instead of jumping.
+  const [spot, setSpot] = useState<RefSpot | null>(null);
+  useEffect(() => {
+    if (!config.headEnabled) return;
+    const track = createRefTracker();
+    let raf = 0;
+    let last = 0;
+    let smooth: RefSpot | null = null;
+    const loop = (now: number) => {
+      raf = window.requestAnimationFrame(loop);
+      if (document.hidden || now - last < 180) return;
+      last = now;
+      const video = document.querySelector<HTMLVideoElement>("video.arena-video");
+      if (!video) return;
+      const found = track(video);
+      if (!found) return;
+      smooth = smooth
+        ? {
+            x: smooth.x + (found.x - smooth.x) * 0.35,
+            y: smooth.y + (found.y - smooth.y) * 0.35,
+            width: smooth.width + (found.width - smooth.width) * 0.35,
+            score: found.score,
+          }
+        : found;
+      setSpot({ ...smooth });
+    };
+    raf = window.requestAnimationFrame(loop);
+    return () => window.cancelAnimationFrame(raf);
+  }, [config.headEnabled]);
+
   // Re-measure once the reel reports its real size (metadata can land late).
   useEffect(() => {
     const video = document.querySelector<HTMLVideoElement>("video.arena-video");
@@ -73,7 +106,10 @@ export function BeanRefHead() {
   }, []);
 
   if (!config.headEnabled) return null;
-  const size = (config.headSize / 100) * fit.w;
+  // Tracked shirt wins; the admin sliders are the fallback anchor.
+  const anchorX = spot ? spot.x : config.headX;
+  const anchorY = spot ? spot.y - spot.width * 0.62 : config.headY;
+  const size = ((spot ? Math.max(2.4, spot.width * 0.62) : config.headSize) / 100) * fit.w;
 
   return (
     <div
@@ -94,8 +130,8 @@ export function BeanRefHead() {
             debug ? "outline outline-1 outline-rose-400/90" : ""
           }`}
           style={{
-            left: `${config.headX}%`,
-            top: `${config.headY}%`,
+            left: `${anchorX}%`,
+            top: `${anchorY}%`,
             width: size || undefined,
           }}
         />
