@@ -3,6 +3,7 @@ import { VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
 import { useEffect, useRef, useState } from "react";
 import fightVideo from "@/assets/arena-heights2.webm.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
+import { ruleFor, type HitKind } from "@/lib/hitConfig";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
 const FIGHT_VIDEO = fightVideo.url;
