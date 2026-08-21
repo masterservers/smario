@@ -414,6 +414,9 @@ export function Arena({
   const idleScene = useRef(IDLE_SCENES[0]!);
   const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
   const primed = useRef(false);
+  /** A KO may be scored during a move, but its replay must never cut that move. */
+  const handledKo = useRef<Side | null>(null);
+  const pendingKo = useRef<Side | null>(null);
 
   const cfg = DIFFICULTY_CONFIG[difficulty];
   const cfgRef = useRef(cfg);
@@ -447,6 +450,7 @@ export function Arena({
   const [crowd, setCrowd] = useState(0);
   const [replay, setReplay] = useState(false);
   const [champion, setChampion] = useState(false);
+  const [completedSequences, setCompletedSequences] = useState(0);
   const [impact, setImpact] = useState<{ id: string; side: Side; label: string } | null>(null);
   const [floats, setFloats] = useState<FloatItem[]>([]);
   /** Current camera framing: where in the ring the action sits. */
@@ -524,18 +528,30 @@ export function Arena({
     queue.current.push(...fresh.slice(-5));
   }, [events]);
 
-  // Knockout: instant slow-motion replay of the finish (~2.5s), then the loser
-  // stays down on the mat. Nothing covers the ring.
+  // Knockout: finish the active move first, then replay the finish in slow motion.
+  // This prevents a gift that reaches zero HP from cutting a lift, throw or fall.
   useEffect(() => {
-    if (!ko) return;
+    if (!ko) {
+      handledKo.current = null;
+      pendingKo.current = null;
+      return;
+    }
+    if (handledKo.current === ko) return;
+    if (playing.current) {
+      pendingKo.current = ko;
+      return;
+    }
     const video = activeVideoRef.current;
     if (!video) return;
+    handledKo.current = ko;
+    pendingKo.current = null;
     playing.current = false;
     settling.current = false;
 
     currentEvent.current = null;
     currentMove.current = null;
-    const finisher = MOVES.find((move) => move.id === "finisher")!;
+    const finisher = MOVES.find((move) => move.id === "finisher");
+    if (!finisher) return;
     cheer(2);
     setReplay(true);
     // KO reads heaviest of all: full loss of balance, then the shot settles.
@@ -569,7 +585,7 @@ export function Arena({
       window.clearTimeout(pose);
       setChampion(false);
     };
-  }, [ko]);
+  }, [ko, completedSequences, names.ru, names.us]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -705,6 +721,8 @@ export function Arena({
       playing.current = false;
       currentEvent.current = null;
       currentMove.current = null;
+      // Wake the deferred-KO effect only after the complete landing/recovery.
+      if (pendingKo.current) setCompletedSequences((value) => value + 1);
       idleScene.current = pick(IDLE_SCENES);
       // Between spots the fighters keep circling: drift the framing back.
       setFrame({
