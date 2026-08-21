@@ -5,19 +5,19 @@ import fightVideo from "@/assets/arena-heights2.webm.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { ruleFor, type HitKind } from "@/lib/hitConfig";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
+import {
+  CHAMPION_POSE,
+  FOLLOW_UPS,
+  IDLE_SCENES,
+  MOVES,
+  type IdleScene,
+  type Move,
+} from "@/lib/scenes";
+import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
+import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
 
 const FIGHT_VIDEO = fightVideo.url;
 
-type Move = {
-  id: string;
-  start: number;
-  end: number;
-  impact: number;
-  label: string;
-  rate: number;
-  /** 1 = light strike, 5 = finisher */
-  tier: number;
-};
 
 /** How a hit reads physically on screen (kinds are configurable in /admin). */
 
@@ -132,30 +132,56 @@ function clampFrame(frame: Frame): Frame {
 
 
 
-type IdleScene = (typeof IDLE_SCENES)[number];
+/**
+ * Enabled scenes only: the admin panel can take any scene out of the rotation
+ * live, and a weight of 0 has the same effect.
+ */
+function enabled<T extends { id: string }>(list: T[]): T[] {
+  const open = list.filter((item) => weightOf(item.id) > 0);
+  return open.length > 0 ? open : list;
+}
 
 /**
- * Idle scenes rotate least-recently-used as well: every feeling-out window is
- * shown before any of them comes back, so the fight never loops the same beat.
+ * Strict least-recently-used draw with weights. A scene can only come back once
+ * every other enabled scene in the pool has been played: the pick is always
+ * made among the entries with the lowest weighted usage, so one full cycle runs
+ * before any repetition. A weight above 1 simply lets a scene come round sooner
+ * inside the next cycles.
  */
-function drawIdle(
+function drawLRU<T extends { id: string }>(
+  pool: T[],
   usage: Map<string, number>,
   recent: string[],
-  current: IdleScene,
-): IdleScene {
-  const blocked = new Set([...recent.slice(-Math.floor(IDLE_SCENES.length / 2)), `${current.start}`]);
-  const open = IDLE_SCENES.filter((scene) => !blocked.has(`${scene.start}`));
-  const list = open.length > 0 ? open : IDLE_SCENES;
-  let best = Infinity;
-  for (const scene of list) best = Math.min(best, usage.get(`${scene.start}`) ?? 0);
-  const fresh = list.filter((scene) => (usage.get(`${scene.start}`) ?? 0) === best);
-  const chosen = fresh[Math.floor(Math.random() * fresh.length)]!;
-  usage.set(`${chosen.start}`, (usage.get(`${chosen.start}`) ?? 0) + 1);
-  recent.push(`${chosen.start}`);
-  if (recent.length > IDLE_SCENES.length) recent.shift();
+  cooldowns?: Map<string, number>,
+  cooldownMs = 0,
+): T {
+  const unique = enabled(Array.from(new Map(pool.map((item) => [item.id, item])).values()));
+  // Everything with the lowest weighted usage is still "unplayed" in this cycle.
+  const cost = (id: string) => (usage.get(id) ?? 0);
+  let lowest = Infinity;
+  for (const item of unique) lowest = Math.min(lowest, cost(item.id));
+  let list = unique.filter((item) => cost(item.id) <= lowest + 1e-6);
+  // Inside the cycle, avoid what was just seen and what is still cooling down.
+  const now = performance.now();
+  const blocked = new Set(recent.slice(-Math.max(1, Math.floor(unique.length / 2))));
+  const notRecent = list.filter((item) => !blocked.has(item.id));
+  if (notRecent.length > 0) list = notRecent;
+  if (cooldowns && cooldownMs > 0) {
+    const cool = list.filter((item) => now - (cooldowns.get(item.id) ?? -Infinity) >= cooldownMs);
+    if (cool.length > 0) list = cool;
+  }
+  const chosen = list[Math.floor(Math.random() * list.length)]!;
+  // Weighted cost: a heavier scene "ages" more slowly and returns sooner.
+  usage.set(chosen.id, cost(chosen.id) + 1 / Math.max(0.25, weightOf(chosen.id)));
+  cooldowns?.set(chosen.id, now);
+  recent.push(chosen.id);
+  if (recent.length > unique.length) recent.shift();
   return chosen;
 }
 
+function drawIdle(usage: Map<string, number>, recent: string[]): IdleScene {
+  return drawLRU(IDLE_SCENES, usage, recent);
+}
 
 /**
  * Pool for a gift: the moves whose physical kind matches the gift (rose = a
