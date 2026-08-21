@@ -634,15 +634,86 @@ const VARIETY_IDLE: IdleScene[] = [
   { id: "i-v6", start: 36.8, end: 39.0, rate: 0.78, label: "STARE DOWN AT THE ROPES" },
 ];
 
-export const MOVES: Move[] = [...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES, ...VARIETY_MOVES];
+/* ------------------------------------------------------------------ *
+ * Premium reel mapping
+ *
+ * The arena no longer plays a 40 s loop: it plays a 459 s reel cut from the
+ * twelve pieces of real ring footage. Every scene above keeps its identity
+ * (label, tier, playback rate and its own length), but its window is placed
+ * on the new reel so that no two scenes share the same seconds and no window
+ * ever crosses a cut between two pieces of footage.
+ * ------------------------------------------------------------------ */
 
-export const FOLLOW_UPS: Move[] = [
-  ...BASE_FOLLOW_UPS,
-  ...EXTRA_FOLLOW_UPS,
-  ...ROPE_FOLLOW_UPS,
-  ...VARIETY_FOLLOW_UPS,
+/** Start/end of each piece of footage inside the master reel, in seconds. */
+export const REEL_CLIPS: Array<[number, number]> = [
+  [0.4, 86.0],
+  [86.6, 93.3],
+  [93.8, 102.2],
+  [102.8, 111.2],
+  [111.8, 146.1],
+  [146.7, 170.4],
+  [171.0, 219.1],
+  [219.7, 311.9],
+  [312.5, 384.4],
+  [385.0, 421.1],
+  [421.6, 454.7],
+  [455.2, 458.9],
 ];
-export const IDLE_SCENES: IdleScene[] = [...BASE_IDLE, ...EXTRA_IDLE, ...ROPE_IDLE, ...VARIETY_IDLE];
+
+export const REEL_DURATION = 459.1;
+
+const GAP = 0.2;
+
+/**
+ * Lays a list of scenes out over the given pieces of footage: same length,
+ * same impact offset, but each one on its own stretch of the reel.
+ */
+function layout<T extends { start: number; end: number; impact?: number }>(
+  items: T[],
+  lanes: Array<[number, number]>,
+): T[] {
+  const cursors = lanes.map(([from]) => from);
+  return items.map((item, index) => {
+    const lane = index % lanes.length;
+    const [from, to] = lanes[lane]!;
+    const duration = Math.max(0.8, Math.min(item.end - item.start, to - from - 0.2));
+    const impactOffset = Math.min(
+      duration - 0.1,
+      Math.max(0.2, (item.impact ?? item.start + duration * 0.75) - item.start),
+    );
+    if (cursors[lane]! + duration > to) cursors[lane] = from;
+    const start = cursors[lane]!;
+    cursors[lane] = start + duration + GAP;
+    return {
+      ...item,
+      start: Number(start.toFixed(2)),
+      end: Number((start + duration).toFixed(2)),
+      ...(item.impact === undefined ? {} : { impact: Number((start + impactOffset).toFixed(2)) }),
+    };
+  });
+}
+
+const LONG_CLIPS = REEL_CLIPS.filter(([from, to]) => to - from > 20);
+const MAT_CLIPS = [REEL_CLIPS[7]!, REEL_CLIPS[8]!, REEL_CLIPS[9]!, REEL_CLIPS[0]!];
+const AMBIENT_CLIPS = [REEL_CLIPS[0]!, REEL_CLIPS[4]!, REEL_CLIPS[5]!, REEL_CLIPS[6]!, REEL_CLIPS[10]!];
+
+/** Victory pose: the winner stands over the ring with both hands raised. */
+export const CHAMPION_POSE = { start: 455.4, end: 457.6, rate: 0.7 };
+
+export const MOVES: Move[] = layout(
+  [...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES, ...VARIETY_MOVES],
+  LONG_CLIPS,
+);
+
+export const FOLLOW_UPS: Move[] = layout(
+  [...BASE_FOLLOW_UPS, ...EXTRA_FOLLOW_UPS, ...ROPE_FOLLOW_UPS, ...VARIETY_FOLLOW_UPS],
+  MAT_CLIPS,
+);
+
+export const IDLE_SCENES: IdleScene[] = layout(
+  [...BASE_IDLE, ...EXTRA_IDLE, ...ROPE_IDLE, ...VARIETY_IDLE],
+  AMBIENT_CLIPS,
+);
 
 /** Every scene the scheduler can pick, for the admin list and the debug panel. */
 export const ALL_SCENES = [
@@ -650,3 +721,4 @@ export const ALL_SCENES = [
   ...FOLLOW_UPS.map((m) => ({ id: m.id, label: m.label, group: "follow" as const })),
   ...IDLE_SCENES.map((s) => ({ id: s.id, label: s.label, group: "idle" as const })),
 ];
+
