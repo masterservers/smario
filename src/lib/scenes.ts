@@ -5,6 +5,8 @@
  * rotation and the admin panel all work from the same list.
  */
 
+import { WRESTLING_FOLLOW_UPS, WRESTLING_MOVES } from "@/lib/wrestlingMoves";
+
 export type Move = {
   id: string;
   start: number;
