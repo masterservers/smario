@@ -201,8 +201,8 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         void video.play();
       }
 
-      // A big spot leaves the opponent flat on the mat — follow it up with a
-      // dive from the top rope onto the downed fighter before taking new gifts.
+      // A big spot leaves the opponent flat on the mat — chain corner climbs and
+      // dives onto the downed fighter before taking new gifts.
       const pendingFollow = follow.current;
       const event = pendingFollow ? pendingFollow.event : queue.current.shift();
       if (!event) return;
@@ -213,9 +213,16 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         ? pendingFollow.move
         : pick(movesForTier(tier), recentMoves.current, (m) => m.id);
       recentMoves.current = [...recentMoves.current, move.id].slice(-6);
-      if (!pendingFollow && tier >= 4 && Math.random() < 0.7) {
-        follow.current = { event: { ...event, id: `${event.id}-fu` }, move: pick(FOLLOW_UPS) };
+
+      // Chance of a follow-up: high after a big spot, still possible after a
+      // chained one so we get 2-3 spot sequences without visible repetition.
+      const chance = pendingFollow ? 0.4 : tier >= 4 ? 0.85 : tier === 3 ? 0.55 : 0.15;
+      if (Math.random() < chance) {
+        const next = pick(FOLLOW_UPS, recentFollows.current, (m) => m.id);
+        recentFollows.current = [...recentFollows.current, next.id].slice(-5);
+        follow.current = { event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` }, move: next };
       }
+
 
       const gift = GIFT_BY_ID[event.gift];
 
