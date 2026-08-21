@@ -177,47 +177,50 @@ function LivePage() {
         />
       </div>
 
-      {/* Spectators can back a fighter from here: every gift fires the matching
-          strike for Russia or the USA in real time. */}
-      <div
-        ref={hud.ref}
-        className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] sm:p-2"
-      >
-        {showChat && (
-          <div className="mx-auto flex max-h-[30dvh] w-full max-w-3xl min-h-0 flex-col justify-end overflow-hidden">
-            <ChatPanel
-              lang={lang}
-              events={events}
-              nickname={nickname}
-              overlay
-              disabled={busy}
-              onSend={handleSend}
-            />
-          </div>
-        )}
-        <FightControls
-          lang={lang}
-          onLang={(next) => void navigate({ search: { lang: next }, replace: true })}
-          muted={muted}
-          onMute={() => setMuted((m) => !m)}
-          onChat={() => setShowChat((c) => !c)}
-          className="mx-auto flex w-full max-w-2xl items-center justify-center gap-1.5 [@media(min-width:768px)_and_(min-height:520px)]:hidden"
+      {/* A session link is watch-only unless it was created with gifting on:
+          spectators then back a fighter and every gift fires a real strike. */}
+      {access.canGift && (
+        <div
+          ref={hud.ref}
+          className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] sm:p-2"
         >
-          <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
-          <Link
-            to="/"
-            search={{ lang }}
-            aria-label={t.sendGiftsFor}
-            className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-background/80 text-sm backdrop-blur-md sm:size-9"
+          {showChat && (
+            <div className="mx-auto flex max-h-[30dvh] w-full max-w-3xl min-h-0 flex-col justify-end overflow-hidden">
+              <ChatPanel
+                lang={lang}
+                events={events}
+                nickname={nickname}
+                overlay
+                disabled={busy}
+                onSend={handleSend}
+              />
+            </div>
+          )}
+          <FightControls
+            lang={lang}
+            onLang={(next) => void navigate({ search: { lang: next }, replace: true })}
+            muted={muted}
+            onMute={() => setMuted((m) => !m)}
+            onChat={() => setShowChat((c) => !c)}
+            className="mx-auto flex w-full max-w-2xl items-center justify-center gap-1.5 [@media(min-width:768px)_and_(min-height:520px)]:hidden"
           >
-            🎁
-          </Link>
-        </FightControls>
-        <div className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1.5 opacity-90">
-          <GiftDock lang={lang} side="ru" overlay disabled={busy} onSend={handleSend} />
-          <GiftDock lang={lang} side="us" overlay disabled={busy} onSend={handleSend} />
+            <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
+            <Link
+              to="/"
+              search={{ lang }}
+              aria-label={t.sendGiftsFor}
+              className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-background/80 text-sm backdrop-blur-md sm:size-9"
+            >
+              🎁
+            </Link>
+          </FightControls>
+          <div className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1.5 opacity-90">
+            <GiftDock lang={lang} side="ru" overlay disabled={busy} onSend={handleSend} />
+            <GiftDock lang={lang} side="us" overlay disabled={busy} onSend={handleSend} />
+          </div>
         </div>
-      </div>
+      )}
+
 
       <FightControls
         lang={lang}
