@@ -157,6 +157,27 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
 
+  /**
+   * Seeks the reel. When the jump crosses between the wide angle (0-10s) and
+   * the ringside angle (10s+) we blend the picture for a moment so the camera
+   * change reads as a smooth switch instead of a hard cut.
+   */
+  const seek = (video: HTMLVideoElement, time: number) => {
+    const angleChanged = video.currentTime < 10 !== time < 10;
+    video.currentTime = time;
+    if (!angleChanged) return;
+    setCut(true);
+    if (cutTimer.current) window.clearTimeout(cutTimer.current);
+    cutTimer.current = window.setTimeout(() => setCut(false), 260);
+  };
+
+  /** Crowd reaction pulse, synced to hits and knockouts. */
+  const cheer = (strength: number) => {
+    setCrowd(strength);
+    window.setTimeout(() => setCrowd(0), strength > 1 ? 2200 : 700);
+  };
+
+
   useEffect(() => {
     if (!primed.current) {
       if (events.length === 0) return;
