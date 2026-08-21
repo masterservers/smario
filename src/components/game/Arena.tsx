@@ -534,6 +534,8 @@ export function Arena({
       pendingKo.current = null;
       setShowReplayPanel(false);
       koReplayRef.current = null;
+      // A new round starts here: staged configuration imports go live now.
+      commitPendingConfig("round");
       // Smooth return to live speed after the slow-motion finish.
       const video = activeVideoRef.current;
       if (video && video.playbackRate < 0.95) {
