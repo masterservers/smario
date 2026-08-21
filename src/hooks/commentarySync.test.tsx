@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, render } from "@testing-library/react";
-import { announceHit, announceSpar, useCommentary, type CommentaryLine } from "./useCommentary";
+import { announceHit, announceSpar, stopCommentary, useCommentary, type CommentaryLine } from "./useCommentary";
 import { FAMILY_LINES } from "@/lib/familyLines";
 import { familyOf } from "@/lib/scenes";
 import { sideVoiceNames } from "@/lib/adminConfig";
@@ -97,6 +97,7 @@ beforeEach(() => {
   seenIds.clear();
   vi.useFakeTimers();
   installSpeechMock();
+  stopCommentary(); // reset the shared voice lane between tests
 });
 
 afterEach(() => {
@@ -139,11 +140,11 @@ describe("commentary / impact synchronisation", () => {
       expect(actionLinesFor(move.label)).toContain(lastLine().text);
 
       await settle();
-      const call = spoken[before];
+      const text = captured[linesBefore].text;
+      const call = spoken.slice(before).find((s) => s.text === text);
       expect(call, `no voice for ${move.label}`).toBeTruthy();
-      expect(call.at - impactAt).toBeGreaterThanOrEqual(0);
-      expect(call.at - impactAt).toBeLessThanOrEqual(MAX_LAG_MS);
-      expect(call.text).toBe(lastLine().text);
+      expect(call!.at - impactAt).toBeGreaterThanOrEqual(0);
+      expect(call!.at - impactAt).toBeLessThanOrEqual(MAX_LAG_MS);
     }
   });
 
@@ -171,15 +172,17 @@ describe("commentary / impact synchronisation", () => {
     expect(spoken.length).toBe(spokenBefore);
 
     const impactAt = Date.now();
-    act(() => announceHit({ eventId: "g1", side: "ru", label: "LEFT JAB" }));
+    act(() => announceHit({ eventId: "g1", side: "ru", gift: "rose", kind: "hit", label: "LEFT JAB" }));
 
     expect(captured.length).toBe(linesBefore + 1);
     expect(actionLinesFor("LEFT JAB")).toContain(lastLine().text);
 
     await settle();
-    const call = spoken[spokenBefore];
-    expect(call).toBeTruthy();
-    expect(call.at - impactAt).toBeLessThanOrEqual(MAX_LAG_MS);
+    const text = captured[linesBefore].text;
+    const call = spoken.slice(spokenBefore).find((s) => s.text === text);
+    expect(call, "the gift hit was never voiced").toBeTruthy();
+    expect(call!.at - impactAt).toBeGreaterThanOrEqual(0);
+    expect(call!.at - impactAt).toBeLessThanOrEqual(MAX_LAG_MS);
   });
 
   it("falls back after the impact window and never doubles the call", async () => {
@@ -207,7 +210,7 @@ describe("commentary / impact synchronisation", () => {
     expect(captured.length).toBe(linesBefore + 1);
 
     const afterFallback = captured.length;
-    act(() => announceHit({ eventId: "g2", side: "us", label: "RIGHT HOOK" }));
+    act(() => announceHit({ eventId: "g2", side: "us", gift: "rose", kind: "hit", label: "RIGHT HOOK" }));
     await settle();
     expect(captured.length).toBe(afterFallback);
   });
