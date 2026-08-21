@@ -7,8 +7,10 @@ import { EventLog, type LogEntry, type LogKind } from "@/components/game/EventLo
 import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
 import { FightControls } from "@/components/game/FightControls";
 import { DifficultyPicker } from "@/components/game/DifficultyPicker";
+import { RefereePanel } from "@/components/game/RefereePanel";
 import { useHudHeight } from "@/hooks/useHudHeight";
 import { loadDifficulty, saveDifficulty, type Difficulty } from "@/lib/difficulty";
+import { loadVariety, saveVariety, VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
 import { MatchSummary } from "@/components/game/MatchSummary";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Leaderboard } from "@/components/game/Leaderboard";
@@ -65,8 +67,16 @@ function BattlePage() {
   const [muted, setMuted] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
 
+  const [variety, setVariety] = useState<VarietyConfig>(VARIETY_DEFAULT);
+
   useEffect(() => {
     setDifficulty(loadDifficulty());
+    setVariety(loadVariety());
+  }, []);
+
+  const changeVariety = useCallback((value: VarietyConfig) => {
+    setVariety(value);
+    saveVariety(value);
   }, []);
 
   const changeDifficulty = useCallback((value: Difficulty) => {
@@ -153,6 +163,7 @@ function BattlePage() {
       <div className="absolute inset-0 bg-background">
         <Arena
           difficulty={difficulty}
+          variety={variety}
           lang={lang}
           events={events}
           ko={state.ko}
@@ -237,6 +248,7 @@ function BattlePage() {
           className="mx-auto flex w-full max-w-2xl items-center justify-center gap-1.5 [@media(min-width:768px)_and_(min-height:520px)]:hidden"
         >
           <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
+        <RefereePanel lang={lang} value={variety} onChange={changeVariety} />
           <Button
             type="button"
             onClick={() => setShowBoard((s) => !s)}
@@ -284,6 +296,7 @@ function BattlePage() {
         className="fight-controls absolute right-2 top-14 z-20 hidden flex-col items-center gap-2 [@media(min-width:768px)_and_(min-height:520px)]:flex"
       >
         <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
+        <RefereePanel lang={lang} value={variety} onChange={changeVariety} />
         <Button
           type="button"
           onClick={() => setShowBoard((s) => !s)}

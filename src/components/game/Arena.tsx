@@ -1,4 +1,5 @@
 import { DIFFICULTY_CONFIG, type Difficulty } from "@/lib/difficulty";
+import { VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
 import { useEffect, useRef, useState } from "react";
 import fightVideo from "@/assets/arena-heights2.webm.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
@@ -449,17 +450,29 @@ function movesForTier(tier: number): Move[] {
  * ones seen the fewest times win — that is what keeps both the moves and their
  * openings from repeating.
  */
-function drawMove(pool: Move[], recent: string[], usage: Map<string, number>): Move {
+function drawMove(
+  pool: Move[],
+  recent: string[],
+  usage: Map<string, number>,
+  cooldowns?: Map<string, number>,
+  cooldownMs = 0,
+): Move {
   const unique = Array.from(new Map(pool.map((move) => [move.id, move])).values());
   // Never block more than half the pool, otherwise the filter empties out.
   const blocked = new Set(recent.slice(-Math.floor(unique.length / 2)));
-  const open = unique.filter((move) => !blocked.has(move.id));
+  const now = performance.now();
+  let open = unique.filter((move) => !blocked.has(move.id));
+  if (cooldowns && cooldownMs > 0) {
+    const cool = open.filter((move) => now - (cooldowns.get(move.id) ?? -Infinity) >= cooldownMs);
+    if (cool.length > 0) open = cool;
+  }
   const list = open.length > 0 ? open : unique;
   let best = Infinity;
   for (const move of list) best = Math.min(best, usage.get(move.id) ?? 0);
   const fresh = list.filter((move) => (usage.get(move.id) ?? 0) === best);
   const chosen = fresh[Math.floor(Math.random() * fresh.length)]!;
   usage.set(chosen.id, (usage.get(chosen.id) ?? 0) + 1);
+  cooldowns?.set(chosen.id, now);
   return chosen;
 }
 
@@ -467,10 +480,11 @@ function drawMove(pool: Move[], recent: string[], usage: Map<string, number>): M
  * Varied entry: start a touch before the scripted window when there is room, so
  * the same move does not always open on the identical frame.
  */
-function entryOf(move: Move): number {
-  const room = Math.min(0.32, Math.max(0, move.start - 0.15));
+function entryOf(move: Move, jitter = 1): number {
+  const room = Math.min(0.32, Math.max(0, move.start - 0.15)) * Math.max(0, Math.min(1, jitter));
   return move.start - Math.random() * room;
 }
+
 
 type FloatItem = { id: string; emoji: string; side: Side; left: number };
 type DamageItem = { id: string; side: Side; amount: number };
@@ -479,6 +493,9 @@ type Props = {
   lang: Lang;
   /** Pace preset: speed, move frequency and anti-repetition memory. */
   difficulty?: Difficulty;
+  /** Referee anti-repetition tuning: cooldown, LRU rotation, entry variation. */
+  variety?: VarietyConfig;
+
   events: GiftEvent[];
   ko: Side | null;
   combo: number;
@@ -494,6 +511,7 @@ type Props = {
 export function Arena({
   lang,
   difficulty = "normal",
+  variety = VARIETY_DEFAULT,
   events,
   ko,
   combo,
@@ -540,6 +558,12 @@ export function Arena({
   /** A KO may be scored during a move, but its replay must never cut that move. */
   const handledKo = useRef<Side | null>(null);
   const pendingKo = useRef<Side | null>(null);
+
+  const varietyRef = useRef(variety);
+  varietyRef.current = variety;
+  /** Last time each move was played — drives the referee cooldown control. */
+  const moveCooldowns = useRef<Map<string, number>>(new Map());
+  const followCooldowns = useRef<Map<string, number>>(new Map());
 
   const cfg = DIFFICULTY_CONFIG[difficulty];
   const cfgRef = useRef(cfg);
@@ -833,15 +857,29 @@ export function Arena({
       const tier = GIFT_TIER[event.gift] ?? 1;
       const move = pendingFollow
         ? pendingFollow.move
-        : drawMove(movesForTier(tier), recentMoves.current, moveUsage.current);
-      recentMoves.current = [...recentMoves.current, move.id].slice(-cfgRef.current.moveMemory);
+        : drawMove(
+            movesForTier(tier),
+            recentMoves.current,
+            moveUsage.current,
+            moveCooldowns.current,
+            varietyRef.current.cooldownMs,
+          );
+      recentMoves.current = [...recentMoves.current, move.id].slice(
+        -Math.max(cfgRef.current.moveMemory, varietyRef.current.rotation),
+      );
 
       // Chance of a follow-up: high after a big spot, still possible after a
       // chained one so we get 2-3 spot sequences without visible repetition.
       const base = pendingFollow ? 0.4 : tier >= 4 ? 0.85 : tier === 3 ? 0.55 : 0.15;
       const chance = Math.min(0.95, base * cfgRef.current.followChance);
       if (Math.random() < chance) {
-        const next = drawMove(FOLLOW_UPS, recentFollows.current, followUsage.current);
+        const next = drawMove(
+          FOLLOW_UPS,
+          recentFollows.current,
+          followUsage.current,
+          followCooldowns.current,
+          varietyRef.current.cooldownMs * 0.5,
+        );
         recentFollows.current = [...recentFollows.current, next.id].slice(
           -cfgRef.current.followMemory,
         );
@@ -859,7 +897,7 @@ export function Arena({
       impacted.current = false;
       settling.current = false;
       stopAt.current = move.end;
-      const entry = entryOf(move);
+      const entry = entryOf(move, varietyRef.current.entryJitter);
       // Hold the lock for at least the length of this move at its playback rate,
       // so nothing can cut the scene before it has played out.
       lockUntil.current =
