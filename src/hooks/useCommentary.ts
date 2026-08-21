@@ -217,6 +217,7 @@ export function useCommentary(
   state: BattleState,
   muted: boolean,
   referee?: RefereeInput,
+  round?: number,
 ) {
   const [lines, setLines] = useState<CommentaryLine[]>([]);
   const lastEventId = useRef<string | null>(null);
