@@ -19,7 +19,7 @@ import { RefereeCount } from "@/components/game/RefereeCount";
 import { Leaderboard } from "@/components/game/Leaderboard";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Button } from "@/components/ui/button";
-import { useCommentary } from "@/hooks/useCommentary";
+import { announceHit, useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
 import { useTopBanner } from "@/hooks/useTopBanner";
@@ -179,6 +179,7 @@ function BattlePage() {
           paused={referee.count > 0 && !referee.koConfirmed}
           koConfirmed={referee.koConfirmed}
           onLog={pushLog}
+          onHit={announceHit}
         />
         <RefereeCount lang={lang} referee={referee} />
       </div>
