@@ -446,29 +446,58 @@ const ROPE_IDLE: IdleScene[] = [
 ];
 
 /**
- * Round themes: each round leans on a different family of scenes, so a long
- * match never plays the same rhythm twice. The preference is soft — the strict
- * LRU rotation still guarantees no close repetition.
+ * Round plans: a round is no longer a single family on repeat. Each round is a
+ * *sequence* of families (its "beats"), so inside one round the picture keeps
+ * changing — a strike, then a rope spot, then a throw, then mat work — while
+ * every round still has its own colour. The preference stays soft: the strict
+ * LRU rotation is what guarantees no close repetition.
  */
-const ROUND_THEMES: RegExp[] = [
-  /JAB|HOOK|CROSS|UPPERCUT|SHOT|COMBO|COMBINATION|ELBOW|SLAP|BACKFIST/, // round 1: striking
-  /KICK|KNEE|TEEP|SPIN|CLOTHESLINE|SHOULDER/, // round 2: kicks and charges
-  /ROPE|TURNBUCKLE|CLIMB|VAULT|SPRINGBOARD|LEAP|JUMP|DIVE|SOMERSAULT|MOONSAULT|SPLASH/, // round 3: rope work
-  /SLAM|THROW|TOSS|SUPLEX|POWERBOMB|CARRY|SPINEBUSTER|TAKEDOWN|BOMB/, // round 4: throws
-  /MAT|GROUND|STOMP|DROP|MOUNT|PIN|CORNER/, // round 5: mat and corner work
+const FAMILY_PATTERNS: Record<Exclude<SceneFamily, "other">, RegExp> = {
+  punch: /JAB|HOOK|CROSS|UPPERCUT|SHOT|COMBO|COMBINATION|ELBOW|SLAP|BACKFIST|PUNCH|COUNTER/,
+  kick: /KICK|TEEP|SPIN|CLOTHESLINE|SHOULDER|CHARGE|RUSH/,
+  rope: /ROPE|TURNBUCKLE|CLIMB|VAULT|SPRINGBOARD|LEAP|JUMP|DIVE|SOMERSAULT|MOONSAULT|SPLASH/,
+  throw: /SLAM|THROW|TOSS|SUPLEX|POWERBOMB|CARRY|SPINEBUSTER|TAKEDOWN|BOMB|WHIP|DRAG/,
+  mat: /MAT|GROUND|STOMP|DROP|MOUNT|PIN|DOWN|CRAWL|RISE/,
+  clinch: /CLINCH|GRAPPLE|KNEE|LOCK|HOLD|COLLAR|PUSH|SHOVE|CORNER/,
+  taunt: /LOOK|STARE|CIRCL|BREATH|POSE|TAUNT|WAIT|GUARD|FEEL|WALK|PACE/,
+};
+
+type Beat = Exclude<SceneFamily, "other">;
+
+/** Each round: its own rotation of beats, so no two rounds feel alike. */
+const ROUND_PLANS: Beat[][] = [
+  ["punch", "kick", "clinch", "punch", "throw", "mat"],
+  ["kick", "rope", "punch", "clinch", "kick", "throw"],
+  ["rope", "throw", "kick", "mat", "rope", "punch"],
+  ["throw", "mat", "punch", "rope", "clinch", "kick"],
+  ["clinch", "punch", "mat", "kick", "throw", "rope"],
+  ["mat", "rope", "throw", "punch", "kick", "clinch"],
 ];
 
 let activeRound = 0;
+let beat = 0;
 
 /** Called by the arena when a new round begins. */
 export function setSceneRound(round: number) {
   activeRound = Math.max(0, Math.floor(round));
+  beat = 0;
 }
 
-/** True when the scene belongs to the family favoured by the current round. */
+/** Called once per scheduler draw: moves the round on to its next beat. */
+export function advanceSceneBeat() {
+  beat += 1;
+}
+
+/** The family the round wants right now. */
+function currentBeat(): Beat {
+  const plan = ROUND_PLANS[activeRound % ROUND_PLANS.length]!;
+  return plan[beat % plan.length]!;
+}
+
+/** True when the scene matches the beat the round is currently asking for. */
 export function inRoundTheme(item: { label?: string }): boolean {
-  const theme = ROUND_THEMES[activeRound % ROUND_THEMES.length]!;
-  return typeof item.label === "string" && theme.test(item.label);
+  const rule = FAMILY_PATTERNS[currentBeat()];
+  return typeof item.label === "string" && rule.test(item.label);
 }
 
 /* ------------------------------------------------------------------ *
