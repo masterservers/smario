@@ -49,6 +49,9 @@ type UI = {
   tooFast: string;
   capReached: string;
   fraudFlagged: string;
+  refRoundStart: string;
+  refKoConfirmed: string;
+  refNextRound: string;
   gifts: Record<string, string>;
 };
 
@@ -89,6 +92,9 @@ export const UI_TEXT: Record<Lang, UI> = {
     tooFast: "Slow down — too many gifts at once.",
     capReached: "Your gift limit for this match is reached.",
     fraudFlagged: "Gift ignored: supporting both sides is not allowed.",
+    refRoundStart: "ROUND START",
+    refKoConfirmed: "KO CONFIRMED",
+    refNextRound: "NEXT ROUND",
     gifts: { rose: "Rose", donut: "Donut", tiktok: "TikTok", gift: "Gift box", rocket: "Rocket" },
   },
   de: {
@@ -127,6 +133,9 @@ export const UI_TEXT: Record<Lang, UI> = {
     tooFast: "Langsamer — zu viele Geschenke auf einmal.",
     capReached: "Dein Geschenklimit für dieses Match ist erreicht.",
     fraudFlagged: "Geschenk ignoriert: beide Seiten zu unterstützen ist nicht erlaubt.",
+    refRoundStart: "RUNDENSTART",
+    refKoConfirmed: "KO BESTÄTIGT",
+    refNextRound: "NÄCHSTE RUNDE",
     gifts: { rose: "Rose", donut: "Donut", tiktok: "TikTok", gift: "Geschenk", rocket: "Rakete" },
   },
   sr: {
@@ -165,6 +174,9 @@ export const UI_TEXT: Record<Lang, UI> = {
     tooFast: "Uspori — previše poklona odjednom.",
     capReached: "Dostigao si limit poklona za ovaj meč.",
     fraudFlagged: "Poklon je poništen: ne možeš podržavati obe strane.",
+    refRoundStart: "POČETAK RUNDE",
+    refKoConfirmed: "KO POTVRĐEN",
+    refNextRound: "SLEDEĆA RUNDA",
     gifts: { rose: "Ruža", donut: "Krofna", tiktok: "TikTok", gift: "Poklon", rocket: "Raketa" },
   },
   ro: {
@@ -203,6 +215,9 @@ export const UI_TEXT: Record<Lang, UI> = {
     tooFast: "Mai încet — prea multe cadouri deodată.",
     capReached: "Ai atins limita de cadouri pentru acest meci.",
     fraudFlagged: "Cadou anulat: nu poți susține ambele tabere.",
+    refRoundStart: "START RUNDĂ",
+    refKoConfirmed: "KO CONFIRMAT",
+    refNextRound: "URMĂTOAREA RUNDĂ",
     gifts: { rose: "Trandafir", donut: "Gogoașă", tiktok: "TikTok", gift: "Cadou", rocket: "Rachetă" },
   },
   ru: {
@@ -241,6 +256,9 @@ export const UI_TEXT: Record<Lang, UI> = {
     tooFast: "Помедленнее — слишком много подарков.",
     capReached: "Достигнут лимит подарков в этом матче.",
     fraudFlagged: "Подарок отклонён: нельзя поддерживать обе стороны.",
+    refRoundStart: "НАЧАЛО РАУНДА",
+    refKoConfirmed: "НОКАУТ ПОДТВЕРЖДЁН",
+    refNextRound: "СЛЕДУЮЩИЙ РАУНД",
     gifts: { rose: "Роза", donut: "Пончик", tiktok: "TikTok", gift: "Подарок", rocket: "Ракета" },
   },
 };

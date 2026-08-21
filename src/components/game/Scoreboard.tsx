@@ -15,6 +15,8 @@ type Props = {
   matchId?: string | null;
   /** Knockout side, if any — the clock freezes and resets on the next match. */
   ko?: Side | null;
+  /** True once the referee's ten-count is complete. */
+  koConfirmed?: boolean;
 };
 
 function clock(ms: number) {
@@ -40,7 +42,7 @@ function useRoundClock(matchId: string | null | undefined, round: number, ko: Si
     return () => window.clearInterval(id);
   }, [ko, matchId, round]);
 
-  return clock(elapsed);
+  return { time: clock(elapsed), elapsed };
 }
 
 function hpColor(hp: number) {
@@ -75,10 +77,17 @@ export function Scoreboard({
   leader,
   matchId,
   ko,
+  koConfirmed,
 }: Props) {
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
-  const time = useRoundClock(matchId, round, ko);
+  const { time, elapsed } = useRoundClock(matchId, round, ko);
+
+  // Referee calls, synced with the round clock.
+  let call: string | null = null;
+  if (koConfirmed) call = t.refKoConfirmed;
+  else if (!ko && elapsed < 3200) call = round > 1 ? t.refNextRound : t.refRoundStart;
+  else if (!ko && round > 1 && elapsed < 6400) call = t.refRoundStart;
 
   return (
     <div className="pointer-events-none mx-auto mt-1 w-full max-w-[44rem] rounded-full border border-border bg-background/55 px-3 py-1 backdrop-blur-md">
@@ -108,6 +117,14 @@ export function Scoreboard({
           <span className="mt-0.5 text-[8px] uppercase text-muted-foreground sm:text-[9px]">
             {t.round} {round} · {viewers}
           </span>
+          {call && (
+            <span
+              className="display mt-0.5 animate-pulse whitespace-nowrap text-[9px] uppercase tracking-wide text-gold sm:text-[11px]"
+              role="status"
+            >
+              {call}
+            </span>
+          )}
         </div>
 
         <div className="min-w-0 text-right">
