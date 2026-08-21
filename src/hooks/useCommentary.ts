@@ -210,6 +210,19 @@ export function announceScene(scene: { id?: string; label: string }) {
   sceneAnnouncer?.(scene);
 }
 
+export type SparAnnouncement = { side: Side; label: string; tier: number };
+
+let sparAnnouncer: ((spar: SparAnnouncement) => void) | null = null;
+
+/**
+ * Called by the arena at the impact frame of a sparring spot (no gift behind
+ * it). The commentator calls the move by its real family — punch, kick, rope
+ * dive, throw, mat work — so the voice always matches what is on screen.
+ */
+export function announceSpar(spar: SparAnnouncement) {
+  sparAnnouncer?.(spar);
+}
+
 
 export function useCommentary(
   lang: Lang,
