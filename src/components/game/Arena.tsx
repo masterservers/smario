@@ -280,9 +280,10 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         },
       ]);
 
-      video.currentTime = move.start;
+      seek(video, move.start);
       video.playbackRate = move.rate;
       void video.play();
+
     }, 80);
     return () => window.clearInterval(timer);
   }, [ko]);
