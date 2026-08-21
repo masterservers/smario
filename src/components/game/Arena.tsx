@@ -343,8 +343,27 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
           void event.currentTarget.play();
         }}
         onTimeUpdate={handleTimeUpdate}
-        className="absolute inset-0 size-full animate-arena-drift object-contain"
+        style={{
+          // Crowd/lighting: the arena lifts in brightness and contrast on every
+          // landed hit so the audience in the stands stays clearly readable.
+          filter: `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
+          opacity: cut ? 0.25 : 1,
+        }}
+        className="absolute inset-0 size-full animate-arena-drift object-contain transition-[opacity,filter] duration-200"
       />
+
+      {/* Arena lights sweeping the stands, pulsing with the crowd reaction */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[38%] transition-opacity duration-300"
+        style={{
+          opacity: 0.12 + crowd * 0.18,
+          background:
+            "radial-gradient(60% 120% at 20% 0%, hsl(var(--gold) / 0.5), transparent 70%), radial-gradient(60% 120% at 80% 0%, hsl(var(--gold) / 0.5), transparent 70%)",
+          mixBlendMode: "screen",
+        }}
+      />
+
 
       {impact && !ko && (
         <div className="pointer-events-none absolute inset-0 animate-arena-impact">
