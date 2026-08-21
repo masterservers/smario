@@ -1,0 +1,36 @@
+name: Publish verified build
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified build artifact
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: build-${{ github.event.workflow_run.head_sha }}
+          path: build
+
+      - name: Package build
+        run: |
+          mkdir -p out
+          tar -czf "out/build-${{ github.event.workflow_run.head_sha }}.tar.gz" -C build .
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.event.workflow_run.head_sha }}
+          name: Verified build ${{ github.event.workflow_run.head_sha }}
+          body: Automated build published after CI (lint, typecheck, build) passed on main.
+          files: out/*.tar.gz
