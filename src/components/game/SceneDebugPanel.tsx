@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSceneConfig } from "@/lib/sceneConfig";
 import { useSceneDebug } from "@/lib/sceneDebug";
+import { visualSequenceStats } from "@/lib/visualSequences";
+
 
 /**
  * Live scheduler read-out: which scene is on screen, how long it has been
