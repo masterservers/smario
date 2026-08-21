@@ -247,10 +247,15 @@ export async function ingestStreamGift(input: {
   if (!match?.id) return { ok: false, reason: "no-match" };
 
   const parsed = input.text ? parseChatMessage(input.text) : { side: null, gift: null as GiftId | null };
-  const side = input.side ?? parsed.side;
+  const requested = input.side ?? parsed.side;
   const gift = input.gift ?? parsed.gift ?? "rose";
-  if (side !== "ru" && side !== "us") return { ok: false, reason: "no-side" };
+  if (requested !== "ru" && requested !== "us") return { ok: false, reason: "no-side" };
   if (!GIFT_BY_ID[gift]) return { ok: false, reason: "unknown-gift" };
+
+  // Putin vs Trump rules: a gift locked to a fighter always lands on him.
+  const config = await loadActiveHitConfig();
+  const rule = config.routing[gift] ?? "auto";
+  const side: Side = rule === "auto" ? requested : rule;
 
   const sender = (input.sender ?? "stream").trim().slice(0, 32) || "stream";
   const { error } = await supabase.from("gift_events").insert({
@@ -260,6 +265,7 @@ export async function ingestStreamGift(input: {
     sender,
     message: input.text ? input.text.slice(0, 200) : null,
   });
+
   if (error) return { ok: false, reason: "insert-failed" };
   return { ok: true, side, gift, matchId: match.id as string };
 }
