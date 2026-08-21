@@ -875,3 +875,15 @@
     font-size: clamp(0.62rem, 1.6vw, 0.9rem);
   }
 }
+
+/* Mr. Bean's face on the in-ring referee: a tiny breathing bob so the swap
+   does not look like a frozen sticker. */
+.bean-head {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  animation: bean-head-bob 2.4s ease-in-out infinite;
+}
+@keyframes bean-head-bob {
+  0%, 100% { transform: translate(-50%, -50%) rotate(-1.5deg); }
+  50% { transform: translate(-50%, -52%) rotate(1.5deg); }
+}
+html[data-perf="lite"] .bean-head { animation: none; }
