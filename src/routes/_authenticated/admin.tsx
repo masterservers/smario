@@ -27,6 +27,7 @@ import {
 } from "@/lib/hitConfig";
 
 import { ConfigManager } from "@/components/admin/ConfigManager";
+import { TwoFactorGate, TwoFactorSettings, useMfaState } from "@/components/admin/TwoFactor";
 import { ALL_SCENES } from "@/lib/scenes";
 import {
   exportSceneConfig,
