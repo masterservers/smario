@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { GIFTS, type GiftId, type Side } from "@/lib/battle";
 import { LANGS, type Lang } from "@/lib/i18n";
 import { giftName } from "@/lib/giftCatalog";
+import { setGiftRouting } from "@/lib/hitConfig";
+
 
 /** Where a gift always lands, or "auto" to keep the sender's chosen side. */
 export type GiftTarget = Side | "auto";
