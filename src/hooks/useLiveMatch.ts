@@ -5,7 +5,7 @@ import { UI_TEXT, type Lang } from "@/lib/i18n";
 import { finishMatch, getCurrentMatch } from "@/lib/match.functions";
 import { reduceEvents, randomNickname, type GiftEvent, type GiftId, type Side } from "@/lib/battle";
 import { resolveRing } from "@/lib/referee.functions";
-import { setServerRules } from "@/lib/hitConfig";
+import { resolveHitSide, setServerRules } from "@/lib/hitConfig";
 
 type LeaderRow = { sender: string; total: number; side: Side };
 
