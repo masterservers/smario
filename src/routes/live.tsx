@@ -21,6 +21,7 @@ import { useTopBanner } from "@/hooks/useTopBanner";
 import type { GiftId, Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 import { useBroadcastLang, useControlBus, type ControlMessage } from "@/lib/control";
+import { ACCESS_TEXT, useViewerAccess } from "@/lib/liveSession";
 import { setActiveRound } from "@/lib/hitConfig";
 import { publishSubtitle } from "@/lib/subtitles";
 
@@ -66,8 +67,9 @@ function LiveRoute() {
 
 /** Watch-only view: same real-time feed, no controls over the ring. */
 function LivePage() {
-  const { lang: linkLang } = Route.useSearch();
-  const lang = useBroadcastLang(linkLang);
+  const { lang: linkLang, s: sessionToken } = Route.useSearch();
+  const access = useViewerAccess(sessionToken);
+  const lang = useBroadcastLang(access.lang ?? linkLang);
   const navigate = useNavigate({ from: Route.fullPath });
   const hud = useHudHeight();
   const [muted, setMuted] = useState(true);
