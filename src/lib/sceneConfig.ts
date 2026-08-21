@@ -64,7 +64,7 @@ function parse(raw: unknown): SceneConfig {
       if (known.has(id)) weights[id] = clamp(weight, 0.25, 4, 1);
     }
   }
-  const t = value.transitions ?? {};
+  const t: Partial<TransitionRules> = value.transitions ?? {};
   return {
     disabled,
     weights,
