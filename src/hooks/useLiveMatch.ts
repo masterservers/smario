@@ -146,13 +146,22 @@ export function useLiveMatch() {
   const sendGift = useCallback(
     async (side: Side, gift: GiftId, message?: string) => {
       if (!matchId || state.ko) return;
-      await supabase.from("gift_events").insert({
-        match_id: matchId,
-        side,
-        gift,
-        sender: nickname,
-        message: message ?? null,
-      });
+      // Insert and take the row straight back, so the sender sees the strike
+      // land immediately instead of waiting for the realtime round trip.
+      const { data } = await supabase
+        .from("gift_events")
+        .insert({
+          match_id: matchId,
+          side,
+          gift,
+          sender: nickname,
+          message: message ?? null,
+        })
+        .select("id, side, gift, value, sender, created_at")
+        .single();
+      if (data) {
+        setEvents((prev) => (prev.some((e) => e.id === data.id) ? prev : [...prev, data as GiftEvent]));
+      }
     },
     [matchId, nickname, state.ko],
   );

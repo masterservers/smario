@@ -5,6 +5,7 @@ import { ChatPanel } from "@/components/game/ChatPanel";
 import { GiftDock } from "@/components/game/GiftDock";
 import { EventLog, type LogEntry, type LogKind } from "@/components/game/EventLog";
 import { LangPicker } from "@/components/game/LangPicker";
+import { MatchSummary } from "@/components/game/MatchSummary";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Leaderboard } from "@/components/game/Leaderboard";
 import { Scoreboard } from "@/components/game/Scoreboard";
@@ -144,6 +145,23 @@ function BattlePage() {
             />
           </div>
         )}
+        {referee.koConfirmed && (
+          <div className="mx-auto w-full max-w-md">
+            <MatchSummary
+              lang={lang}
+              events={events}
+              action={
+                <Link
+                  to="/replays"
+                  search={{ lang }}
+                  className="display inline-block rounded-md border border-gold px-3 py-1 text-sm text-gold"
+                >
+                  ⏪ {t.watchReplay}
+                </Link>
+              }
+            />
+          </div>
+        )}
         {showLog && (
           <div className="mx-auto w-full max-w-md">
             <EventLog lang={lang} entries={log} />
@@ -195,6 +213,14 @@ function BattlePage() {
         >
           🧾
         </button>
+        <Link
+          to="/replays"
+          search={{ lang }}
+          aria-label={t.replays}
+          className="grid size-10 place-items-center rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+        >
+          ⏪
+        </Link>
         <Link
           to="/live"
           search={{ lang }}
