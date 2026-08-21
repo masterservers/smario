@@ -179,6 +179,25 @@ export function announce(text: string, lang: Lang, priority = 2) {
   speak(text, lang, priority);
 }
 
+export type HitAnnouncement = {
+  eventId: string;
+  side: Side;
+  gift: string;
+  kind: string;
+  label: string;
+};
+
+let hitAnnouncer: ((hit: HitAnnouncement) => void) | null = null;
+
+/**
+ * Called by the arena at the exact frame a blow connects, so the voice line and
+ * the subtitle are triggered on the impact itself, not on an estimate.
+ */
+export function announceHit(hit: HitAnnouncement) {
+  hitAnnouncer?.(hit);
+}
+
+
 export function useCommentary(
   lang: Lang,
   events: GiftEvent[],
