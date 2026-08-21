@@ -32,6 +32,15 @@ type UI = {
   backUp: string;
   watchLive: string;
   eventLog: string;
+  summary: string;
+  keyMoments: string;
+  giftsSent: string;
+  replays: string;
+  watchReplay: string;
+  winner: string;
+  duration: string;
+  knockdown: string;
+  noReplays: string;
   wins: string;
   nextMatch: string;
   you: string;
@@ -55,6 +64,15 @@ export const UI_TEXT: Record<Lang, UI> = {
     backUp: "beats the count and is back up!",
     watchLive: "Watch live",
     eventLog: "Live events",
+    summary: "Match summary",
+    keyMoments: "Key moments",
+    giftsSent: "Gifts sent",
+    replays: "Replays",
+    watchReplay: "Watch replay",
+    winner: "Winner",
+    duration: "Duration",
+    knockdown: "Knockdown",
+    noReplays: "No finished matches yet.",
     leaderboard: "Daily ranking",
     topSupporters: "Top supporters",
     noSupporters: "No gifts yet — be the first!",
@@ -81,6 +99,15 @@ export const UI_TEXT: Record<Lang, UI> = {
     backUp: "steht wieder auf!",
     watchLive: "Live zuschauen",
     eventLog: "Live-Ereignisse",
+    summary: "Kampf-Zusammenfassung",
+    keyMoments: "Schlüsselmomente",
+    giftsSent: "Gesendete Geschenke",
+    replays: "Wiederholungen",
+    watchReplay: "Wiederholung ansehen",
+    winner: "Sieger",
+    duration: "Dauer",
+    knockdown: "Niederschlag",
+    noReplays: "Noch keine beendeten Kämpfe.",
     leaderboard: "Tagesrangliste",
     topSupporters: "Top-Unterstützer",
     noSupporters: "Noch keine Geschenke — sei der Erste!",
@@ -107,6 +134,15 @@ export const UI_TEXT: Record<Lang, UI> = {
     backUp: "ustaje pre kraja brojanja!",
     watchLive: "Gledaj uživo",
     eventLog: "Događaji uživo",
+    summary: "Rezime meča",
+    keyMoments: "Ključni momenti",
+    giftsSent: "Poslati pokloni",
+    replays: "Snimci",
+    watchReplay: "Pogledaj snimak",
+    winner: "Pobednik",
+    duration: "Trajanje",
+    knockdown: "Obaranje",
+    noReplays: "Još nema završenih mečeva.",
     leaderboard: "Dnevna lista",
     topSupporters: "Najbolji navijači",
     noSupporters: "Još nema poklona — budi prvi!",
@@ -133,6 +169,15 @@ export const UI_TEXT: Record<Lang, UI> = {
     backUp: "se ridică înainte de final!",
     watchLive: "Vezi live",
     eventLog: "Evenimente live",
+    summary: "Rezumatul meciului",
+    keyMoments: "Momente cheie",
+    giftsSent: "Cadouri trimise",
+    replays: "Reluări",
+    watchReplay: "Vezi reluarea",
+    winner: "Câștigător",
+    duration: "Durata",
+    knockdown: "Knockdown",
+    noReplays: "Încă nu există meciuri încheiate.",
     leaderboard: "Clasament zilnic",
     topSupporters: "Cei mai buni suporteri",
     noSupporters: "Încă niciun cadou — fii primul!",
@@ -159,6 +204,15 @@ export const UI_TEXT: Record<Lang, UI> = {
     backUp: "поднимается до конца счёта!",
     watchLive: "Смотреть live",
     eventLog: "События в эфире",
+    summary: "Итоги матча",
+    keyMoments: "Ключевые моменты",
+    giftsSent: "Отправленные подарки",
+    replays: "Повторы",
+    watchReplay: "Смотреть повтор",
+    winner: "Победитель",
+    duration: "Длительность",
+    knockdown: "Нокдаун",
+    noReplays: "Завершённых матчей пока нет.",
     leaderboard: "Дневной рейтинг",
     topSupporters: "Лучшие болельщики",
     noSupporters: "Подарков пока нет — будь первым!",
