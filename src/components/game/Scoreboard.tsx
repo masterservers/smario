@@ -73,9 +73,12 @@ export function Scoreboard({
   hpRu,
   hpUs,
   leader,
+  matchId,
+  ko,
 }: Props) {
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
+  const time = useRoundClock(matchId, round, ko);
 
   return (
     <div className="pointer-events-none mx-auto mt-1 w-full max-w-[44rem] rounded-full border border-border bg-background/55 px-3 py-1 backdrop-blur-md">
