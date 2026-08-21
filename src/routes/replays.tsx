@@ -82,6 +82,7 @@ function ReplaysPage() {
       .from("gift_events")
       .select("id, side, gift, value, sender, created_at")
       .eq("match_id", match.id)
+      .eq("flagged", false)
       .order("created_at", { ascending: true })
       .limit(400);
     const all = (data ?? []) as GiftEvent[];
