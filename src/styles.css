@@ -815,3 +815,43 @@
   }
 }
 
+
+/* --- Low-power mode -------------------------------------------------------
+   Set by src/lib/perfMode.ts on <html data-perf="lite"> when the device is
+   weak or the page is actually dropping frames. Drops the GPU-heavy effects
+   (backdrop blur, colour grading, glow shadows) while keeping every animation
+   and the fight itself untouched. */
+[data-perf="lite"] .panel {
+  backdrop-filter: none;
+  background: oklch(0.19 0.03 265 / 0.97);
+  box-shadow: none;
+}
+
+[data-perf="lite"] .spark {
+  box-shadow: none;
+}
+
+[data-perf="lite"] .arena-video {
+  /* no per-hit repaint of the whole video surface */
+  filter: none !important;
+  transition: none !important;
+}
+
+[data-perf="lite"] .bean-ref,
+[data-perf="lite"] .gift-float,
+[data-perf="lite"] .match-title {
+  /* compositor-only: no filters, no persistent will-change memory pressure */
+  filter: none;
+  text-shadow: none;
+  will-change: auto;
+}
+
+[data-perf="lite"] .bean-ref-separate {
+  animation-iteration-count: 1;
+}
+
+[data-perf="lite"] .spark-burst,
+[data-perf="lite"] .bean-ref,
+[data-perf="lite"] .gift-float {
+  contain: layout paint;
+}

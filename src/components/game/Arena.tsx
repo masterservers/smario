@@ -29,6 +29,8 @@ import {
   impactTimeOf,
 } from "@/lib/collision";
 import { commitPendingConfig } from "@/lib/pendingConfig";
+import { usePerfMode } from "@/lib/perfMode";
+
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
 import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
 
@@ -412,16 +414,10 @@ export function Arena({
   const cfgRef = useRef(cfg);
   cfgRef.current = cfg;
 
-  // Low-power phones: skip the per-hit colour grading repaint, which is the
-  // most expensive effect during a fast exchange.
-  const [lite, setLite] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const cores = navigator.hardwareConcurrency ?? 8;
-    const coarse = window.matchMedia("(pointer: coarse)").matches;
-    setLite(reduced || cores <= 4 || (coarse && window.innerWidth < 480));
-  }, []);
+  // Low-power phones: skip the per-hit colour grading repaint and thin out the
+  // particle overlays. Detection is shared (device heuristics + live FPS).
+  const lite = usePerfMode();
+
 
   // Stop decoding frames while the tab is in the background.
   useEffect(() => {
@@ -967,16 +963,19 @@ export function Arena({
         id: event.id,
         side: defender,
         force: profile.force,
-        life: sparkLife,
-        count: Math.round(8 + profile.force * 10 + move.tier * 2),
+        life: lite ? Math.min(sparkLife, 420) : sparkLife,
+        // Weak devices still get a spark hit, just with far fewer nodes.
+        count: lite ? 5 : Math.round(8 + profile.force * 10 + move.tier * 2),
         left: point.left,
         top: point.top,
       };
-      if (!lite) {
-        setSparks((previous) => [...previous.slice(-2), burst]);
+      {
+        // One burst at a time on lite devices, up to three otherwise.
+        setSparks((previous) => (lite ? [burst] : [...previous.slice(-2), burst]));
         window.setTimeout(
           () => setSparks((previous) => previous.filter((item) => item.id !== burst.id)),
-          sparkLife,
+          burst.life,
+
         );
       }
       setDamages((previous) => [
