@@ -26,6 +26,14 @@ import {
   type RefereeRules,
 } from "@/lib/hitConfig";
 
+import { ALL_SCENES } from "@/lib/scenes";
+import {
+  getSceneConfig,
+  resetSceneConfig,
+  saveSceneConfig,
+  type SceneConfig,
+  type TransitionRules,
+} from "@/lib/sceneConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +87,7 @@ function AdminPage() {
   const { lang } = Route.useSearch();
   const [config, setConfig] = useState<GiftConfig>(() => getGiftConfig());
   const [hits, setHits] = useState<HitConfig>(() => getHitConfig());
+  const [scenes, setScenes] = useState<SceneConfig>(() => getSceneConfig());
   const [admin, setAdmin] = useState<AdminConfig>(() => getAdminConfig());
 
   const [saved, setSaved] = useState(false);
@@ -157,6 +166,28 @@ function AdminPage() {
       return next;
     });
     record("hits", "referee rules", patch);
+  };
+
+  /** Scene rotation: enabled ids and weights, saved live. */
+  const patchScenes = (patch: Partial<SceneConfig>) => {
+    setScenes((current) => {
+      const next: SceneConfig = { ...current, ...patch };
+      saveSceneConfig(next);
+      return next;
+    });
+    record("scenes", "rotation", patch);
+  };
+
+  const patchTransitions = (patch: Partial<TransitionRules>) => {
+    setScenes((current) => {
+      const next: SceneConfig = {
+        ...current,
+        transitions: { ...current.transitions, ...patch },
+      };
+      saveSceneConfig(next);
+      return next;
+    });
+    record("scenes", "transitions", patch);
   };
 
   const update = (id: GiftId, patch: Partial<GiftConfig[GiftId]>) => {
@@ -493,6 +524,151 @@ function AdminPage() {
         </Button>
       </section>
 
+      {/* Scenes ---------------------------------------------------------- */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Scenes &amp; transitions
+        </h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Every scene the fight can play. Turn one off to take it out of the rotation, raise its
+          weight to see it more often. The rotation is strict: a scene only comes back after all the
+          other active ones have played. Changes apply live.
+        </p>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-xs text-muted-foreground">
+            min scene ms <span className="text-foreground">{scenes.transitions.minSceneMs}</span>
+            <input
+              type="range"
+              min={0}
+              max={4000}
+              step={50}
+              value={scenes.transitions.minSceneMs}
+              onChange={(e) => patchTransitions({ minSceneMs: Number(e.target.value) })}
+              className="mt-1 w-full accent-primary"
+              aria-label="minimum scene duration"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground">
+            tail ms <span className="text-foreground">{scenes.transitions.tailMs}</span>
+            <input
+              type="range"
+              min={0}
+              max={800}
+              step={20}
+              value={scenes.transitions.tailMs}
+              onChange={(e) => patchTransitions({ tailMs: Number(e.target.value) })}
+              className="mt-1 w-full accent-primary"
+              aria-label="scene tail"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={scenes.transitions.lockIdle}
+              onChange={(e) => patchTransitions({ lockIdle: e.target.checked })}
+              className="accent-primary"
+            />
+            Idle scenes play to the end
+          </label>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={scenes.transitions.allowGiftInterrupt}
+              onChange={(e) => patchTransitions({ allowGiftInterrupt: e.target.checked })}
+              className="accent-primary"
+            />
+            A gift may cut an idle scene
+          </label>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={scenes.transitions.debug}
+              onChange={(e) => patchTransitions({ debug: e.target.checked })}
+              className="accent-primary"
+            />
+            Show the debug panel over the ring
+          </label>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          <span className="text-muted-foreground">
+            active: {ALL_SCENES.length - scenes.disabled.length}/{ALL_SCENES.length}
+          </span>
+          <button
+            type="button"
+            className="rounded-md border border-border px-2 py-1"
+            onClick={() => patchScenes({ disabled: [] })}
+          >
+            Enable all
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-border px-2 py-1"
+            onClick={() => {
+              const fresh = resetSceneConfig();
+              setScenes(fresh);
+              record("scenes", "reset", {});
+            }}
+          >
+            Reset
+          </button>
+        </div>
+
+        {(["move", "follow", "idle"] as const).map((group) => (
+          <div key={group} className="mt-3">
+            <div className="display text-xs uppercase tracking-widest text-muted-foreground">
+              {group === "move" ? "Gift moves" : group === "follow" ? "Follow-up spots" : "Idle"}
+            </div>
+            <div className="mt-2 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+              {ALL_SCENES.filter((scene) => scene.group === group).map((scene) => {
+                const off = scenes.disabled.includes(scene.id);
+                const weight = scenes.weights[scene.id] ?? 1;
+                return (
+                  <div
+                    key={scene.id}
+                    className={`flex items-center gap-2 rounded-lg border px-2 py-1 ${
+                      off ? "border-border/50 opacity-50" : "border-border"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!off}
+                      onChange={(e) =>
+                        patchScenes({
+                          disabled: e.target.checked
+                            ? scenes.disabled.filter((id) => id !== scene.id)
+                            : [...scenes.disabled, scene.id],
+                        })
+                      }
+                      className="accent-primary"
+                      aria-label={`scene ${scene.id}`}
+                    />
+                    <span className="min-w-0 flex-1 truncate text-xs">{scene.label}</span>
+                    <input
+                      type="range"
+                      min={0.25}
+                      max={4}
+                      step={0.25}
+                      value={weight}
+                      onChange={(e) =>
+                        patchScenes({
+                          weights: { ...scenes.weights, [scene.id]: Number(e.target.value) },
+                        })
+                      }
+                      className="w-20 accent-primary"
+                      aria-label={`${scene.id} weight`}
+                    />
+                    <span className="w-8 text-right text-[10px] text-muted-foreground">
+                      ×{weight}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </section>
 
 
       {/* TikTok --------------------------------------------------------- */}

@@ -8,6 +8,7 @@ import { FightControls } from "@/components/game/FightControls";
 import { DifficultyPicker } from "@/components/game/DifficultyPicker";
 import { useHudHeight } from "@/hooks/useHudHeight";
 import { loadDifficulty, saveDifficulty, type Difficulty } from "@/lib/difficulty";
+import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Subtitles } from "@/components/game/Subtitles";
@@ -125,6 +126,7 @@ function LivePage() {
           onHit={announceHit}
         />
         <RefereeCount lang={lang} referee={referee} />
+        <SceneDebugPanel />
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]">
