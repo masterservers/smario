@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import fightVideo from "@/assets/arena-wide.webm.asset.json";
+const FIGHT_VIDEO = "/media/arena-mega.webm";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
@@ -15,33 +15,61 @@ type Move = {
 };
 
 /**
- * Move library. The broadcast clip is sliced into many different windows and
- * played back at different speeds, so the same attack is rarely seen twice in
- * a row. Camera stays fixed — the footage is never mirrored.
+ * Move library. The 41s broadcast reel (wide angle 0-10s, close/ringside angle
+ * 10-41s) is sliced into many windows so the fighters keep travelling around
+ * the ring, get cornered, hit the mat and get dived on from the ropes.
  */
 const MOVES: Move[] = [
-  { id: "jab", start: 0.2, end: 1.5, impact: 1.0, label: "JAB", rate: 1.15, tier: 1 },
-  { id: "hook", start: 1.3, end: 2.6, impact: 2.1, label: "HOOK", rate: 1.1, tier: 1 },
-  { id: "elbow", start: 2.4, end: 3.6, impact: 3.1, label: "ELBOW", rate: 1.2, tier: 1 },
-  { id: "kick", start: 4.1, end: 5.3, impact: 4.9, label: "LOW KICK", rate: 1.1, tier: 1 },
+  // tier 1 — quick strikes
+  { id: "jab", start: 0.2, end: 1.4, impact: 1.0, label: "JAB", rate: 1.2, tier: 1 },
+  { id: "hook", start: 1.3, end: 2.5, impact: 2.1, label: "HOOK", rate: 1.15, tier: 1 },
+  { id: "elbow", start: 2.4, end: 3.5, impact: 3.1, label: "ELBOW", rate: 1.2, tier: 1 },
+  { id: "lowkick", start: 4.1, end: 5.2, impact: 4.9, label: "LOW KICK", rate: 1.15, tier: 1 },
+  { id: "chop", start: 11.0, end: 12.2, impact: 11.8, label: "CHOP", rate: 1.2, tier: 1 },
+  { id: "backhand", start: 15.4, end: 16.5, impact: 16.1, label: "BACKHAND", rate: 1.2, tier: 1 },
+  { id: "stomp", start: 22.0, end: 23.1, impact: 22.7, label: "STOMP", rate: 1.15, tier: 1 },
 
+  // tier 2 — combinations / running attacks
   { id: "combo", start: 0.6, end: 2.4, impact: 1.7, label: "COMBO", rate: 1.05, tier: 2 },
   { id: "clothesline", start: 3.0, end: 4.6, impact: 4.0, label: "CLOTHESLINE", rate: 1.0, tier: 2 },
   { id: "counter", start: 5.0, end: 6.4, impact: 6.0, label: "COUNTER", rate: 1.05, tier: 2 },
   { id: "knee", start: 6.2, end: 7.4, impact: 7.0, label: "FLYING KNEE", rate: 1.15, tier: 2 },
+  { id: "corner-rush", start: 12.4, end: 14.2, impact: 13.6, label: "CORNER RUSH", rate: 1.0, tier: 2 },
+  { id: "turnbuckle", start: 16.8, end: 18.4, impact: 17.9, label: "TURNBUCKLE SMASH", rate: 1.0, tier: 2 },
+  { id: "whip", start: 24.0, end: 25.8, impact: 25.2, label: "IRISH WHIP", rate: 1.05, tier: 2 },
+  { id: "spear", start: 29.0, end: 30.6, impact: 30.1, label: "SPEAR", rate: 1.05, tier: 2 },
 
+  // tier 3 — grappling, throws, mat work
   { id: "grapple", start: 2.0, end: 4.2, impact: 3.4, label: "GRAPPLE", rate: 0.95, tier: 3 },
   { id: "suplex", start: 4.4, end: 6.6, impact: 5.8, label: "SUPLEX", rate: 0.95, tier: 3 },
   { id: "dropkick", start: 6.0, end: 7.8, impact: 7.1, label: "DROPKICK", rate: 1.05, tier: 3 },
-  { id: "corner", start: 7.2, end: 9.0, impact: 8.3, label: "CORNER RUSH", rate: 1.0, tier: 3 },
+  { id: "headlock", start: 18.6, end: 20.8, impact: 20.0, label: "HEADLOCK TAKEDOWN", rate: 0.95, tier: 3 },
+  { id: "ground-pound", start: 25.6, end: 27.6, impact: 26.8, label: "GROUND & POUND", rate: 1.0, tier: 3 },
+  { id: "german", start: 31.0, end: 33.2, impact: 32.4, label: "GERMAN SUPLEX", rate: 0.95, tier: 3 },
+  { id: "backbreaker", start: 34.0, end: 36.0, impact: 35.3, label: "BACKBREAKER", rate: 0.95, tier: 3 },
 
+  // tier 4 — big spots
   { id: "slam", start: 1.8, end: 4.4, impact: 3.6, label: "BODY SLAM", rate: 0.9, tier: 4 },
   { id: "rope-dive", start: 5.4, end: 8.0, impact: 7.2, label: "TOP-ROPE DIVE", rate: 0.9, tier: 4 },
   { id: "throw-out", start: 6.8, end: 9.6, impact: 8.6, label: "THROWN OUT OF THE RING", rate: 0.9, tier: 4 },
+  { id: "corner-splash", start: 13.0, end: 15.6, impact: 14.9, label: "CORNER SPLASH", rate: 0.9, tier: 4 },
+  { id: "moonsault", start: 27.2, end: 29.8, impact: 29.0, label: "MOONSAULT", rate: 0.9, tier: 4 },
+  { id: "ddt", start: 36.2, end: 38.4, impact: 37.6, label: "DDT", rate: 0.9, tier: 4 },
 
+  // tier 5 — finishers
   { id: "splash", start: 4.0, end: 7.6, impact: 6.6, label: "SPLASH FROM THE ROPES", rate: 0.85, tier: 5 },
   { id: "finisher", start: 6.4, end: 10.0, impact: 8.8, label: "FINISHER", rate: 0.85, tier: 5 },
   { id: "powerbomb", start: 2.6, end: 6.2, impact: 5.2, label: "POWERBOMB", rate: 0.85, tier: 5 },
+  { id: "elbow-drop", start: 20.4, end: 23.6, impact: 22.6, label: "ELBOW DROP FROM THE TOP", rate: 0.85, tier: 5 },
+  { id: "senton", start: 37.6, end: 41.0, impact: 39.8, label: "SENTON BOMB", rate: 0.85, tier: 5 },
+];
+
+/** Follow-up spots: a dive from the ropes onto the opponent already on the mat. */
+const FOLLOW_UPS: Move[] = [
+  { id: "fu-splash", start: 4.0, end: 7.0, impact: 6.4, label: "SPLASH ON THE DOWNED MAN", rate: 0.9, tier: 4 },
+  { id: "fu-elbow", start: 20.4, end: 23.2, impact: 22.5, label: "ELBOW DROP ON THE MAT", rate: 0.9, tier: 4 },
+  { id: "fu-moonsault", start: 27.2, end: 29.6, impact: 28.9, label: "MOONSAULT ON THE MAT", rate: 0.9, tier: 4 },
+  { id: "fu-senton", start: 37.6, end: 40.6, impact: 39.6, label: "SENTON ON THE DOWNED MAN", rate: 0.9, tier: 4 },
 ];
 
 const GIFT_TIER: Record<string, number> = {
@@ -59,8 +87,15 @@ const IDLE_SCENES: Array<{ start: number; end: number; rate: number }> = [
   { start: 4.2, end: 6.4, rate: 0.8 },
   { start: 6.0, end: 8.2, rate: 0.75 },
   { start: 7.8, end: 10.0, rate: 0.85 },
-  { start: 1.2, end: 3.4, rate: 0.9 },
+  { start: 10.4, end: 12.6, rate: 0.8 },
+  { start: 14.4, end: 16.6, rate: 0.75 },
+  { start: 18.0, end: 20.2, rate: 0.8 },
+  { start: 23.2, end: 25.4, rate: 0.85 },
+  { start: 30.2, end: 32.4, rate: 0.8 },
+  { start: 33.4, end: 35.6, rate: 0.75 },
+  { start: 38.6, end: 41.0, rate: 0.85 },
 ];
+
 
 function pick<T>(items: T[], avoid: string[] = [], key?: (item: T) => string): T {
   const pool = key ? items.filter((item) => !avoid.includes(key(item))) : items;
@@ -96,6 +131,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   const currentMove = useRef<Move | null>(null);
   const recentMoves = useRef<string[]>([]);
   const idleScene = useRef(IDLE_SCENES[0]!);
+  const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
   const primed = useRef(false);
 
   const [attacker, setAttacker] = useState<Side>("us");
@@ -154,14 +190,24 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         void video.play();
       }
 
-      const event = queue.current.shift();
+      // A big spot leaves the opponent flat on the mat — follow it up with a
+      // dive from the top rope onto the downed fighter before taking new gifts.
+      const pendingFollow = follow.current;
+      const event = pendingFollow ? pendingFollow.event : queue.current.shift();
       if (!event) return;
+      follow.current = null;
 
       const tier = GIFT_TIER[event.gift] ?? 1;
-      const move = pick(movesForTier(tier), recentMoves.current, (m) => m.id);
-      recentMoves.current = [...recentMoves.current, move.id].slice(-4);
+      const move = pendingFollow
+        ? pendingFollow.move
+        : pick(movesForTier(tier), recentMoves.current, (m) => m.id);
+      recentMoves.current = [...recentMoves.current, move.id].slice(-6);
+      if (!pendingFollow && tier >= 4 && Math.random() < 0.7) {
+        follow.current = { event: { ...event, id: `${event.id}-fu` }, move: pick(FOLLOW_UPS) };
+      }
 
       const gift = GIFT_BY_ID[event.gift];
+
       currentEvent.current = event;
       currentMove.current = move;
       playing.current = true;
@@ -227,7 +273,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     <div className="absolute inset-0 overflow-hidden bg-background">
       <video
         ref={videoRef}
-        src={fightVideo.url}
+        src={FIGHT_VIDEO}
         muted
         autoPlay
         loop
@@ -239,7 +285,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
           void event.currentTarget.play();
         }}
         onTimeUpdate={handleTimeUpdate}
-        className="absolute inset-0 size-full object-contain"
+        className="absolute inset-0 size-full animate-arena-drift object-contain"
       />
 
       {impact && !ko && (
