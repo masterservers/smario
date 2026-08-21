@@ -181,7 +181,7 @@ function BattlePage() {
               events={events}
               nickname={nickname}
               overlay
-              disabled={!ready || !!state.ko || referee.count > 0}
+              disabled={!ready}
               onSend={(side, gift, message) => handleSend(side, gift, message)}
             />
           </div>
@@ -247,14 +247,14 @@ function BattlePage() {
             lang={lang}
             side="ru"
             overlay
-            disabled={!ready || !!state.ko || referee.count > 0}
+            disabled={!ready}
             onSend={handleSend}
           />
           <GiftDock
             lang={lang}
             side="us"
             overlay
-            disabled={!ready || !!state.ko || referee.count > 0}
+            disabled={!ready}
             onSend={handleSend}
           />
         </div>
