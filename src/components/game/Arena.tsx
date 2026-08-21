@@ -675,8 +675,10 @@ export function Arena({
           switchScene(next.start, rate);
           sceneStartedAt.current = performance.now();
           // Hold the scene for its full window: nothing may cut into it.
-          lockUntil.current =
-            performance.now() + Math.max(0, ((next.end - next.start) / rate) * 1000 - 120);
+          if (rules.lockIdle && !rules.allowGiftInterrupt) {
+            lockUntil.current =
+              performance.now() + Math.max(0, ((next.end - next.start) / rate) * 1000 - 120);
+          }
           sceneStarted({
             id: next.id,
             label: next.label,
@@ -919,7 +921,7 @@ export function Arena({
       lockUntil.current = pendingKo.current ? 0 : performance.now() + 350;
       // Wake the deferred-KO effect only after the complete landing/recovery.
       if (pendingKo.current) setCompletedSequences((value) => value + 1);
-      idleScene.current = drawIdle(idleUsage.current, recentIdle.current);
+      idleScene.current = drawIdle(idleUsage.current, recentIdle.current, video.currentTime);
       sceneStartedAt.current = performance.now();
       sceneStarted({
         id: idleScene.current.id,
