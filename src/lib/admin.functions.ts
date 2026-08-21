@@ -8,7 +8,8 @@ export type AuditEntry = {
   actor_email: string | null;
   section: string;
   action: string;
-  details: Record<string, unknown>;
+  /** Human-readable summary of the values that changed. */
+  details: string;
   created_at: string;
 };
 
@@ -29,7 +30,7 @@ export const getMyStaffRole = createServerFn({ method: "POST" })
 /** Records one admin-console change: who, when and exactly what changed. */
 export const logAdminChange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { section: string; action: string; details?: Record<string, unknown> }) => {
+  .inputValidator((input: { section: string; action: string; details?: string }) => {
     if (typeof input?.section !== "string" || !input.section.trim() || input.section.length > 60) {
       throw new Error("Invalid section");
     }
@@ -39,7 +40,7 @@ export const logAdminChange = createServerFn({ method: "POST" })
     return {
       section: input.section.trim(),
       action: input.action.trim(),
-      details: (input.details ?? {}) as Record<string, unknown>,
+      details: typeof input.details === "string" ? input.details.slice(0, 1000) : "",
     };
   })
   .handler(async ({ data, context }) => {
@@ -51,7 +52,7 @@ export const logAdminChange = createServerFn({ method: "POST" })
       actor_email: email,
       section: data.section,
       action: data.action,
-      details: data.details,
+      details: { text: data.details },
     });
     if (error) throw new Error("Unable to record the change");
     return { ok: true };
@@ -60,12 +61,26 @@ export const logAdminChange = createServerFn({ method: "POST" })
 /** Latest audit entries; RLS limits the read to admins and moderators. */
 export const listAuditLog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<AuditEntry[]> => {
     const { data, error } = await context.supabase
       .from("admin_audit_log")
       .select("id, actor_email, section, action, details, created_at")
       .order("created_at", { ascending: false })
       .limit(80);
-    if (error) return [] as AuditEntry[];
-    return (data ?? []) as AuditEntry[];
+    if (error) return [];
+    return (data ?? []).map((row) => {
+      const raw = row.details as { text?: unknown } | null;
+      const text =
+        raw && typeof raw === "object" && typeof raw.text === "string"
+          ? raw.text
+          : JSON.stringify(row.details ?? {});
+      return {
+        id: row.id,
+        actor_email: row.actor_email,
+        section: row.section,
+        action: row.action,
+        details: text,
+        created_at: row.created_at,
+      };
+    });
   });
