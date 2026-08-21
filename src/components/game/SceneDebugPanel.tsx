@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSceneConfig } from "@/lib/sceneConfig";
 import { useSceneDebug } from "@/lib/sceneDebug";
 import { visualSequenceStats } from "@/lib/visualSequences";
+import { trueVarietyReport, visualClusterTrace } from "@/lib/visualClusters";
 
 
 /**
@@ -28,6 +29,9 @@ export function SceneDebugPanel() {
   const blockedAgo = debug.blockedAt > 0 ? Math.round(now - debug.blockedAt) : null;
   // Development diagnostic: how much of the catalog is actually distinct footage.
   const stats = visualSequenceStats();
+  // Perceived variety: overlapping windows collapsed into visual clusters.
+  const variety = trueVarietyReport(4);
+  const clusterTrace = visualClusterTrace(6);
 
 
   return (
