@@ -156,6 +156,21 @@ const BASE_MOVES: Move[] = [
   { id: "rope-spin", start: 20.6, end: 22.8, impact: 22.0, label: "ROPE SPIN OUT", rate: 0.94, tier: 3 },
   { id: "rope-vault", start: 23.2, end: 25.6, impact: 24.8, label: "ROPE VAULT", rate: 0.9, tier: 4 },
 
+  // Corner exchanges — the fight is fought in all four corners of the ring,
+  // with punches and kicks landing while the opponent is pinned to the pads.
+  { id: "corner-nw-jabs", start: 17.8, end: 19.4, impact: 18.8, label: "CORNER JAB BARRAGE", rate: 1.08, tier: 1 },
+  { id: "corner-ne-hooks", start: 18.6, end: 20.2, impact: 19.6, label: "CORNER HOOKS", rate: 1.06, tier: 1 },
+  { id: "corner-sw-body", start: 19.2, end: 20.9, impact: 20.3, label: "CORNER BODY SHOTS", rate: 1.04, tier: 1 },
+  { id: "corner-se-upper", start: 8.2, end: 9.8, impact: 9.3, label: "CORNER UPPERCUT", rate: 1.06, tier: 1 },
+  { id: "corner-low-kicks", start: 10.4, end: 12.0, impact: 11.5, label: "CORNER LOW KICK", rate: 1.06, tier: 1 },
+  { id: "corner-mid-kick", start: 11.6, end: 13.4, impact: 12.8, label: "CORNER ROUNDHOUSE KICK", rate: 1.02, tier: 2 },
+  { id: "corner-high-kick", start: 16.2, end: 18.2, impact: 17.5, label: "CORNER HIGH KICK", rate: 1.02, tier: 2 },
+  { id: "corner-side-kick", start: 12.8, end: 14.6, impact: 14.0, label: "CORNER SIDE KICK", rate: 1.04, tier: 2 },
+  { id: "corner-flurry", start: 18.0, end: 20.0, impact: 19.3, label: "CORNER PUNCH FLURRY", rate: 1.0, tier: 2 },
+  { id: "corner-kick-combo", start: 15.4, end: 17.6, impact: 16.9, label: "CORNER KICK COMBO", rate: 1.0, tier: 2 },
+  { id: "corner-pin-knees", start: 19.6, end: 21.6, impact: 20.9, label: "CORNER KNEES", rate: 0.96, tier: 3 },
+  { id: "corner-escape-kick", start: 21.2, end: 23.2, impact: 22.5, label: "ESCAPE KICK OUT OF THE CORNER", rate: 0.98, tier: 3 },
+
   // Restored strike/jump vocabulary — windows that had dropped out of rotation
   // over the last revisions, spread across all four blocks of the reel.
   { id: "overhand", start: 4.2, end: 5.4, impact: 5.0, label: "OVERHAND RIGHT", rate: 1.1, tier: 1 },
