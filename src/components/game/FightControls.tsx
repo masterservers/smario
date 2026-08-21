@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { LangPicker } from "@/components/game/LangPicker";
 import { Button } from "@/components/ui/button";
+import { MixButton } from "@/components/game/MixButton";
 import { UI_TEXT, type Lang } from "@/lib/i18n";
 
 type Props = {
@@ -37,6 +38,7 @@ export function FightControls({ lang, onLang, muted, onMute, onChat, children, c
       >
         {muted ? "🔇" : "🔊"}
       </Button>
+      <MixButton lang={lang} className={`${button} border border-border`} />
       {onChat && (
         <Button
           type="button"

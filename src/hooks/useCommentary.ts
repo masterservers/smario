@@ -8,6 +8,7 @@ import { familyOf } from "@/lib/scenes";
 import { FAMILY_LINES } from "@/lib/familyLines";
 import {
   getVoiceClip,
+  peekVoiceClip,
   playVoiceClip,
   prefetchVoice,
   stopVoiceClip,
@@ -101,6 +102,16 @@ let lastEndAt = 0;
 let drainTimer = 0;
 let laneGeneration = 0;
 const MIN_GAP_MS = 320;
+/**
+ * Live calls (referee count, big blow, knockout) must land on the frame, so
+ * they skip the breathing gap between lines entirely.
+ */
+const URGENT_PRIORITY = 2;
+/**
+ * How long a call may wait for its neural clip before we switch to the local
+ * voice. Anything longer would drift behind the picture.
+ */
+const VOICE_DEADLINE_MS = 260;
 const MAX_QUEUE = 2;
 
 export function commentaryBusy() {
@@ -146,7 +157,8 @@ function speakFallback(next: Spoken, done: () => void) {
 function drain() {
   if (typeof window === "undefined") return;
   if (speaking || speechQueue.length === 0 || drainTimer) return;
-  const wait = Math.max(0, lastEndAt + MIN_GAP_MS - Date.now());
+  const urgent = speechQueue[0]!.priority >= URGENT_PRIORITY;
+  const wait = urgent ? 0 : Math.max(0, lastEndAt + MIN_GAP_MS - Date.now());
   drainTimer = window.setTimeout(() => {
     drainTimer = 0;
     const next = speechQueue.shift();
@@ -163,12 +175,26 @@ function drain() {
     speaking = true;
     speakingPriority = next.priority;
     duckCrowd(true);
-    void getVoiceClip(next.text, next.lang, toneOf(next.priority)).then((url) => {
-      if (generation !== laneGeneration) return;
+    const tone = toneOf(next.priority);
+    // Already generated? Start on this frame, zero latency.
+    const ready = peekVoiceClip(next.text, next.lang, tone);
+    if (ready) {
+      playVoiceClip(ready, done);
+      return;
+    }
+    // Otherwise race the neural clip against a short deadline so the call
+    // never lags behind the punch, the count or the knockout on screen.
+    let started = false;
+    const start = (url: string | null) => {
+      if (started || generation !== laneGeneration) return;
+      started = true;
+      window.clearTimeout(deadline);
       if (url) playVoiceClip(url, done);
       else if ("speechSynthesis" in window) speakFallback(next, done);
       else done();
-    });
+    };
+    const deadline = window.setTimeout(() => start(null), VOICE_DEADLINE_MS);
+    void getVoiceClip(next.text, next.lang, tone).then(start);
   }, wait);
 }
 
@@ -386,8 +412,13 @@ export function useCommentary(
     const defender = last.side === "ru" ? names.us : names.ru;
     const gift = GIFT_BY_ID[last.gift];
 
+    const big = (gift?.damage ?? 0) >= 20;
+    // Pick the generic call now and warm its neural clip, so when the blow
+    // lands the voice starts on the same frame instead of after a fetch.
+    const plainLine = big ? pick(c.bigHit)(attacker, defender) : pick(c.hit)(attacker, defender);
+    if (!mutedRef.current) prefetchVoice(plainLine, lang, big ? "big" : "normal");
+
     const call = (label?: string) => {
-      const big = (gift?.damage ?? 0) >= 20;
       if (state.combo >= 4 && state.comboSide === last.side) {
         push(pick(c.combo)(attacker, defender, String(state.combo)), "big");
         return;
@@ -402,8 +433,9 @@ export function useCommentary(
           return;
         }
       }
-      push(big ? pick(c.bigHit)(attacker, defender) : pick(c.hit)(attacker, defender), big ? "big" : "hit");
+      push(plainLine, big ? "big" : "hit");
     };
+
     // Fallback well after the usual impact delay, in case no confirmation comes.
     const timer = window.setTimeout(() => flushCall(last.id), IMPACT_DELAY_MS + 3200);
     pendingCalls.current.set(last.id, { run: call, timer });
