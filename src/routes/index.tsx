@@ -90,10 +90,7 @@ function BattlePage() {
     ]);
   }, []);
 
-  const { matchId, round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(
-    lang,
-    pushLog,
-  );
+  const { matchId, round, events, state, viewers } = useLiveMatch(lang, pushLog);
   const referee = useReferee(state.hpRu, state.hpUs, state.ko);
   useCommentary(lang, events, state, muted, referee);
   const banner = useTopBanner({
@@ -132,15 +129,7 @@ function BattlePage() {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  const setLang = (next: Lang) => {
-    void navigate({ search: { lang: next }, replace: true });
-  };
 
-  const handleSend = (side: Side, gift: GiftId, message?: string) => {
-    // The admin panel can pin a gift to one team regardless of the dock used.
-    const target = getGiftConfig()[gift]?.target ?? "auto";
-    void sendGift(target === "auto" ? side : target, gift, message);
-  };
 
   const leader: Side | null =
     state.scoreRu === state.scoreUs ? null : state.scoreRu > state.scoreUs ? "ru" : "us";
