@@ -147,3 +147,7 @@ export function useCommentary(
 
   return lines;
 }
+
+// Hook signatures change often during development; a partial HMR patch would
+// keep stale refs/state and break the Hook order. Force a full reload instead.
+if (import.meta.hot) import.meta.hot.decline();

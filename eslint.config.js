@@ -20,6 +20,10 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Catch conditional Hook calls (e.g. in useReferee / useLiveMatch) early,
+      // before they surface as "Should have a queue" runtime crashes.
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
       "no-restricted-imports": [
         "error",
         {
