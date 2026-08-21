@@ -406,6 +406,15 @@ export function Arena({
   const impacted = useRef(false);
   /** True while a spot is playing out its aftermath (landing, struggle). */
   const settling = useRef(false);
+  /**
+   * Animation lock. While it is held no new command — gift, idle scene, camera
+   * change or KO replay — may cut the current sequence. It is released only
+   * after the move, its impact, the landing and the recovery have all played.
+   */
+  const lockUntil = useRef(0);
+  const isLocked = () =>
+    playing.current || settling.current || switchingRef.current || performance.now() < lockUntil.current;
+
 
   const currentEvent = useRef<GiftEvent | null>(null);
   const currentMove = useRef<Move | null>(null);
