@@ -393,7 +393,11 @@ export function Arena({
 }: Props) {
   const logRef = useRef(onLog);
   logRef.current = onLog;
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
+  const activeLayerRef = useRef(0);
+  const activeVideoRef = useRef<HTMLVideoElement | null>(null);
+  const switchingRef = useRef(false);
+  const switchTokenRef = useRef(0);
   const seen = useRef<Set<string>>(new Set());
   const queue = useRef<GiftEvent[]>([]);
   const playing = useRef(false);
@@ -429,7 +433,7 @@ export function Arena({
   // Stop decoding frames while the tab is in the background.
   useEffect(() => {
     const onVisibility = () => {
-      const video = videoRef.current;
+      const video = activeVideoRef.current;
       if (!video) return;
       if (document.hidden) video.pause();
       else void video.play();
@@ -439,6 +443,7 @@ export function Arena({
   }, []);
 
   const [attacker, setAttacker] = useState<Side>("us");
+  const [activeLayer, setActiveLayer] = useState(0);
   const [crowd, setCrowd] = useState(0);
   const [replay, setReplay] = useState(false);
   const [champion, setChampion] = useState(false);
@@ -458,6 +463,37 @@ export function Arena({
     video.currentTime = time;
   };
 
+  /** Decode the next scene off-screen before replacing the visible frame. */
+  const switchScene = (time: number, rate: number) => {
+    const previous = activeVideoRef.current;
+    const nextLayer = activeLayerRef.current === 0 ? 1 : 0;
+    const next = videoRefs.current[nextLayer];
+    if (!next || switchingRef.current) return false;
+
+    switchingRef.current = true;
+    const token = ++switchTokenRef.current;
+    next.pause();
+    next.playbackRate = rate;
+    const reveal = () => {
+      if (token !== switchTokenRef.current) return;
+      void next.play().then(() => {
+        if (token !== switchTokenRef.current) return;
+        activeLayerRef.current = nextLayer;
+        activeVideoRef.current = next;
+        setActiveLayer(nextLayer);
+        switchingRef.current = false;
+        window.setTimeout(() => {
+          if (previous && previous !== activeVideoRef.current) previous.pause();
+        }, 180);
+      }).catch(() => {
+        switchingRef.current = false;
+      });
+    };
+    next.addEventListener("seeked", reveal, { once: true });
+    seek(next, time);
+    return true;
+  };
+
   /** Crowd reaction pulse, synced to hits and knockouts. */
   const cheer = (strength: number) => {
     setCrowd(strength);
@@ -466,7 +502,7 @@ export function Arena({
 
   // While the referee counts, the picture holds on the downed fighter.
   useEffect(() => {
-    const video = videoRef.current;
+    const video = activeVideoRef.current;
     if (!video || ko) return;
     if (paused) video.pause();
     else if (playing.current) void video.play();
@@ -492,7 +528,7 @@ export function Arena({
   // stays down on the mat. Nothing covers the ring.
   useEffect(() => {
     if (!ko) return;
-    const video = videoRef.current;
+    const video = activeVideoRef.current;
     if (!video) return;
     playing.current = false;
     settling.current = false;
@@ -512,23 +548,18 @@ export function Arena({
 
     // Replay: rewind slightly before the finish and play it back in slow motion.
     video.playbackRate = 0.45;
-    seek(video, Math.max(0, finisher.impact - 1.2));
-    void video.play();
+    switchScene(Math.max(0, finisher.impact - 1.2), 0.45);
 
     let pose = 0;
     const settle = window.setTimeout(() => {
       setReplay(false);
-      video.playbackRate = 0.35;
-      seek(video, finisher.impact);
-      void video.play();
-      window.setTimeout(() => video.pause(), 900);
+      switchScene(finisher.impact, 0.35);
+      window.setTimeout(() => activeVideoRef.current?.pause(), 900);
 
       // The winner then walks the ring with both hands raised.
       pose = window.setTimeout(() => {
         setChampion(true);
-        video.playbackRate = CHAMPION_POSE.rate;
-        seek(video, CHAMPION_POSE.start);
-        void video.play();
+        switchScene(CHAMPION_POSE.start, CHAMPION_POSE.rate);
         cheer(2);
         logRef.current?.("ko", `champion pose — ${ko === "ru" ? names.ru : names.us}`);
       }, 2600);
@@ -542,7 +573,7 @@ export function Arena({
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      const video = videoRef.current;
+      const video = activeVideoRef.current;
       if (!video || ko) return;
       if (playing.current) return;
 
@@ -551,7 +582,8 @@ export function Arena({
       if (video.paused || video.currentTime < scene.start || video.currentTime > scene.end) {
         if (video.currentTime < scene.start || video.currentTime > scene.end) {
           idleScene.current = pick(IDLE_SCENES);
-          seek(video, idleScene.current.start);
+          switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed);
+          return;
         }
 
         video.playbackRate = idleScene.current.rate * cfgRef.current.speed;
@@ -611,16 +643,14 @@ export function Arena({
       logRef.current?.("move", `${event.side.toUpperCase()} · ${move.label}`);
       // Move the wide shot to this block's corner of the ring.
       setFrame(frameFor(move));
-      seek(video, move.start);
-      video.playbackRate = move.rate * cfgRef.current.speed;
-      void video.play();
+      switchScene(move.start, move.rate * cfgRef.current.speed);
 
     }, cfg.tickMs);
     return () => window.clearInterval(timer);
   }, [ko, paused, cfg.tickMs]);
 
-  const handleTimeUpdate = () => {
-    const video = videoRef.current;
+  const handleTimeUpdate = (video: HTMLVideoElement) => {
+    if (video !== activeVideoRef.current) return;
     const event = currentEvent.current;
     const move = currentMove.current;
     if (!video || !event || !move || !playing.current) return;
@@ -683,9 +713,7 @@ export function Arena({
         scale: 1 + (Math.random() - 0.5) * 0.03,
         rotate: (Math.random() - 0.5) * 0.8,
       });
-      seek(video, idleScene.current.start);
-      video.playbackRate = idleScene.current.rate * cfgRef.current.speed;
-      void video.play();
+      switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed);
 
       window.setTimeout(
         () => setFloats((previous) => previous.filter((item) => item.id !== event.id)),
@@ -722,32 +750,43 @@ export function Arena({
           className={`absolute inset-0 ${reactionClass}`}
           style={{ ["--hit-dir" as string]: String(reaction?.dir ?? 1) }}
         >
-          <video
-            ref={videoRef}
-            src={FIGHT_VIDEO}
-            muted
-            autoPlay
-            loop
-            playsInline
-            preload="auto"
-            aria-label={`${names.ru} versus ${names.us}`}
-            onLoadedData={(event) => {
-              event.currentTarget.currentTime = IDLE_SCENES[0]!.start;
-              void event.currentTarget.play();
-            }}
-            onTimeUpdate={handleTimeUpdate}
-            disablePictureInPicture
-            style={{
-              // Crowd/lighting: the arena lifts in brightness and contrast on every
-              // landed hit so the audience in the stands stays clearly readable.
-              filter: lite
-                ? "brightness(1.1) contrast(1.12) saturate(1.08)"
-                : `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
-              contain: "paint",
-              willChange: lite ? undefined : "filter",
-            }}
-            className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter] duration-200"
-          />
+          {[0, 1].map((layer) => (
+            <video
+              key={layer}
+              ref={(element) => {
+                videoRefs.current[layer] = element;
+                if (layer === 0 && element && !activeVideoRef.current) {
+                  activeVideoRef.current = element;
+                }
+              }}
+              src={FIGHT_VIDEO}
+              muted
+              autoPlay={layer === 0}
+              loop
+              playsInline
+              preload="auto"
+              aria-label={layer === activeLayer ? `${names.ru} versus ${names.us}` : undefined}
+              aria-hidden={layer !== activeLayer}
+              onLoadedData={(event) => {
+                if (layer !== 0) return;
+                event.currentTarget.currentTime = IDLE_SCENES[0]!.start;
+                event.currentTarget.playbackRate = IDLE_SCENES[0]!.rate * cfgRef.current.speed;
+                void event.currentTarget.play();
+              }}
+              onTimeUpdate={(event) => handleTimeUpdate(event.currentTarget)}
+              disablePictureInPicture
+              style={{
+                filter: lite
+                  ? "brightness(1.1) contrast(1.12) saturate(1.08)"
+                  : `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
+                contain: "paint",
+                willChange: lite ? undefined : "filter, opacity",
+                opacity: layer === activeLayer ? 1 : 0,
+                zIndex: layer === activeLayer ? 1 : 0,
+              }}
+              className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter,opacity] duration-200"
+            />
+          ))}
         </div>
       </div>
 
