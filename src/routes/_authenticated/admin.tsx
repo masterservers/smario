@@ -26,6 +26,14 @@ import {
   type RefereeRules,
 } from "@/lib/hitConfig";
 
+import { ALL_SCENES } from "@/lib/scenes";
+import {
+  getSceneConfig,
+  resetSceneConfig,
+  saveSceneConfig,
+  type SceneConfig,
+  type TransitionRules,
+} from "@/lib/sceneConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +87,7 @@ function AdminPage() {
   const { lang } = Route.useSearch();
   const [config, setConfig] = useState<GiftConfig>(() => getGiftConfig());
   const [hits, setHits] = useState<HitConfig>(() => getHitConfig());
+  const [scenes, setScenes] = useState<SceneConfig>(() => getSceneConfig());
   const [admin, setAdmin] = useState<AdminConfig>(() => getAdminConfig());
 
   const [saved, setSaved] = useState(false);
@@ -157,6 +166,28 @@ function AdminPage() {
       return next;
     });
     record("hits", "referee rules", patch);
+  };
+
+  /** Scene rotation: enabled ids and weights, saved live. */
+  const patchScenes = (patch: Partial<SceneConfig>) => {
+    setScenes((current) => {
+      const next: SceneConfig = { ...current, ...patch };
+      saveSceneConfig(next);
+      return next;
+    });
+    record("scenes", "rotation", patch);
+  };
+
+  const patchTransitions = (patch: Partial<TransitionRules>) => {
+    setScenes((current) => {
+      const next: SceneConfig = {
+        ...current,
+        transitions: { ...current.transitions, ...patch },
+      };
+      saveSceneConfig(next);
+      return next;
+    });
+    record("scenes", "transitions", patch);
   };
 
   const update = (id: GiftId, patch: Partial<GiftConfig[GiftId]>) => {
