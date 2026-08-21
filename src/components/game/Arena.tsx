@@ -646,6 +646,25 @@ export function Arena({
 
 
     if (video.currentTime >= stopAt.current) {
+      // A lift, slam or throw is never cut in the middle: after the impact the
+      // sequence keeps rolling forward — the landing, the struggle on the mat and
+      // the recovery — before anything else can start.
+      if (!settling.current) {
+        const kind = kindOf(move);
+        const aftermath =
+          kind === "throw" ? 2.6 : kind === "aerial" ? 2.2 : move.tier >= 3 ? 1.6 : move.tier === 2 ? 0.9 : 0.45;
+        const limit = Math.min(39.8, move.end + aftermath);
+        if (limit > video.currentTime + 0.1) {
+          settling.current = true;
+          stopAt.current = limit;
+          // Slightly slower so the landing and the struggle read clearly.
+          video.playbackRate = Math.max(0.55, move.rate * cfgRef.current.speed * 0.85);
+          void video.play();
+          return;
+        }
+      }
+
+      settling.current = false;
       playing.current = false;
       currentEvent.current = null;
       currentMove.current = null;
@@ -666,6 +685,7 @@ export function Arena({
         900,
       );
     }
+
   };
 
   const reactionClass =
