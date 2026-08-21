@@ -1,3 +1,4 @@
+import { DIFFICULTY_CONFIG, type Difficulty } from "@/lib/difficulty";
 import { useEffect, useRef, useState } from "react";
 const FIGHT_VIDEO = "/media/arena-mega.webm";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
@@ -339,6 +340,8 @@ type DamageItem = { id: string; side: Side; amount: number };
 
 type Props = {
   lang: Lang;
+  /** Pace preset: speed, move frequency and anti-repetition memory. */
+  difficulty?: Difficulty;
   events: GiftEvent[];
   ko: Side | null;
   combo: number;
@@ -353,6 +356,7 @@ type Props = {
 
 export function Arena({
   lang,
+  difficulty = "normal",
   events,
   ko,
   combo,
@@ -377,6 +381,10 @@ export function Arena({
   const idleScene = useRef(IDLE_SCENES[0]!);
   const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
   const primed = useRef(false);
+
+  const cfg = DIFFICULTY_CONFIG[difficulty];
+  const cfgRef = useRef(cfg);
+  cfgRef.current = cfg;
 
   const [attacker, setAttacker] = useState<Side>("us");
   const [crowd, setCrowd] = useState(0);
@@ -482,7 +490,7 @@ export function Arena({
           seek(video, idleScene.current.start);
         }
 
-        video.playbackRate = idleScene.current.rate;
+        video.playbackRate = idleScene.current.rate * cfgRef.current.speed;
         void video.play();
       }
 
@@ -498,14 +506,15 @@ export function Arena({
       const move = pendingFollow
         ? pendingFollow.move
         : pick(movesForTier(tier), recentMoves.current, (m) => m.id);
-      recentMoves.current = [...recentMoves.current, move.id].slice(-12);
+      recentMoves.current = [...recentMoves.current, move.id].slice(-cfgRef.current.moveMemory);
 
       // Chance of a follow-up: high after a big spot, still possible after a
       // chained one so we get 2-3 spot sequences without visible repetition.
-      const chance = pendingFollow ? 0.4 : tier >= 4 ? 0.85 : tier === 3 ? 0.55 : 0.15;
+      const base = pendingFollow ? 0.4 : tier >= 4 ? 0.85 : tier === 3 ? 0.55 : 0.15;
+      const chance = Math.min(0.95, base * cfgRef.current.followChance);
       if (Math.random() < chance) {
         const next = pick(FOLLOW_UPS, recentFollows.current, (m) => m.id);
-        recentFollows.current = [...recentFollows.current, next.id].slice(-7);
+        recentFollows.current = [...recentFollows.current, next.id].slice(-cfgRef.current.followMemory);
         follow.current = {
           event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` },
           move: next,
@@ -533,11 +542,11 @@ export function Arena({
 
       logRef.current?.("move", `${event.side.toUpperCase()} · ${move.label}`);
       seek(video, move.start);
-      video.playbackRate = move.rate;
+      video.playbackRate = move.rate * cfgRef.current.speed;
       void video.play();
-    }, 80);
+    }, cfg.tickMs);
     return () => window.clearInterval(timer);
-  }, [ko, paused]);
+  }, [ko, paused, cfg.tickMs]);
 
   const handleTimeUpdate = () => {
     const video = videoRef.current;
@@ -569,7 +578,7 @@ export function Arena({
       currentMove.current = null;
       idleScene.current = pick(IDLE_SCENES);
       seek(video, idleScene.current.start);
-      video.playbackRate = idleScene.current.rate;
+      video.playbackRate = idleScene.current.rate * cfgRef.current.speed;
       void video.play();
 
       window.setTimeout(
