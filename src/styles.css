@@ -604,22 +604,74 @@
 }
 
 
-/* Portrait phones: the wide ring shot is width-limited, so zoom it and lift it
-   out of the dead space between the scoreboard and the gift dock. */
-@media (orientation: portrait) {
-  .arena-video {
-    transform: scale(1.5) translateY(-3%);
-    transform-origin: center center;
+/* --- HUD strip height ----------------------------------------------
+   Single source of truth for the scoreboard strip, so the arena always
+   starts exactly under it in both orientations. */
+:root {
+  --hud-h: 3.4rem;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --hud-h: 3.8rem;
   }
 }
 
-/* Landscape phones: object-contain left black bars on the sides and the ring
-   looked small and off-centre. Fill the screen edge to edge instead. */
+/* Landscape phones: keep the strip slim so the ring keeps its height. */
+@media (orientation: landscape) and (max-height: 600px) {
+  :root {
+    --hud-h: 3rem;
+  }
+}
+
+/* --- Arena scaling rules -------------------------------------------
+   One rule for every device and orientation: the reel is ALWAYS `contain`,
+   so the whole ring stays inside the frame and nothing is cropped when the
+   phone is rotated. Breakpoints only tune the vertical framing (which part
+   of the letterboxed picture sits in the middle) and a zoom factor that is
+   never allowed above 1 — any value >1 would cut the ropes off. */
+.arena-video {
+  object-fit: contain;
+  object-position: center var(--arena-focus, 50%);
+  transform: scale(var(--arena-zoom, 1)) translateY(var(--arena-lift, 0%));
+  transform-origin: center center;
+}
+
+/* Portrait phones: the wide shot is width-limited, so there is spare room
+   above and below. Lift the picture slightly toward the scoreboard instead
+   of zooming, so the mat and the ropes both stay in frame. */
+@media (orientation: portrait) {
+  .arena-video {
+    --arena-zoom: 1;
+    --arena-lift: 0%;
+    --arena-focus: 50%;
+  }
+}
+
+/* Tall tablets: more vertical room, so keep it perfectly centred. */
+@media (orientation: portrait) and (min-width: 640px) {
+  .arena-video {
+    --arena-lift: 0%;
+    --arena-focus: 50%;
+  }
+}
+
+/* Landscape phones: height-limited. Stay on `contain` (no cover crop) and
+   bias the framing a touch upward so the mat is never clipped. */
 @media (orientation: landscape) and (max-height: 600px) {
   .arena-video {
-    object-fit: cover;
-    object-position: center 32%;
-    transform: none;
+    --arena-zoom: 1;
+    --arena-lift: 0%;
+    --arena-focus: 46%;
+  }
+}
+
+/* Wide desktops: the frame already fits, keep it neutral. */
+@media (orientation: landscape) and (min-height: 601px) {
+  .arena-video {
+    --arena-zoom: 1;
+    --arena-lift: 0%;
+    --arena-focus: 50%;
   }
 }
 
