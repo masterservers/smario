@@ -8,6 +8,7 @@ import { loadDifficulty, type Difficulty } from "@/lib/difficulty";
 import { loadVariety, VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
 import { loadSubtitlesOn } from "@/lib/subtitles";
 import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
+import { SyncMeter } from "@/components/game/SyncMeter";
 import { useRemoteConfig } from "@/lib/useRemoteConfig";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
@@ -187,6 +188,7 @@ function BattlePage() {
         />
         <RefereeCount lang={lang} referee={referee} />
         <SceneDebugPanel />
+        <SyncMeter />
       </div>
 
       {/* Slim HUD strip on top — scoreboard only */}

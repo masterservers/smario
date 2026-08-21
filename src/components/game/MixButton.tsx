@@ -64,6 +64,20 @@ export function MixButton({ lang, className }: { lang: Lang; className?: string 
             onValueChange={([value]) => set({ crowd: value ?? mix.crowd })}
           />
         </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>🏟️ Ambience</span>
+            <span className="tabular-nums">{pct(mix.ambience)}</span>
+          </div>
+          <Slider
+            value={[mix.ambience]}
+            min={0}
+            max={1}
+            step={0.05}
+            aria-label="Ambience volume"
+            onValueChange={([value]) => set({ ambience: value ?? mix.ambience })}
+          />
+        </div>
         <Button
           type="button"
           size="sm"

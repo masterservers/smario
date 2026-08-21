@@ -8,11 +8,13 @@ import { useEffect, useState } from "react";
 export type AudioMix = {
   /** Commentator + referee voice level, 0..1 */
   voice: number;
-  /** Arena crowd bed and reactions level, 0..1 */
+  /** Arena crowd reactions level (cheers, groans, KO pops), 0..1 */
   crowd: number;
+  /** Continuous ambience bed under the action, 0..1 */
+  ambience: number;
 };
 
-export const DEFAULT_MIX: AudioMix = { voice: 1, crowd: 0.6 };
+export const DEFAULT_MIX: AudioMix = { voice: 1, crowd: 0.6, ambience: 0.6 };
 
 const KEY = "pvt.audioMix";
 
@@ -28,6 +30,7 @@ export function normalizeMix(raw: unknown): AudioMix {
   return {
     voice: clamp(parsed.voice, DEFAULT_MIX.voice),
     crowd: clamp(parsed.crowd, DEFAULT_MIX.crowd),
+    ambience: clamp(parsed.ambience, DEFAULT_MIX.ambience),
   };
 }
 

@@ -15,13 +15,18 @@ let ducked = false;
 
 const BED_BASE = 0.32;
 
-/** Crowd level asked for by the admin faders (0..1). */
+/** Crowd reaction level asked for by the admin faders (0..1). */
 function crowdLevel() {
   return getMix().crowd;
 }
 
+/** Continuous ambience bed level, faded independently from the reactions. */
+function ambienceLevel() {
+  return getMix().ambience;
+}
+
 function bedTarget() {
-  return BED_BASE * crowdLevel() * (ducked ? 0.45 : 1);
+  return BED_BASE * ambienceLevel() * (ducked ? 0.45 : 1);
 }
 
 if (typeof window !== "undefined") {
