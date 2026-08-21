@@ -30,6 +30,33 @@ function kindOf(move: Move): HitKind {
 }
 
 /**
+ * Hit-stun and KO tuning, per kind of hit. Everything the impact feels like is
+ * declared here so punches, kicks, grapples, aerials and throws stay coherent:
+ *   stun     — how long the defender is shaken (ms)
+ *   force    — amplitude multiplier of the physical reaction
+ *   recovery — extra seconds of footage after the move: landing + struggle
+ *   settleRate — playback multiplier while that recovery plays
+ *   cheer    — crowd reaction strength
+ *   koHold   — how long the KO reaction is held when this hit finishes the match
+ */
+type HitProfile = {
+  stun: number;
+  force: number;
+  recovery: number;
+  settleRate: number;
+  cheer: number;
+  koHold: number;
+};
+
+const HIT_PROFILE: Record<HitKind, HitProfile> = {
+  punch:   { stun: 380, force: 0.85, recovery: 0.45, settleRate: 0.95, cheer: 1,   koHold: 1100 },
+  kick:    { stun: 700, force: 1.15, recovery: 0.9,  settleRate: 0.9,  cheer: 1.2, koHold: 1400 },
+  grapple: { stun: 900, force: 0.9,  recovery: 1.6,  settleRate: 0.85, cheer: 1.2, koHold: 1600 },
+  aerial:  { stun: 1200, force: 1.35, recovery: 2.2, settleRate: 0.82, cheer: 1.6, koHold: 1900 },
+  throw:   { stun: 1400, force: 1.6,  recovery: 2.6, settleRate: 0.78, cheer: 1.8, koHold: 2200 },
+};
+
+/**
  * Framing presets: the fighters travel across the ring instead of staying
  * pinned in the centre. Values stay small (no close-ups) — they only shift the
  * wide shot left/right, a touch nearer/further, with a controlled tilt.
@@ -465,7 +492,11 @@ export function Arena({
   /** Current camera framing: where in the ring the action sits. */
   const [frame, setFrame] = useState<Frame>({ x: 0, y: 0, scale: 1, rotate: 0 });
   /** Physical reaction to the last landed hit (drives the shake/stagger). */
-  const [reaction, setReaction] = useState<{ id: string; kind: HitKind; dir: number } | null>(null);
+  const [reaction, setReaction] = useState<
+    { id: string; kind: HitKind; dir: number; force: number; stun: number } | null
+  >(null);
+  /** Hit kind that scored the knockout — drives how long the KO reaction holds. */
+  const koKind = useRef<HitKind>("throw");
 
   const [damages, setDamages] = useState<DamageItem[]>([]);
 
@@ -572,8 +603,16 @@ export function Arena({
     setReplay(true);
     // KO reads heaviest of all: full loss of balance, then the shot settles.
     setFrame({ x: 0, y: 0.5, scale: 1.02, rotate: 0 });
-    setReaction({ id: `ko-${ko}`, kind: "throw", dir: ko === "ru" ? 1 : -1 });
-    window.setTimeout(() => setReaction(null), 1400);
+    const koProfile = HIT_PROFILE[koKind.current];
+    setReaction({
+      id: `ko-${ko}`,
+      kind: koKind.current,
+      dir: ko === "ru" ? 1 : -1,
+      // A finishing blow always reads heavier than the same hit mid-match.
+      force: koProfile.force * 1.25,
+      stun: koProfile.koHold,
+    });
+    window.setTimeout(() => setReaction(null), koProfile.koHold);
 
     logRef.current?.("ko", `KO — ${ko === "ru" ? names.us : names.ru} down`);
     logRef.current?.("replay", "slow-motion replay");
@@ -702,15 +741,23 @@ export function Arena({
       const defender: Side = event.side === "ru" ? "us" : "ru";
       const gift = GIFT_BY_ID[event.gift];
       const kind = kindOf(move);
+      const profile = HIT_PROFILE[kind];
+      koKind.current = kind;
       setImpact({ id: event.id, side: defender, label: move.label });
       // Distinct physical read per hit type: jitter for punches, a step back for
       // kicks, loss of balance for throws and aerials, then a recovery.
-      setReaction({ id: event.id, kind, dir: defender === "ru" ? -1 : 1 });
+      setReaction({
+        id: event.id,
+        kind,
+        dir: defender === "ru" ? -1 : 1,
+        force: profile.force,
+        stun: profile.stun,
+      });
       window.setTimeout(
         () => setReaction((previous) => (previous?.id === event.id ? null : previous)),
-        kind === "punch" ? 420 : kind === "kick" ? 700 : 1000,
+        profile.stun,
       );
-      cheer(move.tier >= 4 ? 1.5 : 1);
+      cheer(profile.cheer * (move.tier >= 4 ? 1.15 : 1));
       setDamages((previous) => [
         ...previous.slice(-1),
         { id: event.id, side: defender, amount: gift?.damage ?? 4 },
@@ -728,19 +775,15 @@ export function Arena({
       // sequence keeps rolling forward — the landing, the struggle on the mat and
       // the recovery — before anything else can start.
       if (!settling.current) {
-        const kind = kindOf(move);
-        const aftermath =
-          kind === "throw" ? 2.6 : kind === "aerial" ? 2.2 : move.tier >= 3 ? 1.6 : move.tier === 2 ? 0.9 : 0.45;
-        const limit = Math.min(39.8, move.end + aftermath);
+        const profile = HIT_PROFILE[kindOf(move)];
+        const settleRate = Math.max(0.55, move.rate * cfgRef.current.speed * profile.settleRate);
+        const limit = Math.min(39.8, move.end + profile.recovery);
         if (limit > video.currentTime + 0.1) {
           settling.current = true;
           stopAt.current = limit;
-          lockUntil.current =
-            performance.now() +
-            ((limit - video.currentTime) / Math.max(0.55, move.rate * cfgRef.current.speed * 0.85)) *
-              1000;
+          lockUntil.current = performance.now() + ((limit - video.currentTime) / settleRate) * 1000;
           // Slightly slower so the landing and the struggle read clearly.
-          video.playbackRate = Math.max(0.55, move.rate * cfgRef.current.speed * 0.85);
+          video.playbackRate = settleRate;
           void video.play();
           return;
         }
@@ -797,7 +840,11 @@ export function Arena({
             balance, recovery). */}
         <div
           className={`absolute inset-0 ${reactionClass}`}
-          style={{ ["--hit-dir" as string]: String(reaction?.dir ?? 1) }}
+          style={{
+            ["--hit-dir" as string]: String(reaction?.dir ?? 1),
+            ["--hit-force" as string]: String(reaction?.force ?? 1),
+            ...(reaction ? { animationDuration: `${reaction.stun}ms` } : {}),
+          }}
         >
           {[0, 1].map((layer) => (
             <video
