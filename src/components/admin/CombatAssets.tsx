@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ALL_SCENES } from "@/lib/scenes";
 import { clipInspectorRows, clipInventory } from "@/lib/combatClipRegistry";
 import { trueVarietyReport } from "@/lib/visualClusters";
+import { CombatAssetProduction } from "@/components/admin/CombatAssetProduction";
 import {
   plannedAssetRows,
   plannedCoverageReport,
@@ -183,6 +184,8 @@ export function CombatAssets() {
           </div>
         ) : null}
       </div>
+
+      <CombatAssetProduction />
     </section>
   );
 }
