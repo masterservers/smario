@@ -618,7 +618,7 @@
 @media (orientation: landscape) and (max-height: 600px) {
   .arena-video {
     object-fit: cover;
-    object-position: center 45%;
+    object-position: center 32%;
     transform: none;
   }
 }
