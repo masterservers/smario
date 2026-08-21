@@ -400,6 +400,9 @@ export function Arena({
   const stopAt = useRef(0);
   const impactAt = useRef(0);
   const impacted = useRef(false);
+  /** True while a spot is playing out its aftermath (landing, struggle). */
+  const settling = useRef(false);
+
   const currentEvent = useRef<GiftEvent | null>(null);
   const currentMove = useRef<Move | null>(null);
   const recentMoves = useRef<string[]>([]);
