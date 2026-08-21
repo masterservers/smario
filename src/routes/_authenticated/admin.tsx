@@ -21,6 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   claimFirstAdmin,
+  probeTikTokSource,
+  type SourceProbe,
   getMyStaffRole,
   listAuditLog,
   logAdminChange,
@@ -73,6 +75,11 @@ function AdminPage() {
   const [role, setRole] = useState<StaffRole | "loading">("loading");
   const [actor, setActor] = useState<string | null>(null);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [probes, setProbes] = useState<Record<"liveUrl" | "webhookUrl", SourceProbe | null>>({
+    liveUrl: null,
+    webhookUrl: null,
+  });
+  const [probing, setProbing] = useState<"liveUrl" | "webhookUrl" | null>(null);
   const names = sideNames(lang);
   const pending = useRef<Map<string, number>>(new Map());
 
@@ -404,6 +411,85 @@ function AdminPage() {
               ? "Relay configured — gifts posted to this endpoint land in the arena."
               : "No relay endpoint yet — gifts only come from the in-app dock."}
           </span>
+        </div>
+
+        {/* Connection test — read-only, never interrupts the running match */}
+        <div className="mt-4 rounded-xl border border-border/60 bg-background/40 p-3">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Connection test
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Checks the live room and the relay endpoint without touching the current session.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {(["liveUrl", "webhookUrl"] as const).map((field) => {
+              const url = admin.tiktok[field];
+              const probe = probes[field];
+              return (
+                <div key={field} className="rounded-lg border border-border/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {field === "liveUrl" ? "Live room" : "Gift relay"}
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!url || probing === field}
+                      onClick={() => {
+                        setProbing(field);
+                        void probeTikTokSource({ data: { url } })
+                          .then((result) => {
+                            setProbes((current) => ({ ...current, [field]: result }));
+                            record("tiktok", `test ${field}`, {
+                              ok: result.ok,
+                              status: result.status,
+                            });
+                          })
+                          .catch((error: unknown) =>
+                            setProbes((current) => ({
+                              ...current,
+                              [field]: {
+                                ok: false,
+                                status: null,
+                                latencyMs: 0,
+                                message:
+                                  error instanceof Error ? error.message : "Test failed",
+                              },
+                            })),
+                          )
+                          .finally(() => setProbing(null));
+                      }}
+                    >
+                      {probing === field ? "Testing…" : "Test"}
+                    </Button>
+                  </div>
+                  <p className="mt-2 break-all text-xs text-muted-foreground">
+                    {url || "Not configured"}
+                  </p>
+                  {probe && (
+                    <p
+                      className={`mt-2 text-xs ${probe.ok ? "text-emerald-400" : "text-destructive"}`}
+                    >
+                      {probe.ok ? "● Online" : "● Problem"} — {probe.message}
+                      {probe.status ? ` (HTTP ${probe.status})` : ""} · {probe.latencyMs} ms
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 text-xs text-muted-foreground">
+            {history[0] ? (
+              <>
+                Last live event: {GIFT_BY_ID[history[0].gift as GiftId]?.emoji ?? "🎁"}{" "}
+                {history[0].gift} → {history[0].side === "ru" ? names.ruTeam : names.usTeam} from{" "}
+                {history[0].sender} · {new Date(history[0].created_at).toLocaleTimeString()}
+              </>
+            ) : (
+              "No events received yet."
+            )}
+          </div>
         </div>
       </section>
 
