@@ -104,6 +104,7 @@ function LivePage() {
 
   const summary = useRoundSummary(matchId, round, events, lang);
   const t = UI_TEXT[lang];
+  const names = SIDE_NAME[lang];
 
   useEffect(() => {
     document.documentElement.lang = lang;
