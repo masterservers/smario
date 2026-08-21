@@ -344,6 +344,7 @@ export function resolveBundle(bundle: ConfigBundle): { scenes: SceneConfig; hits
 
   const hits: HitConfig = {
     gifts: { ...currentHits.gifts },
+    rounds: { ...currentHits.rounds },
     referee: { ...currentHits.referee, ...defined(bundle.hits?.referee) } as HitConfig["referee"],
   };
   for (const gift of GIFTS) {
