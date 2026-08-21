@@ -494,6 +494,25 @@ export function useCommentary(
     push(`${label}${intro}`, "idle");
   }, [lang, round]);
 
+  // Premium neural voice: pre-generate the lines that must fire instantly and
+  // always match the event — the referee's ten counts, the "back up" call, the
+  // knockdown shout and the knockout call — in the selected language.
+  useEffect(() => {
+    if (muted) return;
+    const names = sideVoiceNames(lang);
+    const r = REFEREE_LINES[lang];
+    const ui = UI_TEXT[lang];
+    for (const fighter of [names.ru, names.us]) {
+      for (let n = 1; n <= 10; n += 1) {
+        prefetchVoice(r.count(n, fighter), lang, n >= 8 ? "ko" : "big");
+      }
+      prefetchVoice(r.ko(fighter), lang, "ko");
+      prefetchVoice(r.up(fighter), lang, "normal");
+      prefetchVoice(`${ui.knockdown.toUpperCase()} — ${fighter}!`, lang, "big");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, muted]);
+
   // Voice list loads asynchronously in most browsers; warm it up so the very
   // first call already uses the male voice.
   useEffect(() => {
