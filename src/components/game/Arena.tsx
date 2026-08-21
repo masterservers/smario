@@ -76,13 +76,13 @@ type Frame = { x: number; y: number; scale: number; rotate: number };
 
 const FRAMES: Frame[] = [
   { x: 0, y: 0, scale: 1, rotate: 0 },
-  { x: -4.5, y: 0.5, scale: 1.04, rotate: -0.9 },
-  { x: 4.5, y: 0.5, scale: 1.04, rotate: 0.9 },
-  { x: -6, y: -1, scale: 1.06, rotate: 1.1 },
-  { x: 6, y: -1, scale: 1.06, rotate: -1.1 },
-  { x: 0, y: 1.5, scale: 0.97, rotate: 0 },
-  { x: -2.5, y: -1.5, scale: 1.02, rotate: 0.6 },
-  { x: 2.5, y: -1.5, scale: 1.02, rotate: -0.6 },
+  { x: -2.2, y: 0.3, scale: 1, rotate: -0.5 },
+  { x: 2.2, y: 0.3, scale: 1, rotate: 0.5 },
+  { x: -3, y: -0.6, scale: 0.99, rotate: 0.6 },
+  { x: 3, y: -0.6, scale: 0.99, rotate: -0.6 },
+  { x: 0, y: 0.8, scale: 0.97, rotate: 0 },
+  { x: -1.4, y: -0.8, scale: 1, rotate: 0.35 },
+  { x: 1.4, y: -0.8, scale: 1, rotate: -0.35 },
 ];
 
 /** Each block of the reel gets its own corner of the ring, plus a little drift. */
