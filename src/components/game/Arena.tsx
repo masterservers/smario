@@ -128,9 +128,17 @@ type Props = {
   ko: Side | null;
   combo: number;
   comboSide: Side | null;
+  /** True while the referee is counting — the sequence holds on the mat. */
+  paused?: boolean;
+  /** The ten-count is finished, so the knockout headline is official. */
+  koConfirmed?: boolean;
+  /** Real-time trace of triggered moves, impacts, KO and replay. */
+  onLog?: (kind: "move" | "impact" | "ko" | "replay", text: string) => void;
 };
 
-export function Arena({ lang, events, ko, combo, comboSide }: Props) {
+export function Arena({ lang, events, ko, combo, comboSide, paused = false, koConfirmed = true, onLog }: Props) {
+  const logRef = useRef(onLog);
+  logRef.current = onLog;
   const videoRef = useRef<HTMLVideoElement>(null);
   const seen = useRef<Set<string>>(new Set());
   const queue = useRef<GiftEvent[]>([]);
@@ -179,6 +187,14 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   };
 
 
+  // While the referee counts, the picture holds on the downed fighter.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || ko) return;
+    if (paused) video.pause();
+    else if (playing.current) void video.play();
+  }, [paused, ko]);
+
   useEffect(() => {
     if (!primed.current) {
       if (events.length === 0) return;
@@ -207,6 +223,8 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     const finisher = MOVES.find((move) => move.id === "finisher")!;
     cheer(2);
     setReplay(true);
+    logRef.current?.("ko", `KO — ${ko === "ru" ? names.us : names.ru} down`);
+    logRef.current?.("replay", "slow-motion replay");
 
     // Replay: rewind slightly before the finish and play it back in slow motion.
     video.playbackRate = 0.45;
@@ -243,6 +261,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
 
       // A big spot leaves the opponent flat on the mat — chain corner climbs and
       // dives onto the downed fighter before taking new gifts.
+      if (paused) return;
       const pendingFollow = follow.current;
       const event = pendingFollow ? pendingFollow.event : queue.current.shift();
       if (!event) return;
@@ -283,13 +302,14 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         },
       ]);
 
+      logRef.current?.("move", `${event.side.toUpperCase()} · ${move.label}`);
       seek(video, move.start);
       video.playbackRate = move.rate;
       void video.play();
 
     }, 80);
     return () => window.clearInterval(timer);
-  }, [ko]);
+  }, [ko, paused]);
 
   const handleTimeUpdate = () => {
     const video = videoRef.current;
@@ -410,7 +430,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
 
       {/* Knockout: no overlay panel over the ring — the loser stays down on the
           mat and only a headline sits at the top-centre of the screen. */}
-      {ko && (
+      {ko && koConfirmed && (
         <div className="pointer-events-none absolute inset-x-0 top-[8%] z-20 flex flex-col items-center gap-1 text-center">
           {replay && (
             <div className="display animate-fade-in text-xs tracking-widest text-outline opacity-80 sm:text-sm">
