@@ -174,6 +174,13 @@ function drawLRU<T extends { id: string }>(
     const smooth = list.filter(prefer);
     if (smooth.length > 0) list = smooth;
   }
+  // Round colour: each round leans towards a different family of scenes
+  // (striking, kicks, rope work, throws, mat work) so the match never repeats
+  // the same rhythm. Soft filter — the LRU cycle stays in charge.
+  if (Math.random() < 0.7) {
+    const themed = list.filter((item) => inRoundTheme(item as { label?: string }));
+    if (themed.length > 0) list = themed;
+  }
   const chosen = list[Math.floor(Math.random() * list.length)]!;
   // Weighted cost: a heavier scene "ages" more slowly and returns sooner.
   usage.set(chosen.id, cost(chosen.id) + 1 / Math.max(0.25, weightOf(chosen.id)));
