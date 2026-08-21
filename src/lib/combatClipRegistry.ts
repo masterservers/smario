@@ -147,7 +147,7 @@ for (const cluster of VISUAL_CLUSTERS) {
     locationStart: "center",
     locationEnd: states.location,
     attackerSide: "either",
-    requiresGroundedOpponent: cluster.family === "mat" ? true : undefined,
+    ...(cluster.family === "mat" ? { requiresGroundedOpponent: true } : {}),
     clusterId: cluster.id,
     tags: [cluster.family, cluster.kind, "legacy"],
     enabled: true,
