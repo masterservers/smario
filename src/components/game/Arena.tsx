@@ -65,9 +65,18 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   useEffect(() => {
     const timer = window.setInterval(() => {
       const video = videoRef.current;
-      if (!video || ko || playing.current) return;
+      if (!video || ko) return;
+      if (playing.current) return;
+      // Idle loop: keep both fighters visible and moving in the ring
+      if (video.paused || video.currentTime < IDLE_START || video.currentTime > IDLE_END) {
+        if (video.currentTime < IDLE_START || video.currentTime > IDLE_END) {
+          video.currentTime = IDLE_START;
+        }
+        void video.play();
+      }
       const event = queue.current.shift();
       if (!event) return;
+
 
       const sequence = SEQUENCES[event.gift] ?? SEQUENCES['rose'];
       if (!sequence) return;
