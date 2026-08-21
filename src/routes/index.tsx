@@ -68,8 +68,6 @@ function BattleRoute() {
 
 function BattlePage() {
   const { lang } = Route.useSearch();
-  const navigate = useNavigate({ from: Route.fullPath });
-  const hud = useHudHeight();
   const [muted, setMuted] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
 
@@ -82,20 +80,8 @@ function BattlePage() {
     setCaptions(loadSubtitlesOn());
   }, []);
 
-  const changeVariety = useCallback((value: VarietyConfig) => {
-    setVariety(value);
-    saveVariety(value);
-  }, []);
-
-  const changeDifficulty = useCallback((value: Difficulty) => {
-    setDifficulty(value);
-    saveDifficulty(value);
-  }, []);
-
-  const [showBoard, setShowBoard] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const [showLog, setShowLog] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
+
 
   const pushLog = useCallback((kind: LogKind, text: string) => {
     setLog((prev) => [
