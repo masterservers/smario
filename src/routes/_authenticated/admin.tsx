@@ -168,7 +168,57 @@ function AdminPage() {
     return (
       <main className="mx-auto w-full max-w-4xl px-4 py-16 text-sm text-muted-foreground">
         Checking your access…
-      </main>
+  
+      {/* Audit log ------------------------------------------------------ */}
+      <section className="panel mt-8 rounded-2xl p-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+            Audit log
+          </h2>
+          <Button type="button" size="sm" variant="outline" onClick={() => void loadAudit()}>
+            Refresh
+          </Button>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Every change made in this console: who did it, when, and exactly what changed.
+        </p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="text-muted-foreground">
+              <tr>
+                <th className="py-1 pr-3">When</th>
+                <th className="py-1 pr-3">Who</th>
+                <th className="py-1 pr-3">Section</th>
+                <th className="py-1 pr-3">Change</th>
+                <th className="py-1">Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {audit.map((entry) => (
+                <tr key={entry.id} className="border-t border-border/60 align-top">
+                  <td className="py-1.5 pr-3 text-muted-foreground">
+                    {new Date(entry.created_at).toLocaleString()}
+                  </td>
+                  <td className="py-1.5 pr-3">{entry.actor_email ?? "—"}</td>
+                  <td className="py-1.5 pr-3">{entry.section}</td>
+                  <td className="py-1.5 pr-3">{entry.action}</td>
+                  <td className="py-1.5 break-all text-muted-foreground">
+                    {JSON.stringify(entry.details)}
+                  </td>
+                </tr>
+              ))}
+              {audit.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-3 text-muted-foreground">
+                    No changes recorded yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
     );
   }
 
@@ -501,6 +551,7 @@ function AdminPage() {
           onClick={() => {
             saveGiftConfig(config);
             setSaved(true);
+            record("gifts", "save", { gifts: Object.keys(config).length });
           }}
         >
           Save gifts
@@ -513,6 +564,7 @@ function AdminPage() {
             setConfig(fresh);
             saveGiftConfig(fresh);
             setSaved(true);
+            record("gifts", "reset", {});
           }}
         >
           Reset gifts
