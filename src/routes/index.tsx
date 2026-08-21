@@ -5,7 +5,7 @@ import { ChatPanel } from "@/components/game/ChatPanel";
 import { GiftDock } from "@/components/game/GiftDock";
 import { EventLog, type LogEntry, type LogKind } from "@/components/game/EventLog";
 import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
-import { LangPicker } from "@/components/game/LangPicker";
+import { FightControls } from "@/components/game/FightControls";
 import { MatchSummary } from "@/components/game/MatchSummary";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Leaderboard } from "@/components/game/Leaderboard";
@@ -122,7 +122,7 @@ function BattlePage() {
 
       {/* Fixed wide ring stage. On phones it is centred in the clear space
           between the compact HUD rows, never pushed down by controls. */}
-      <div className="absolute inset-x-0 bottom-[7.25rem] top-11 bg-background sm:inset-0">
+      <div className="absolute inset-x-0 bottom-[9.75rem] top-11 bg-background md:inset-0">
         <Arena
           lang={lang}
           events={events}
@@ -191,6 +191,34 @@ function BattlePage() {
             <Leaderboard lang={lang} rows={leaders} />
           </div>
         )}
+        {/* Phones: every control lives in this bottom row, clear of the ring. */}
+        <FightControls
+          lang={lang}
+          onLang={setLang}
+          muted={muted}
+          onMute={() => setMuted((m) => !m)}
+          onChat={() => setShowChat((s) => !s)}
+          className="mx-auto flex w-full max-w-2xl items-center justify-center gap-1.5 md:hidden"
+        >
+          <Button
+            type="button"
+            onClick={() => setShowBoard((s) => !s)}
+            aria-label={t.leaderboard}
+            variant="outline"
+            size="icon"
+            className="size-8 shrink-0 rounded-full bg-background/80 text-sm backdrop-blur-md sm:size-9"
+          >
+            🔥
+          </Button>
+          <Link
+            to="/live"
+            search={{ lang }}
+            aria-label={t.watchLive}
+            className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-background/80 text-sm backdrop-blur-md sm:size-9"
+          >
+            📡
+          </Link>
+        </FightControls>
         <div className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1.5 opacity-90">
           <GiftDock
             lang={lang}
@@ -255,7 +283,6 @@ function BattlePage() {
           📡
         </Link>
       </FightControls>
-
     </main>
   );
 }
