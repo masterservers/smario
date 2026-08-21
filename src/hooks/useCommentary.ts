@@ -217,6 +217,7 @@ export function useCommentary(
   state: BattleState,
   muted: boolean,
   referee?: RefereeInput,
+  round?: number,
 ) {
   const [lines, setLines] = useState<CommentaryLine[]>([]);
   const lastEventId = useRef<string | null>(null);
@@ -415,11 +416,15 @@ export function useCommentary(
     return () => window.clearInterval(timer);
   }, []);
 
-  // Round intro whenever the language changes or the fight resets.
+  // Round intro whenever the language changes or a new round starts — the call
+  // is always spoken in the currently selected broadcast language.
   useEffect(() => {
     const names = sideVoiceNames(lang);
-    push(pick(COMMENTARY[lang].roundStart)(names.ru, names.us), "idle");
-  }, [lang]);
+    const intro = pick(COMMENTARY[lang].roundStart)(names.ru, names.us);
+    const label =
+      round && round > 0 ? `${UI_TEXT[lang].round} ${round} — ` : "";
+    push(`${label}${intro}`, "idle");
+  }, [lang, round]);
 
   // Voice list loads asynchronously in most browsers; warm it up so the very
   // first call already uses the male voice.

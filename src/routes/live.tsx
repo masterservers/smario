@@ -88,7 +88,7 @@ function LivePage() {
 
   const { matchId, round, events, state, viewers, nickname, ready, sendGift } = useLiveMatch(lang);
   const referee = useReferee(state.hpRu, state.hpUs, state.ko);
-  useCommentary(lang, events, state, muted, referee);
+  useCommentary(lang, events, state, muted, referee, round);
   const banner = useTopBanner({
     lang,
     matchId,
