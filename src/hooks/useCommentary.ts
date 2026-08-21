@@ -300,9 +300,23 @@ export function useCommentary(
       if (ambient.length === 0) return;
       push(pick(ambient), "idle");
     };
+    // Sparring impact: a real call for the move that just landed, but it never
+    // steps on a gift hit, a referee count or a knockout.
+    sparAnnouncer = ({ side, label, tier }) => {
+      if (pendingCalls.current.size > 0) return;
+      if (commentaryBusy()) return;
+      const names = sideVoiceNames(langRef.current);
+      const attacker = side === "ru" ? names.ru : names.us;
+      const defender = side === "ru" ? names.us : names.ru;
+      const family = familyOf({ label });
+      const pack = FAMILY_LINES[langRef.current][family].action;
+      if (pack.length === 0) return;
+      push(pick(pack)(attacker, defender), tier >= 4 ? "big" : "hit");
+    };
     return () => {
       hitAnnouncer = null;
       sceneAnnouncer = null;
+      sparAnnouncer = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
