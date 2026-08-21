@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import beanImg from "@/assets/mr-bean-ref-cutout.png";
 import type { Lang } from "@/lib/i18n";
+import { useDebugView } from "@/lib/debugView";
 
 /** The gags the referee runs between exchanges. */
 type Gag = "break" | "hit" | "count" | "comic" | "separate" | "stray";
@@ -70,6 +71,7 @@ type Props = {
  */
 export function MrBeanReferee({ lang, beat, counting }: Props) {
   const [run, setRun] = useState<{ id: number; gag: Gag; from: "left" | "right" } | null>(null);
+  const debug = useDebugView();
 
   // Fixed cadence — one intervention every INTERVAL_MS, in a stable rotation.
   useEffect(() => {
@@ -110,10 +112,16 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
     // The reel is 16:9 and letterboxed, so Bean lives inside the same box — he
     // always stands on the mat, never down in the black bars.
     <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
-      <div className="relative aspect-video max-h-full w-full max-w-full">
+      <div
+        className={`relative aspect-video max-h-full w-full max-w-full ${
+          debug ? "outline outline-1 outline-sky-400/80" : ""
+        }`}
+      >
         <div
           key={`${run.id}-${struck}`}
           className={`bean-ref absolute bottom-[4%] top-[46%] flex flex-col items-center justify-end ${
+            debug ? "outline outline-1 outline-lime-400/90" : ""
+          } ${
             run.from === "left"
               ? `bean-ref-left ${separating ? "left-[26%]" : "left-[6%]"}`
               : `bean-ref-right ${separating ? "right-[26%]" : "right-[6%]"}`
@@ -127,6 +135,8 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
             alt="Referee Mr. Bean stepping between the fighters"
             loading="lazy"
             className={`h-full min-h-0 w-auto object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.65)] ${
+              debug ? "outline outline-1 outline-rose-400/90" : ""
+            } ${
               takesHit
                 ? "bean-ref-hit"
                 : separating

@@ -11,6 +11,8 @@ import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
 import { useRemoteConfig } from "@/lib/useRemoteConfig";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { MrBeanReferee } from "@/components/game/MrBeanReferee";
+import { LayoutDebug } from "@/components/game/LayoutDebug";
+import { useDebugView } from "@/lib/debugView";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Button } from "@/components/ui/button";
 import { announceHit, announceScene, useCommentary } from "@/hooks/useCommentary";
@@ -69,6 +71,7 @@ function BattlePage() {
   const lang = useBroadcastLang(linkLang);
   const [muted, setMuted] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
+  const debugView = useDebugView();
 
   const [variety, setVariety] = useState<VarietyConfig>(VARIETY_DEFAULT);
   const [captions, setCaptions] = useState(true);
@@ -186,6 +189,8 @@ function BattlePage() {
         />
         <RefereeCount lang={lang} referee={referee} />
         <SceneDebugPanel />
+        {/* Bounding boxes and safe-area guides — toggled with the "D" key or ?debug=1. */}
+        {debugView ? <LayoutDebug /> : null}
       </div>
 
       {/* Slim HUD strip on top — scoreboard only */}
