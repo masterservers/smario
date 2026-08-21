@@ -45,7 +45,7 @@ function LivePage() {
   const [muted, setMuted] = useState(true);
   const [showChat, setShowChat] = useState(false);
 
-  const { round, events, state, viewers, nickname, ready, sendGift } = useLiveMatch();
+  const { round, events, state, viewers, nickname, ready, sendGift } = useLiveMatch(lang);
   const referee = useReferee(state.hpRu, state.hpUs, state.ko);
   useCommentary(lang, events, state, muted, referee);
 
