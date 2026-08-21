@@ -166,6 +166,7 @@ export function Arena({ lang, events, ko, combo, comboSide, paused = false, koCo
   const [attacker, setAttacker] = useState<Side>("us");
   const [crowd, setCrowd] = useState(0);
   const [replay, setReplay] = useState(false);
+  const [champion, setChampion] = useState(false);
   const [impact, setImpact] = useState<{ id: string; side: Side; label: string } | null>(null);
   const [floats, setFloats] = useState<FloatItem[]>([]);
 
@@ -228,14 +229,29 @@ export function Arena({ lang, events, ko, combo, comboSide, paused = false, koCo
     seek(video, Math.max(0, finisher.impact - 1.2));
     void video.play();
 
+    let pose = 0;
     const settle = window.setTimeout(() => {
       setReplay(false);
       video.playbackRate = 0.35;
       seek(video, finisher.impact);
       void video.play();
       window.setTimeout(() => video.pause(), 900);
+
+      // The winner then walks the ring with both hands raised.
+      pose = window.setTimeout(() => {
+        setChampion(true);
+        video.playbackRate = CHAMPION_POSE.rate;
+        seek(video, CHAMPION_POSE.start);
+        void video.play();
+        cheer(2);
+        logRef.current?.("ko", `champion pose — ${ko === "ru" ? names.ru : names.us}`);
+      }, 2600);
     }, 2500);
-    return () => window.clearTimeout(settle);
+    return () => {
+      window.clearTimeout(settle);
+      window.clearTimeout(pose);
+      setChampion(false);
+    };
   }, [ko]);
 
   useEffect(() => {
@@ -268,14 +284,14 @@ export function Arena({ lang, events, ko, combo, comboSide, paused = false, koCo
       const move = pendingFollow
         ? pendingFollow.move
         : pick(movesForTier(tier), recentMoves.current, (m) => m.id);
-      recentMoves.current = [...recentMoves.current, move.id].slice(-6);
+      recentMoves.current = [...recentMoves.current, move.id].slice(-12);
 
       // Chance of a follow-up: high after a big spot, still possible after a
       // chained one so we get 2-3 spot sequences without visible repetition.
       const chance = pendingFollow ? 0.4 : tier >= 4 ? 0.85 : tier === 3 ? 0.55 : 0.15;
       if (Math.random() < chance) {
         const next = pick(FOLLOW_UPS, recentFollows.current, (m) => m.id);
-        recentFollows.current = [...recentFollows.current, next.id].slice(-5);
+        recentFollows.current = [...recentFollows.current, next.id].slice(-7);
         follow.current = { event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` }, move: next };
       }
 
@@ -389,6 +405,11 @@ export function Arena({ lang, events, ko, combo, comboSide, paused = false, koCo
           <div className="display text-xl text-outline sm:text-3xl">
             {ko === "ru" ? names.us : names.ru} — {t.knockedDown}
           </div>
+          {champion && (
+            <div className="display animate-fade-in text-lg text-gold text-outline sm:text-2xl">
+              🏆 {ko === "ru" ? names.ru : names.us}
+            </div>
+          )}
         </div>
       )}
     </div>
