@@ -745,6 +745,15 @@ export function Arena({
       setPhase("windup");
       setFrame(clampFrame(shot));
       switchScene(entry, move.rate * cfgRef.current.speed, true);
+      sceneStartedAt.current = performance.now();
+      sceneStarted({
+        id: move.id,
+        label: move.label,
+        group: pendingFollow ? "follow" : "move",
+        plannedMs: lockUntil.current - performance.now(),
+        reason: pendingFollow ? "follow-up spot" : `gift ${event.gift} (${event.side})`,
+      });
+
 
     }, cfg.tickMs);
     return () => window.clearInterval(timer);
