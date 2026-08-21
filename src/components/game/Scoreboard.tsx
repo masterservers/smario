@@ -20,7 +20,7 @@ function hpColor(hp: number) {
 
 function HpBar({ hp, align }: { hp: number; align: "left" | "right" }) {
   return (
-    <div className="h-1.5 w-full overflow-hidden bg-background/70 ring-1 ring-border">
+    <div className="h-1 w-full overflow-hidden rounded-full bg-background/70 ring-1 ring-border">
       <div
         className="h-full transition-[width] duration-500 ease-out"
         style={{
@@ -47,29 +47,29 @@ export function Scoreboard({
   const names = SIDE_NAME[lang];
 
   return (
-    <div className="relative border-b border-border bg-background/80 px-2 py-1 sm:px-4">
+    <div className="pointer-events-none mx-auto mt-1 w-[min(96vw,44rem)] rounded-full border border-border bg-background/55 px-3 py-1 backdrop-blur-md">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-base leading-none sm:text-lg">🇷🇺</span>
             <span
-              className="display truncate text-sm leading-none sm:text-lg"
+              className="display truncate text-xs leading-none sm:text-sm"
               style={{ color: "var(--ru-glow)" }}
             >
               {names.ruTeam}
             </span>
             {leader === "ru" && <span className="text-xs">👑</span>}
-            <span className="display ml-auto text-lg leading-none sm:text-2xl" style={{ color: "var(--ru-glow)" }}>
+            <span className="display ml-auto text-base leading-none sm:text-xl" style={{ color: "var(--ru-glow)" }}>
               {scoreRu}
             </span>
           </div>
-          <div className="mt-1">
+          <div className="mt-0.5">
             <HpBar hp={hpRu} align="left" />
           </div>
         </div>
 
         <div className="flex flex-col items-center px-1 leading-none">
-          <span className="display text-base text-gold sm:text-xl">VS</span>
+          <span className="display text-sm text-gold sm:text-base">VS</span>
           <span className="mt-1 text-[8px] uppercase text-muted-foreground sm:text-[9px]">
             {t.round} {round} · {viewers}
           </span>
@@ -77,19 +77,19 @@ export function Scoreboard({
 
         <div className="min-w-0 text-right">
           <div className="flex items-center justify-end gap-1.5">
-            <span className="display mr-auto text-lg leading-none sm:text-2xl" style={{ color: "var(--us-glow)" }}>
+            <span className="display mr-auto text-base leading-none sm:text-xl" style={{ color: "var(--us-glow)" }}>
               {scoreUs}
             </span>
             {leader === "us" && <span className="text-xs">👑</span>}
             <span
-              className="display truncate text-sm leading-none sm:text-lg"
+              className="display truncate text-xs leading-none sm:text-sm"
               style={{ color: "var(--us-glow)" }}
             >
               {names.usTeam}
             </span>
             <span className="text-base leading-none sm:text-lg">🇺🇸</span>
           </div>
-          <div className="mt-1">
+          <div className="mt-0.5">
             <HpBar hp={hpUs} align="right" />
           </div>
         </div>

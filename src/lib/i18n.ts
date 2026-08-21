@@ -28,6 +28,10 @@ type UI = {
   noSupporters: string;
   knockout: string;
   knockedDown: string;
+  count: string;
+  backUp: string;
+  watchLive: string;
+  eventLog: string;
   wins: string;
   nextMatch: string;
   you: string;
@@ -47,6 +51,10 @@ export const UI_TEXT: Record<Lang, UI> = {
     hint: "Type RUSSIA / PUTIN to hit for Russia, USA / TRUMP to hit for America.",
     commentator: "Commentator",
     referee: "Referee",
+    count: "COUNT",
+    backUp: "beats the count and is back up!",
+    watchLive: "Watch live",
+    eventLog: "Live events",
     leaderboard: "Daily ranking",
     topSupporters: "Top supporters",
     noSupporters: "No gifts yet — be the first!",
@@ -69,6 +77,10 @@ export const UI_TEXT: Record<Lang, UI> = {
     hint: "Schreibe RUSSIA / PUTIN für Russland, USA / TRUMP für Amerika.",
     commentator: "Kommentator",
     referee: "Schiedsrichter",
+    count: "ANZÄHLEN",
+    backUp: "steht wieder auf!",
+    watchLive: "Live zuschauen",
+    eventLog: "Live-Ereignisse",
     leaderboard: "Tagesrangliste",
     topSupporters: "Top-Unterstützer",
     noSupporters: "Noch keine Geschenke — sei der Erste!",
@@ -91,6 +103,10 @@ export const UI_TEXT: Record<Lang, UI> = {
     hint: "Ukucaj RUSIJA / PUTIN za Rusiju, USA / TRAMP za Ameriku.",
     commentator: "Komentator",
     referee: "Sudija",
+    count: "BROJANJE",
+    backUp: "ustaje pre kraja brojanja!",
+    watchLive: "Gledaj uživo",
+    eventLog: "Događaji uživo",
     leaderboard: "Dnevna lista",
     topSupporters: "Najbolji navijači",
     noSupporters: "Još nema poklona — budi prvi!",
@@ -113,6 +129,10 @@ export const UI_TEXT: Record<Lang, UI> = {
     hint: "Scrie RUSIA / PUTIN pentru Rusia, USA / TRUMP pentru America.",
     commentator: "Crainic",
     referee: "Arbitru",
+    count: "NUMĂRĂTOARE",
+    backUp: "se ridică înainte de final!",
+    watchLive: "Vezi live",
+    eventLog: "Evenimente live",
     leaderboard: "Clasament zilnic",
     topSupporters: "Cei mai buni suporteri",
     noSupporters: "Încă niciun cadou — fii primul!",
@@ -135,6 +155,10 @@ export const UI_TEXT: Record<Lang, UI> = {
     hint: "Напиши RUSSIA / ПУТИН за Россию, USA / ТРАМП за Америку.",
     commentator: "Комментатор",
     referee: "Судья",
+    count: "ОТСЧЁТ",
+    backUp: "поднимается до конца счёта!",
+    watchLive: "Смотреть live",
+    eventLog: "События в эфире",
     leaderboard: "Дневной рейтинг",
     topSupporters: "Лучшие болельщики",
     noSupporters: "Подарков пока нет — будь первым!",
@@ -277,4 +301,39 @@ export const SIDE_NAME: Record<Lang, { ru: string; us: string; ruTeam: string; u
   sr: { ru: "Putin", us: "Tramp", ruTeam: "RUSIJA", usTeam: "SAD" },
   ro: { ru: "Putin", us: "Trump", ruTeam: "RUSIA", usTeam: "USA" },
   ru: { ru: "Путин", us: "Трамп", ruTeam: "РОССИЯ", usTeam: "США" },
+};
+
+type RefLines = {
+  count: (n: number, fighter: string) => string;
+  up: (fighter: string) => string;
+  ko: (fighter: string) => string;
+};
+
+/** What the referee/commentator says during a count, in every language. */
+export const REFEREE_LINES: Record<Lang, RefLines> = {
+  en: {
+    count: (n, f) => `${f} is down! The referee counts ${n}!`,
+    up: (f) => `${f} beats the count and is back on his feet!`,
+    ko: (f) => `Ten! It is over — ${f} stays down. Knockout!`,
+  },
+  de: {
+    count: (n, f) => `${f} liegt am Boden! Der Schiedsrichter zählt ${n}!`,
+    up: (f) => `${f} steht vor dem Ende wieder auf!`,
+    ko: (f) => `Zehn! Vorbei — ${f} bleibt liegen. Knockout!`,
+  },
+  sr: {
+    count: (n, f) => `${f} je na podu! Sudija broji ${n}!`,
+    up: (f) => `${f} ustaje pre kraja brojanja!`,
+    ko: (f) => `Deset! Gotovo je — ${f} ostaje dole. Nokaut!`,
+  },
+  ro: {
+    count: (n, f) => `${f} este la podea! Arbitrul numără ${n}!`,
+    up: (f) => `${f} se ridică înainte de finalul numărătorii!`,
+    ko: (f) => `Zece! S-a terminat — ${f} rămâne jos. Knockout!`,
+  },
+  ru: {
+    count: (n, f) => `${f} на настиле! Судья считает ${n}!`,
+    up: (f) => `${f} поднимается до конца счёта!`,
+    ko: (f) => `Десять! Всё — ${f} остаётся лежать. Нокаут!`,
+  },
 };
