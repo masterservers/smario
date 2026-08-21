@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Arena } from "@/components/game/Arena";
 import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
 import { ChatPanel } from "@/components/game/ChatPanel";
