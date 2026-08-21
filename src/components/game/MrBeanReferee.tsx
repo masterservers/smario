@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import beanAsset from "@/assets/mr-bean-ref.png.asset.json";
+import beanImg from "@/assets/mr-bean-ref-cutout.png";
 import type { Lang } from "@/lib/i18n";
 
 /** The gags the referee runs between exchanges. */
@@ -63,18 +63,18 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
   return (
     <div
       key={run.id}
-      className={`bean-ref pointer-events-none absolute bottom-[6%] z-20 flex flex-col items-center ${
-        run.from === "left" ? "bean-ref-left left-[4%]" : "bean-ref-right right-[4%]"
+      className={`bean-ref pointer-events-none absolute bottom-[16%] z-20 flex flex-col items-center ${
+        run.from === "left" ? "bean-ref-left left-[8%]" : "bean-ref-right right-[8%]"
       }`}
     >
       <span className="display mb-1 rounded-full bg-background/70 px-2 py-0.5 text-[9px] tracking-widest text-gold text-outline backdrop-blur sm:text-xs">
         🧑‍⚖️ {line}
       </span>
       <img
-        src={beanAsset.url}
+        src={beanImg}
         alt="Referee Mr. Bean stepping between the fighters"
         loading="lazy"
-        className={`h-[26vh] max-h-[240px] w-auto object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.65)] ${
+        className={`h-[22vh] max-h-[200px] w-auto object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.65)] ${
           run.gag === "hit" ? "bean-ref-hit" : run.gag === "comic" ? "bean-ref-comic" : ""
         }`}
       />
