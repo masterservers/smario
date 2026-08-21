@@ -534,16 +534,16 @@
    enough for a vertical tool rail. Keep every control above the action. */
 @media (max-height: 600px) {
   .fight-controls {
-    top: 3.25rem;
-    right: 0.375rem;
-    bottom: auto;
-    flex-direction: row;
-    transform: none;
-    gap: 0.25rem;
+    top: 3.25rem !important;
+    right: 0.375rem !important;
+    bottom: auto !important;
+    flex-direction: row !important;
+    transform: none !important;
+    gap: 0.25rem !important;
   }
 
   .fight-secondary-control {
-    display: none;
+    display: none !important;
   }
 }
 
