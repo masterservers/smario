@@ -127,9 +127,26 @@ function LivePage() {
   );
 
   const busy = !ready;
+  const access_text = ACCESS_TEXT[lang];
   const handleSend = (side: Side, gift: GiftId, message?: string) => {
     void sendGift(side, gift, message);
   };
+
+  // An invalid, paused or expired link never reveals the broadcast.
+  if (sessionToken && (access.loading || !access.allowed)) {
+    return (
+      <main className="grid h-[100dvh] place-items-center bg-background p-6 text-center">
+        <div>
+          <h1 className="display text-lg uppercase tracking-widest">
+            {names.ru} vs {names.us}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {access.loading ? access_text.checking : access_text[access.reason === "ok" ? "unknown" : access.reason]}
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   const leader: Side | null =
     state.scoreRu === state.scoreUs ? null : state.scoreRu > state.scoreUs ? "ru" : "us";
@@ -227,10 +244,11 @@ function LivePage() {
         onLang={(next) => void navigate({ search: { lang: next }, replace: true })}
         muted={muted}
         onMute={() => setMuted((m) => !m)}
-        onChat={() => setShowChat((c) => !c)}
+        {...(access.canGift ? { onChat: () => setShowChat((c) => !c) } : {})}
         className="fight-controls absolute right-2 top-14 z-20 hidden flex-col items-center gap-2 [@media(min-width:768px)_and_(min-height:520px)]:flex"
       >
         <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />
+        {access.canGift && (
         <Link
           to="/"
           search={{ lang }}
@@ -239,6 +257,7 @@ function LivePage() {
         >
           🎁
         </Link>
+        )}
       </FightControls>
       <Subtitles />
     </main>
