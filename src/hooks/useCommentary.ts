@@ -178,16 +178,27 @@ export function useCommentary(
   mutedRef.current = muted;
 
   const recent = useRef<string[]>([]);
+  const lastToneAt = useRef<Record<CommentaryLine["tone"], number>>({
+    ko: 0,
+    big: 0,
+    hit: 0,
+    idle: 0,
+  });
   const push = (text: string, tone: CommentaryLine["tone"]) => {
-    // Never repeat one of the last lines twice in a row.
+    const now = Date.now();
+    // Spacing per lane so the same kind of call never floods the broadcast.
+    if (now - lastToneAt.current[tone] < TONE_COOLDOWN_MS[tone]) return;
+    // Never repeat one of the recent lines.
     if (recent.current.includes(text)) return;
-    recent.current = [...recent.current, text].slice(-8);
+    lastToneAt.current[tone] = now;
+    recent.current = [...recent.current, text].slice(-16);
     setLines((prev) => [
       ...prev.slice(-(MAX_LINES - 1)),
-      { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, text, tone },
+      { id: `${now}-${Math.random().toString(36).slice(2)}`, text, tone },
     ]);
-    if (!mutedRef.current) speak(text, langRef.current, tone === "ko" || tone === "big");
+    if (!mutedRef.current) speak(text, langRef.current, PRIORITY[tone]);
   };
+
 
   // Reacts to each incoming gift.
   useEffect(() => {
