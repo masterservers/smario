@@ -711,3 +711,77 @@
 @media (prefers-reduced-motion: reduce) {
   .match-title { animation: none; opacity: 1; transform: none; }
 }
+
+/* --- Mr. Bean, the ring referee ---------------------------------------
+   Comedy layer over the footage: he wanders in, tries to split the two,
+   catches a stray punch, or staggers off. Compositor-only transforms so
+   the video never re-renders. */
+.bean-ref {
+  position: absolute;
+  bottom: 12%;
+  left: 0;
+  height: 40%;
+  width: auto;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 6px 12px rgb(0 0 0 / 0.55)) saturate(0.95) contrast(1.03);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Steps between the fighters, waves both arms, backs off. */
+.bean-split { animation: bean-split 7.2s cubic-bezier(0.3, 0.8, 0.4, 1) both; }
+@keyframes bean-split {
+  0%   { opacity: 0; transform: translate3d(-30vw, 0, 0) scale(0.92); }
+  14%  { opacity: 1; transform: translate3d(18vw, 0, 0) scale(0.94); }
+  28%  { transform: translate3d(38vw, 0, 0) scale(1); }
+  36%  { transform: translate3d(38vw, -2%, 0) scale(1) rotate(-6deg); }
+  46%  { transform: translate3d(38vw, 0, 0) scale(1) rotate(6deg); }
+  56%  { transform: translate3d(38vw, -2%, 0) scale(1) rotate(-5deg); }
+  70%  { transform: translate3d(30vw, 0, 0) scale(0.98) rotate(0deg); }
+  100% { opacity: 0; transform: translate3d(-24vw, 0, 0) scale(0.9); }
+}
+
+/* Walks in, takes an accidental hit, flies back and lands flat on the mat. */
+.bean-hit { animation: bean-hit 8.6s cubic-bezier(0.25, 0.9, 0.35, 1) both; }
+@keyframes bean-hit {
+  0%   { opacity: 0; transform: translate3d(-26vw, 0, 0) scale(0.92); }
+  12%  { opacity: 1; transform: translate3d(20vw, 0, 0) scale(0.96); }
+  26%  { transform: translate3d(42vw, 0, 0) scale(1); }
+  30%  { transform: translate3d(42vw, -4%, 0) scale(1.02) rotate(-4deg); }
+  34%  { transform: translate3d(30vw, -6%, 0) scale(1) rotate(-46deg); }
+  40%  { transform: translate3d(18vw, 2%, 0) scale(0.98) rotate(-88deg); }
+  62%  { transform: translate3d(16vw, 3%, 0) scale(0.98) rotate(-90deg); }
+  74%  { transform: translate3d(18vw, 1%, 0) scale(0.98) rotate(-40deg); }
+  84%  { transform: translate3d(20vw, 0, 0) scale(0.99) rotate(-6deg); }
+  100% { opacity: 0; transform: translate3d(-20vw, 0, 0) scale(0.92) rotate(0deg); }
+}
+
+/* The long walk of a referee who lost the plot. */
+.bean-drunk { animation: bean-drunk 9.4s linear both; }
+@keyframes bean-drunk {
+  0%   { opacity: 0; transform: translate3d(-24vw, 0, 0) scale(0.92) rotate(0deg); }
+  10%  { opacity: 1; transform: translate3d(-2vw, -1%, 0) scale(0.94) rotate(-9deg); }
+  22%  { transform: translate3d(10vw, 0, 0) scale(0.95) rotate(11deg); }
+  34%  { transform: translate3d(24vw, -1%, 0) scale(0.97) rotate(-12deg); }
+  46%  { transform: translate3d(38vw, 0, 0) scale(0.99) rotate(10deg); }
+  58%  { transform: translate3d(52vw, -1%, 0) scale(1) rotate(-13deg); }
+  70%  { transform: translate3d(64vw, 1%, 0) scale(1) rotate(14deg); }
+  84%  { transform: translate3d(78vw, 0, 0) scale(1) rotate(-8deg); }
+  100% { opacity: 0; transform: translate3d(96vw, 0, 0) scale(1) rotate(6deg); }
+}
+
+/* Pops up in a corner, blows the whistle, hops, vanishes. */
+.bean-whistle { animation: bean-whistle 6.4s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes bean-whistle {
+  0%   { opacity: 0; transform: translate3d(64vw, 12%, 0) scale(0.9); }
+  16%  { opacity: 1; transform: translate3d(64vw, 0, 0) scale(0.96); }
+  30%  { transform: translate3d(64vw, -5%, 0) scale(0.98) rotate(4deg); }
+  42%  { transform: translate3d(64vw, 0, 0) scale(0.96) rotate(-4deg); }
+  54%  { transform: translate3d(64vw, -6%, 0) scale(0.98) rotate(3deg); }
+  70%  { transform: translate3d(64vw, 0, 0) scale(0.96) rotate(0deg); }
+  100% { opacity: 0; transform: translate3d(74vw, 10%, 0) scale(0.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bean-ref { animation-duration: 0.01ms; opacity: 0; }
+}
