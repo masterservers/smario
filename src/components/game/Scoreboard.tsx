@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MAX_HP, type Side } from "@/lib/battle";
 import { UI_TEXT, type Lang } from "@/lib/i18n";
-import { sideNames, useAdminConfig, useMatchTitle } from "@/lib/adminConfig";
+import { sideNames, useAdminConfig, useMatchTitle, useTitleScale } from "@/lib/adminConfig";
 
 type Props = {
   lang: Lang;
