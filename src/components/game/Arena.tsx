@@ -20,37 +20,198 @@ type Move = {
  * its foreground ropes, blur and close crop obscure the fighters.
  */
 const MOVES: Move[] = [
-  { id: "jab-a", start: 0.2, end: 1.35, impact: 1.0, label: "JAB", rate: 1.15, tier: 1 },
-  { id: "jab-b", start: 1.05, end: 2.25, impact: 1.82, label: "JAB", rate: 1.05, tier: 1 },
-  { id: "hook-a", start: 2.15, end: 3.35, impact: 3.0, label: "HOOK", rate: 1.12, tier: 1 },
-  { id: "body-shot", start: 3.25, end: 4.5, impact: 4.1, label: "BODY SHOT", rate: 1.08, tier: 1 },
-  { id: "low-kick", start: 4.35, end: 5.55, impact: 5.1, label: "LOW KICK", rate: 1.1, tier: 1 },
-  { id: "counter-jab", start: 5.45, end: 6.7, impact: 6.25, label: "COUNTER", rate: 1.08, tier: 1 },
-  { id: "short-hook", start: 7.7, end: 8.95, impact: 8.55, label: "SHORT HOOK", rate: 1.08, tier: 1 },
+  // Tier 1 — kickboxing strikes, short and snappy.
+  { id: "jab-a", start: 0.2, end: 1.3, impact: 1.0, label: "JAB", rate: 1.16, tier: 1 },
+  { id: "jab-b", start: 1.0, end: 2.15, impact: 1.8, label: "DOUBLE JAB", rate: 1.06, tier: 1 },
+  {
+    id: "cross",
+    start: 1.6,
+    end: 2.75,
+    impact: 2.35,
+    label: "STRAIGHT RIGHT",
+    rate: 1.14,
+    tier: 1,
+  },
+  { id: "hook-a", start: 2.15, end: 3.3, impact: 3.0, label: "LEFT HOOK", rate: 1.12, tier: 1 },
+  { id: "body-shot", start: 3.2, end: 4.4, impact: 4.05, label: "BODY SHOT", rate: 1.08, tier: 1 },
+  { id: "low-kick", start: 4.3, end: 5.5, impact: 5.1, label: "LOW KICK", rate: 1.1, tier: 1 },
+  { id: "teep", start: 5.0, end: 6.1, impact: 5.7, label: "PUSH KICK", rate: 1.18, tier: 1 },
+  {
+    id: "counter-jab",
+    start: 5.45,
+    end: 6.65,
+    impact: 6.25,
+    label: "COUNTER",
+    rate: 1.08,
+    tier: 1,
+  },
+  { id: "uppercut", start: 6.6, end: 7.8, impact: 7.3, label: "UPPERCUT", rate: 1.12, tier: 1 },
+  { id: "short-hook", start: 7.7, end: 8.9, impact: 8.5, label: "SHORT HOOK", rate: 1.08, tier: 1 },
+  { id: "elbow-jab", start: 8.6, end: 9.8, impact: 9.2, label: "ELBOW", rate: 1.1, tier: 1 },
 
-  { id: "combo-a", start: 0.45, end: 2.4, impact: 1.75, label: "COMBINATION", rate: 1.0, tier: 2 },
-  { id: "combo-b", start: 1.7, end: 3.7, impact: 3.0, label: "COMBINATION", rate: 1.02, tier: 2 },
-  { id: "clothesline", start: 2.9, end: 4.85, impact: 4.1, label: "CLOTHESLINE", rate: 0.98, tier: 2 },
-  { id: "counter", start: 4.6, end: 6.55, impact: 5.85, label: "COUNTER", rate: 1.0, tier: 2 },
-  { id: "running-knee", start: 5.75, end: 7.75, impact: 7.05, label: "RUNNING KNEE", rate: 1.02, tier: 2 },
-  { id: "ring-rush", start: 7.15, end: 9.25, impact: 8.55, label: "RING RUSH", rate: 1.0, tier: 2 },
+  // Tier 2 — combinations and kicks that travel across the ring.
+  { id: "combo-a", start: 0.45, end: 2.35, impact: 1.75, label: "COMBINATION", rate: 1.0, tier: 2 },
+  { id: "combo-b", start: 1.7, end: 3.6, impact: 3.0, label: "1-2-3 COMBO", rate: 1.02, tier: 2 },
+  { id: "high-kick", start: 2.5, end: 4.3, impact: 3.6, label: "HIGH KICK", rate: 1.06, tier: 2 },
+  {
+    id: "clothesline",
+    start: 2.9,
+    end: 4.8,
+    impact: 4.1,
+    label: "CLOTHESLINE",
+    rate: 0.98,
+    tier: 2,
+  },
+  {
+    id: "spinning-kick",
+    start: 3.9,
+    end: 5.8,
+    impact: 5.0,
+    label: "SPINNING KICK",
+    rate: 1.02,
+    tier: 2,
+  },
+  { id: "counter", start: 4.6, end: 6.5, impact: 5.85, label: "COUNTER KICK", rate: 1.0, tier: 2 },
+  {
+    id: "running-knee",
+    start: 5.75,
+    end: 7.7,
+    impact: 7.05,
+    label: "FLYING KNEE",
+    rate: 1.02,
+    tier: 2,
+  },
+  { id: "ring-rush", start: 7.15, end: 9.2, impact: 8.55, label: "RING RUSH", rate: 1.0, tier: 2 },
+  {
+    id: "corner-combo",
+    start: 8.0,
+    end: 9.9,
+    impact: 9.15,
+    label: "CORNER COMBO",
+    rate: 1.0,
+    tier: 2,
+  },
 
-  { id: "grapple-a", start: 0.8, end: 3.1, impact: 2.55, label: "GRAPPLE", rate: 0.94, tier: 3 },
-  { id: "grapple-b", start: 2.2, end: 4.6, impact: 3.9, label: "TAKEDOWN", rate: 0.92, tier: 3 },
-  { id: "suplex-a", start: 3.55, end: 6.0, impact: 5.25, label: "SUPLEX", rate: 0.92, tier: 3 },
-  { id: "dropkick", start: 5.05, end: 7.55, impact: 6.85, label: "DROPKICK", rate: 0.96, tier: 3 },
-  { id: "mat-work", start: 6.45, end: 9.05, impact: 8.35, label: "MAT TAKEDOWN", rate: 0.92, tier: 3 },
+  // Tier 3 — clinch work, takedowns, mat exchanges.
+  {
+    id: "grapple-a",
+    start: 0.8,
+    end: 3.0,
+    impact: 2.55,
+    label: "CLINCH KNEES",
+    rate: 0.94,
+    tier: 3,
+  },
+  { id: "grapple-b", start: 2.2, end: 4.5, impact: 3.9, label: "TAKEDOWN", rate: 0.92, tier: 3 },
+  { id: "suplex-a", start: 3.5, end: 5.9, impact: 5.25, label: "SUPLEX", rate: 0.92, tier: 3 },
+  { id: "dropkick", start: 5.0, end: 7.4, impact: 6.85, label: "DROPKICK", rate: 0.96, tier: 3 },
+  {
+    id: "corner-drive",
+    start: 6.0,
+    end: 8.3,
+    impact: 7.4,
+    label: "CORNER DRIVE",
+    rate: 0.94,
+    tier: 3,
+  },
+  {
+    id: "mat-work",
+    start: 6.45,
+    end: 8.95,
+    impact: 8.35,
+    label: "MAT TAKEDOWN",
+    rate: 0.92,
+    tier: 3,
+  },
+  {
+    id: "turnbuckle",
+    start: 7.4,
+    end: 9.8,
+    impact: 9.1,
+    label: "TURNBUCKLE SMASH",
+    rate: 0.94,
+    tier: 3,
+  },
 
-  { id: "slam-a", start: 1.25, end: 4.2, impact: 3.45, label: "BODY SLAM", rate: 0.88, tier: 4 },
-  { id: "slam-b", start: 2.65, end: 5.65, impact: 4.9, label: "POWERSLAM", rate: 0.88, tier: 4 },
-  { id: "rope-run", start: 4.15, end: 7.25, impact: 6.45, label: "ROPE ATTACK", rate: 0.9, tier: 4 },
-  { id: "corner-run", start: 5.55, end: 8.75, impact: 7.9, label: "CORNER RUSH", rate: 0.9, tier: 4 },
-  { id: "ring-throw", start: 6.7, end: 9.85, impact: 8.8, label: "RING THROW", rate: 0.88, tier: 4 },
+  // Tier 4 — big throws, rope attacks, out-of-the-ring spots.
+  { id: "slam-a", start: 1.25, end: 4.1, impact: 3.45, label: "BODY SLAM", rate: 0.88, tier: 4 },
+  { id: "slam-b", start: 2.65, end: 5.55, impact: 4.9, label: "POWERSLAM", rate: 0.88, tier: 4 },
+  {
+    id: "rope-run",
+    start: 4.15,
+    end: 7.15,
+    impact: 6.45,
+    label: "ROPE ATTACK",
+    rate: 0.9,
+    tier: 4,
+  },
+  { id: "rope-jump", start: 3.3, end: 6.3, impact: 5.5, label: "ROPE JUMP", rate: 0.88, tier: 4 },
+  {
+    id: "corner-run",
+    start: 5.55,
+    end: 8.65,
+    impact: 7.9,
+    label: "CORNER RUSH",
+    rate: 0.9,
+    tier: 4,
+  },
+  {
+    id: "ring-throw",
+    start: 6.7,
+    end: 9.8,
+    impact: 8.8,
+    label: "THROWN OUT OF THE RING",
+    rate: 0.88,
+    tier: 4,
+  },
+  {
+    id: "outside-brawl",
+    start: 0.5,
+    end: 3.7,
+    impact: 2.9,
+    label: "BRAWL OUTSIDE",
+    rate: 0.9,
+    tier: 4,
+  },
 
-  { id: "powerbomb-a", start: 1.1, end: 4.75, impact: 3.85, label: "POWERBOMB", rate: 0.84, tier: 5 },
-  { id: "finisher-a", start: 2.35, end: 6.05, impact: 5.15, label: "FINISHER", rate: 0.84, tier: 5 },
-  { id: "rope-finisher", start: 4.25, end: 8.05, impact: 7.1, label: "ROPE FINISHER", rate: 0.84, tier: 5 },
-  { id: "finisher", start: 6.05, end: 9.95, impact: 8.8, label: "FINISHER", rate: 0.82, tier: 5 },
+  // Tier 5 — finishers.
+  {
+    id: "powerbomb-a",
+    start: 1.1,
+    end: 4.65,
+    impact: 3.85,
+    label: "POWERBOMB",
+    rate: 0.84,
+    tier: 5,
+  },
+  {
+    id: "finisher-a",
+    start: 2.35,
+    end: 5.95,
+    impact: 5.15,
+    label: "SPINNING FINISHER",
+    rate: 0.84,
+    tier: 5,
+  },
+  {
+    id: "rope-finisher",
+    start: 4.25,
+    end: 7.95,
+    impact: 7.1,
+    label: "TOP-ROPE FINISHER",
+    rate: 0.84,
+    tier: 5,
+  },
+  {
+    id: "throw-finisher",
+    start: 5.1,
+    end: 8.9,
+    impact: 7.95,
+    label: "THROW FINISHER",
+    rate: 0.82,
+    tier: 5,
+  },
+  { id: "finisher", start: 6.05, end: 9.9, impact: 8.8, label: "FINISHER", rate: 0.82, tier: 5 },
 ];
 
 /**
@@ -59,14 +220,84 @@ const MOVES: Move[] = [
  * the climb/run-up is visible and the trajectory reads naturally.
  */
 const FOLLOW_UPS: Move[] = [
-  { id: "fu-splash-a", start: 0.7, end: 4.0, impact: 3.35, label: "SPLASH ON THE MAT", rate: 0.88, tier: 4 },
-  { id: "fu-elbow-a", start: 1.85, end: 5.15, impact: 4.45, label: "ELBOW DROP", rate: 0.88, tier: 4 },
-  { id: "fu-corner-a", start: 3.0, end: 6.4, impact: 5.65, label: "CORNER ATTACK", rate: 0.86, tier: 4 },
-  { id: "fu-rope-a", start: 4.15, end: 7.65, impact: 6.85, label: "ROPE DIVE", rate: 0.86, tier: 4 },
-  { id: "fu-ground-a", start: 5.35, end: 8.8, impact: 8.0, label: "GROUND ATTACK", rate: 0.88, tier: 3 },
-  { id: "fu-finisher-a", start: 6.35, end: 9.9, impact: 8.8, label: "FOLLOW-UP FINISHER", rate: 0.84, tier: 5 },
+  {
+    id: "fu-splash-a",
+    start: 0.7,
+    end: 3.9,
+    impact: 3.35,
+    label: "SPLASH ON THE MAT",
+    rate: 0.88,
+    tier: 4,
+  },
+  { id: "fu-stomp", start: 1.2, end: 3.6, impact: 2.9, label: "SOCCER KICK", rate: 0.92, tier: 3 },
+  {
+    id: "fu-elbow-a",
+    start: 1.85,
+    end: 5.05,
+    impact: 4.45,
+    label: "ELBOW DROP",
+    rate: 0.88,
+    tier: 4,
+  },
+  {
+    id: "fu-corner-a",
+    start: 3.0,
+    end: 6.3,
+    impact: 5.65,
+    label: "CORNER CLIMB",
+    rate: 0.86,
+    tier: 4,
+  },
+  {
+    id: "fu-rope-a",
+    start: 4.15,
+    end: 7.55,
+    impact: 6.85,
+    label: "ROPE DIVE",
+    rate: 0.86,
+    tier: 4,
+  },
+  { id: "fu-legdrop", start: 4.9, end: 7.9, impact: 7.2, label: "LEG DROP", rate: 0.9, tier: 3 },
+  {
+    id: "fu-ground-a",
+    start: 5.35,
+    end: 8.7,
+    impact: 8.0,
+    label: "GROUND AND POUND",
+    rate: 0.88,
+    tier: 3,
+  },
+  {
+    id: "fu-toss",
+    start: 5.9,
+    end: 9.2,
+    impact: 8.4,
+    label: "TOSS OVER THE ROPES",
+    rate: 0.86,
+    tier: 4,
+  },
+  {
+    id: "fu-moonsault",
+    start: 2.4,
+    end: 5.8,
+    impact: 5.0,
+    label: "MOONSAULT",
+    rate: 0.84,
+    tier: 4,
+  },
+  {
+    id: "fu-finisher-a",
+    start: 6.35,
+    end: 9.85,
+    impact: 8.8,
+    label: "FOLLOW-UP FINISHER",
+    rate: 0.84,
+    tier: 5,
+  },
 ];
 
+/** Victory pose: the winner walks the ring with both hands raised. */
+const CHAMPION_POSE = { start: 7.2, end: 9.9, rate: 0.7 };
 
 const GIFT_TIER: Record<string, number> = {
   rose: 1,
@@ -87,8 +318,10 @@ const IDLE_SCENES: Array<{ start: number; end: number; rate: number }> = [
   { start: 2.8, end: 5.4, rate: 0.76 },
   { start: 4.8, end: 7.5, rate: 0.78 },
   { start: 6.8, end: 9.8, rate: 0.8 },
+  { start: 0.6, end: 3.2, rate: 0.7 },
+  { start: 3.4, end: 6.1, rate: 0.74 },
+  { start: 5.6, end: 8.6, rate: 0.82 },
 ];
-
 
 function pick<T>(items: T[], avoid: string[] = [], key?: (item: T) => string): T {
   const pool = key ? items.filter((item) => !avoid.includes(key(item))) : items;
@@ -118,7 +351,16 @@ type Props = {
   onLog?: (kind: "move" | "impact" | "ko" | "replay", text: string) => void;
 };
 
-export function Arena({ lang, events, ko, combo, comboSide, paused = false, koConfirmed = true, onLog }: Props) {
+export function Arena({
+  lang,
+  events,
+  ko,
+  combo,
+  comboSide,
+  paused = false,
+  koConfirmed = true,
+  onLog,
+}: Props) {
   const logRef = useRef(onLog);
   logRef.current = onLog;
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -139,6 +381,7 @@ export function Arena({ lang, events, ko, combo, comboSide, paused = false, koCo
   const [attacker, setAttacker] = useState<Side>("us");
   const [crowd, setCrowd] = useState(0);
   const [replay, setReplay] = useState(false);
+  const [champion, setChampion] = useState(false);
   const [impact, setImpact] = useState<{ id: string; side: Side; label: string } | null>(null);
   const [floats, setFloats] = useState<FloatItem[]>([]);
 
@@ -155,7 +398,6 @@ export function Arena({ lang, events, ko, combo, comboSide, paused = false, koCo
     setCrowd(strength);
     window.setTimeout(() => setCrowd(0), strength > 1 ? 2200 : 700);
   };
-
 
   // While the referee counts, the picture holds on the downed fighter.
   useEffect(() => {
@@ -201,14 +443,29 @@ export function Arena({ lang, events, ko, combo, comboSide, paused = false, koCo
     seek(video, Math.max(0, finisher.impact - 1.2));
     void video.play();
 
+    let pose = 0;
     const settle = window.setTimeout(() => {
       setReplay(false);
       video.playbackRate = 0.35;
       seek(video, finisher.impact);
       void video.play();
       window.setTimeout(() => video.pause(), 900);
+
+      // The winner then walks the ring with both hands raised.
+      pose = window.setTimeout(() => {
+        setChampion(true);
+        video.playbackRate = CHAMPION_POSE.rate;
+        seek(video, CHAMPION_POSE.start);
+        void video.play();
+        cheer(2);
+        logRef.current?.("ko", `champion pose — ${ko === "ru" ? names.ru : names.us}`);
+      }, 2600);
     }, 2500);
-    return () => window.clearTimeout(settle);
+    return () => {
+      window.clearTimeout(settle);
+      window.clearTimeout(pose);
+      setChampion(false);
+    };
   }, [ko]);
 
   useEffect(() => {
@@ -241,17 +498,19 @@ export function Arena({ lang, events, ko, combo, comboSide, paused = false, koCo
       const move = pendingFollow
         ? pendingFollow.move
         : pick(movesForTier(tier), recentMoves.current, (m) => m.id);
-      recentMoves.current = [...recentMoves.current, move.id].slice(-6);
+      recentMoves.current = [...recentMoves.current, move.id].slice(-12);
 
       // Chance of a follow-up: high after a big spot, still possible after a
       // chained one so we get 2-3 spot sequences without visible repetition.
       const chance = pendingFollow ? 0.4 : tier >= 4 ? 0.85 : tier === 3 ? 0.55 : 0.15;
       if (Math.random() < chance) {
         const next = pick(FOLLOW_UPS, recentFollows.current, (m) => m.id);
-        recentFollows.current = [...recentFollows.current, next.id].slice(-5);
-        follow.current = { event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` }, move: next };
+        recentFollows.current = [...recentFollows.current, next.id].slice(-7);
+        follow.current = {
+          event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` },
+          move: next,
+        };
       }
-
 
       const gift = GIFT_BY_ID[event.gift];
 
@@ -276,7 +535,6 @@ export function Arena({ lang, events, ko, combo, comboSide, paused = false, koCo
       seek(video, move.start);
       video.playbackRate = move.rate;
       void video.play();
-
     }, 80);
     return () => window.clearInterval(timer);
   }, [ko, paused]);
@@ -362,6 +620,11 @@ export function Arena({ lang, events, ko, combo, comboSide, paused = false, koCo
           <div className="display text-xl text-outline sm:text-3xl">
             {ko === "ru" ? names.us : names.ru} — {t.knockedDown}
           </div>
+          {champion && (
+            <div className="display animate-fade-in text-lg text-gold text-outline sm:text-2xl">
+              🏆 {ko === "ru" ? names.ru : names.us}
+            </div>
+          )}
         </div>
       )}
     </div>

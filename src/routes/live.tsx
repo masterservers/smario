@@ -4,7 +4,7 @@ import { Arena } from "@/components/game/Arena";
 import { GameErrorBoundary, GameErrorScreen } from "@/components/GameErrorBoundary";
 import { ChatPanel } from "@/components/game/ChatPanel";
 import { GiftDock } from "@/components/game/GiftDock";
-import { LangPicker } from "@/components/game/LangPicker";
+import { FightControls } from "@/components/game/FightControls";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Button } from "@/components/ui/button";
@@ -82,7 +82,7 @@ function LivePage() {
         {names.ru} vs {names.us} — {t.live}
       </h1>
 
-      <div className="absolute inset-x-0 bottom-[7.25rem] top-11 sm:inset-0">
+      <div className="absolute inset-x-0 bottom-[9.75rem] top-11 md:inset-0">
         <Arena
           lang={lang}
           events={events}
@@ -123,46 +123,46 @@ function LivePage() {
             />
           </div>
         )}
+        <FightControls
+          lang={lang}
+          onLang={(next) => void navigate({ search: { lang: next }, replace: true })}
+          muted={muted}
+          onMute={() => setMuted((m) => !m)}
+          onChat={() => setShowChat((c) => !c)}
+          className="mx-auto flex w-full max-w-2xl items-center justify-center gap-1.5 md:hidden"
+        >
+          <Link
+            to="/"
+            search={{ lang }}
+            aria-label={t.sendGiftsFor}
+            className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-background/80 text-sm backdrop-blur-md sm:size-9"
+          >
+            🎁
+          </Link>
+        </FightControls>
         <div className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1.5 opacity-90">
           <GiftDock lang={lang} side="ru" overlay disabled={busy} onSend={handleSend} />
           <GiftDock lang={lang} side="us" overlay disabled={busy} onSend={handleSend} />
         </div>
       </div>
 
-      <div className="fight-controls absolute right-1.5 top-12 z-20 flex items-center gap-1 md:bottom-1/2 md:right-2 md:top-auto md:translate-y-1/2 md:flex-col md:gap-2">
-        <LangPicker
-          lang={lang}
-          onChange={(next) => void navigate({ search: { lang: next }, replace: true })}
-        />
-        <Button
-          type="button"
-          onClick={() => setMuted((m) => !m)}
-          aria-label={t.commentator}
-          variant="outline"
-          size="icon"
-          className="size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md sm:size-10"
-        >
-          {muted ? "🔇" : "🔊"}
-        </Button>
-        <Button
-          type="button"
-          onClick={() => setShowChat((c) => !c)}
-          aria-label={t.chatPlaceholder}
-          variant="outline"
-          size="icon"
-          className="size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md sm:size-10"
-        >
-          💬
-        </Button>
+      <FightControls
+        lang={lang}
+        onLang={(next) => void navigate({ search: { lang: next }, replace: true })}
+        muted={muted}
+        onMute={() => setMuted((m) => !m)}
+        onChat={() => setShowChat((c) => !c)}
+        className="fight-controls absolute right-2 top-14 z-20 hidden flex-col items-center gap-2 md:flex"
+      >
         <Link
           to="/"
           search={{ lang }}
           aria-label={t.sendGiftsFor}
-          className="fight-secondary-control hidden size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent md:grid"
+          className="grid size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent"
         >
           🎁
         </Link>
-      </div>
+      </FightControls>
     </main>
   );
 }

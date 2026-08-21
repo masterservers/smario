@@ -11,21 +11,66 @@ type RefereeInput = {
   koConfirmed: boolean;
 };
 
-const IDLE_MS = 9000;
+const IDLE_MS = 5000;
 const MAX_LINES = 6;
 
 function pick<T>(list: T[]): T {
   return list[Math.floor(Math.random() * list.length)]!;
 }
 
-function speak(text: string, lang: Lang) {
+// Male-sounding voices per platform; the first match for the requested
+// language wins, so the commentator always keeps one clear male voice.
+const MALE_HINTS = [
+  "male",
+  "george",
+  "daniel",
+  "david",
+  "alex",
+  "fred",
+  "google uk english male",
+  "stefan",
+  "yuri",
+  "pavel",
+  "dmitri",
+  "emil",
+  "nikola",
+  "andrei",
+  "hans",
+  "markus",
+  "conrad",
+];
+
+const FEMALE_HINTS = ["female", "zira", "samantha", "victoria", "milena", "anna", "katja", "ioana"];
+
+function pickVoice(speechLang: string): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return null;
+  const base = speechLang.slice(0, 2).toLowerCase();
+  const sameLang = voices.filter((v) => v.lang.toLowerCase().startsWith(base));
+  const pool = sameLang.length > 0 ? sameLang : voices;
+  const male = pool.find((v) => MALE_HINTS.some((h) => v.name.toLowerCase().includes(h)));
+  if (male) return male;
+  const neutral = pool.find((v) => !FEMALE_HINTS.some((h) => v.name.toLowerCase().includes(h)));
+  return neutral ?? pool[0] ?? null;
+}
+
+function speak(text: string, lang: Lang, urgent: boolean) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const synth = window.speechSynthesis;
+  // Only a knockout or a referee count cuts the current sentence short; normal
+  // calls queue up so the commentator keeps talking without clipping himself.
+  if (urgent) synth.cancel();
+  else if (synth.speaking && synth.pending) return;
+
+  const speechLang = LANG_META[lang].speech;
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = LANG_META[lang].speech;
-  utterance.rate = 1.12;
-  utterance.pitch = 1.05;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
+  utterance.lang = speechLang;
+  const voice = pickVoice(speechLang);
+  if (voice) utterance.voice = voice;
+  utterance.rate = 1.08;
+  utterance.pitch = 0.78; // deeper, male broadcast tone
+  utterance.volume = 1;
+  synth.speak(utterance);
 }
 
 export function useCommentary(
@@ -45,12 +90,16 @@ export function useCommentary(
   langRef.current = lang;
   mutedRef.current = muted;
 
+  const recent = useRef<string[]>([]);
   const push = (text: string, tone: CommentaryLine["tone"]) => {
+    // Never repeat one of the last lines twice in a row.
+    if (recent.current.includes(text)) return;
+    recent.current = [...recent.current, text].slice(-4);
     setLines((prev) => [
       ...prev.slice(-(MAX_LINES - 1)),
       { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, text, tone },
     ]);
-    if (!mutedRef.current) speak(text, langRef.current);
+    if (!mutedRef.current) speak(text, langRef.current, tone === "ko" || tone === "big");
   };
 
   // Reacts to each incoming gift.
@@ -141,6 +190,16 @@ export function useCommentary(
     const names = SIDE_NAME[lang];
     push(pick(COMMENTARY[lang].roundStart)(names.ru, names.us), "idle");
   }, [lang]);
+
+  // Voice list loads asynchronously in most browsers; warm it up so the very
+  // first call already uses the male voice.
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const warm = () => void window.speechSynthesis.getVoices();
+    warm();
+    window.speechSynthesis.addEventListener("voiceschanged", warm);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", warm);
+  }, []);
 
   useEffect(() => {
     if (muted && typeof window !== "undefined" && "speechSynthesis" in window) {
