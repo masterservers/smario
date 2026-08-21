@@ -494,6 +494,26 @@ function currentBeat(): Beat {
   return plan[beat % plan.length]!;
 }
 
+/**
+ * Live read-out of the round plan: which beat is on air, which one follows and
+ * whether the next draw restarts the round's set of beats. Consumed by the
+ * scheduler debug panel.
+ */
+export function beatInfo() {
+  const plan = ROUND_PLANS[activeRound % ROUND_PLANS.length]!;
+  const index = beat % plan.length;
+  return {
+    round: activeRound,
+    index,
+    length: plan.length,
+    plan,
+    current: plan[index]!,
+    next: plan[(index + 1) % plan.length]!,
+    /** The next draw wraps the plan around: a new set starts. */
+    newSetNext: index === plan.length - 1,
+  };
+}
+
 /** True when the scene matches the beat the round is currently asking for. */
 export function inRoundTheme(item: { label?: string }): boolean {
   const rule = FAMILY_PATTERNS[currentBeat()];

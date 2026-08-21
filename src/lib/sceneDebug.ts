@@ -19,6 +19,20 @@ export type SceneDebugState = {
   /** Last rule that refused a transition. */
   blockedBy: string;
   blockedAt: number;
+  /** Round-plan read-out: beat on air, beat coming next, new-set marker. */
+  beat: string;
+  nextBeat: string;
+  beatIndex: number;
+  beatCount: number;
+  newSetNext: boolean;
+  /** What drives the ring right now and why. */
+  mode: "gift action" | "sparring" | "feeling out" | "ko";
+  modeReason: string;
+  /** Crowd momentum 0..1 and the resulting sparring probability. */
+  momentum: number;
+  sparChance: number;
+  /** Milliseconds since the last gift arrived. */
+  quietMs: number;
 };
 
 const initial: SceneDebugState = {
@@ -30,6 +44,16 @@ const initial: SceneDebugState = {
   endedReason: "—",
   blockedBy: "—",
   blockedAt: 0,
+  beat: "—",
+  nextBeat: "—",
+  beatIndex: 0,
+  beatCount: 0,
+  newSetNext: false,
+  mode: "feeling out",
+  modeReason: "—",
+  momentum: 0,
+  sparChance: 0,
+  quietMs: 0,
 };
 
 let state: SceneDebugState = initial;
@@ -55,6 +79,26 @@ export function sceneStarted(entry: {
     plannedMs: Math.round(entry.plannedMs),
     endedReason: entry.reason,
   };
+  emit();
+}
+
+/** Live scheduler telemetry: round beat, drive mode and crowd momentum. */
+export function sceneTelemetry(entry: Partial<
+  Pick<
+    SceneDebugState,
+    | "beat"
+    | "nextBeat"
+    | "beatIndex"
+    | "beatCount"
+    | "newSetNext"
+    | "mode"
+    | "modeReason"
+    | "momentum"
+    | "sparChance"
+    | "quietMs"
+  >
+>) {
+  state = { ...state, ...entry };
   emit();
 }
 
