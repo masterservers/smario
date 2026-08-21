@@ -28,6 +28,7 @@ import {
 
 import { ConfigManager } from "@/components/admin/ConfigManager";
 import { BroadcastControl } from "@/components/admin/BroadcastControl";
+import { SessionLinks } from "@/components/admin/SessionLinks";
 import { GuestChat } from "@/components/admin/GuestChat";
 import { RoundMapping } from "@/components/admin/RoundMapping";
 import { TwoFactorGate, TwoFactorSettings, useMfaState } from "@/components/admin/TwoFactor";
@@ -476,6 +477,22 @@ function AdminPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Live session links ---------------------------------------------- */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Live session links
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          Share a link and viewers land straight in the arena in watch mode — no console, no
+          settings. Gifting stays off unless you turn it on for that link, and you can pause,
+          expire or revoke it at any time.
+        </p>
+        <SessionLinks
+          lang={lang}
+          onAudit={(action, details) => record("sessions", action, { details })}
+        />
       </section>
 
       {/* Commentator control --------------------------------------------- */}

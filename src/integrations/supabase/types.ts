@@ -118,6 +118,45 @@ export type Database = {
           },
         ]
       }
+      live_sessions: {
+        Row: {
+          allow_gifts: boolean
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          label: string
+          lang: string
+          token: string
+        }
+        Insert: {
+          allow_gifts?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          lang?: string
+          token: string
+        }
+        Update: {
+          allow_gifts?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          lang?: string
+          token?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           ended_at: string | null

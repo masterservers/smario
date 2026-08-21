@@ -8,7 +8,8 @@ type Props = {
   onLang: (lang: Lang) => void;
   muted: boolean;
   onMute: () => void;
-  onChat: () => void;
+  /** Omitted for watch-only session links: the chat button disappears. */
+  onChat?: (() => void) | undefined;
   /** Desktop-only extras (leaderboard, event log, replays). */
   children?: ReactNode;
   className?: string;
@@ -36,16 +37,18 @@ export function FightControls({ lang, onLang, muted, onMute, onChat, children, c
       >
         {muted ? "🔇" : "🔊"}
       </Button>
-      <Button
-        type="button"
-        onClick={onChat}
-        aria-label={t.chatPlaceholder}
-        variant="outline"
-        size="icon"
-        className={button}
-      >
-        💬
-      </Button>
+      {onChat && (
+        <Button
+          type="button"
+          onClick={onChat}
+          aria-label={t.chatPlaceholder}
+          variant="outline"
+          size="icon"
+          className={button}
+        >
+          💬
+        </Button>
+      )}
       {children}
     </div>
   );
