@@ -433,7 +433,7 @@ export function Arena({
   // Stop decoding frames while the tab is in the background.
   useEffect(() => {
     const onVisibility = () => {
-      const video = videoRef.current;
+      const video = activeVideoRef.current;
       if (!video) return;
       if (document.hidden) video.pause();
       else void video.play();
@@ -502,7 +502,7 @@ export function Arena({
 
   // While the referee counts, the picture holds on the downed fighter.
   useEffect(() => {
-    const video = videoRef.current;
+    const video = activeVideoRef.current;
     if (!video || ko) return;
     if (paused) video.pause();
     else if (playing.current) void video.play();
@@ -528,7 +528,7 @@ export function Arena({
   // stays down on the mat. Nothing covers the ring.
   useEffect(() => {
     if (!ko) return;
-    const video = videoRef.current;
+    const video = activeVideoRef.current;
     if (!video) return;
     playing.current = false;
     settling.current = false;
@@ -548,23 +548,18 @@ export function Arena({
 
     // Replay: rewind slightly before the finish and play it back in slow motion.
     video.playbackRate = 0.45;
-    seek(video, Math.max(0, finisher.impact - 1.2));
-    void video.play();
+    switchScene(Math.max(0, finisher.impact - 1.2), 0.45);
 
     let pose = 0;
     const settle = window.setTimeout(() => {
       setReplay(false);
-      video.playbackRate = 0.35;
-      seek(video, finisher.impact);
-      void video.play();
-      window.setTimeout(() => video.pause(), 900);
+      switchScene(finisher.impact, 0.35);
+      window.setTimeout(() => activeVideoRef.current?.pause(), 900);
 
       // The winner then walks the ring with both hands raised.
       pose = window.setTimeout(() => {
         setChampion(true);
-        video.playbackRate = CHAMPION_POSE.rate;
-        seek(video, CHAMPION_POSE.start);
-        void video.play();
+        switchScene(CHAMPION_POSE.start, CHAMPION_POSE.rate);
         cheer(2);
         logRef.current?.("ko", `champion pose — ${ko === "ru" ? names.ru : names.us}`);
       }, 2600);
@@ -578,7 +573,7 @@ export function Arena({
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      const video = videoRef.current;
+      const video = activeVideoRef.current;
       if (!video || ko) return;
       if (playing.current) return;
 
@@ -587,7 +582,8 @@ export function Arena({
       if (video.paused || video.currentTime < scene.start || video.currentTime > scene.end) {
         if (video.currentTime < scene.start || video.currentTime > scene.end) {
           idleScene.current = pick(IDLE_SCENES);
-          seek(video, idleScene.current.start);
+          switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed);
+          return;
         }
 
         video.playbackRate = idleScene.current.rate * cfgRef.current.speed;
@@ -647,16 +643,14 @@ export function Arena({
       logRef.current?.("move", `${event.side.toUpperCase()} · ${move.label}`);
       // Move the wide shot to this block's corner of the ring.
       setFrame(frameFor(move));
-      seek(video, move.start);
-      video.playbackRate = move.rate * cfgRef.current.speed;
-      void video.play();
+      switchScene(move.start, move.rate * cfgRef.current.speed);
 
     }, cfg.tickMs);
     return () => window.clearInterval(timer);
   }, [ko, paused, cfg.tickMs]);
 
-  const handleTimeUpdate = () => {
-    const video = videoRef.current;
+  const handleTimeUpdate = (video: HTMLVideoElement) => {
+    if (video !== activeVideoRef.current) return;
     const event = currentEvent.current;
     const move = currentMove.current;
     if (!video || !event || !move || !playing.current) return;
@@ -719,9 +713,7 @@ export function Arena({
         scale: 1 + (Math.random() - 0.5) * 0.03,
         rotate: (Math.random() - 0.5) * 0.8,
       });
-      seek(video, idleScene.current.start);
-      video.playbackRate = idleScene.current.rate * cfgRef.current.speed;
-      void video.play();
+      switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed);
 
       window.setTimeout(
         () => setFloats((previous) => previous.filter((item) => item.id !== event.id)),
