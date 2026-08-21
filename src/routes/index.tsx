@@ -63,16 +63,17 @@ function BattlePage() {
   const [showLog, setShowLog] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
 
-  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(lang, pushLog);
-  const referee = useReferee(state.hpRu, state.hpUs, state.ko);
-  useCommentary(lang, events, state, muted, referee);
-
   const pushLog = useCallback((kind: LogKind, text: string) => {
     setLog((prev) => [
       ...prev.slice(-59),
       { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, kind, text, at: Date.now() },
     ]);
   }, []);
+
+  const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch(lang, pushLog);
+  const referee = useReferee(state.hpRu, state.hpUs, state.ko);
+  useCommentary(lang, events, state, muted, referee);
+
 
   // Gift/chat commands land in the trace as soon as they arrive over the wire.
   const loggedGifts = useRef<Set<string>>(new Set());
