@@ -11,7 +11,7 @@ import {
 
 type LeaderRow = { sender: string; total: number; side: Side };
 
-const KO_HOLD_MS = 4200;
+const KO_HOLD_MS = 14000;
 
 function readNickname(): string {
   if (typeof window === "undefined") return "guest";
