@@ -31,6 +31,7 @@ import { BroadcastControl } from "@/components/admin/BroadcastControl";
 import { SessionLinks } from "@/components/admin/SessionLinks";
 import { GuestChat } from "@/components/admin/GuestChat";
 import { RoundMapping } from "@/components/admin/RoundMapping";
+import { MatchReset } from "@/components/admin/MatchReset";
 import { TwoFactorGate, TwoFactorSettings, useMfaState } from "@/components/admin/TwoFactor";
 import { ALL_SCENES } from "@/lib/scenes";
 import {
@@ -494,6 +495,20 @@ function AdminPage() {
           onAudit={(action, details) => record("sessions", action, { details })}
         />
       </section>
+
+      {/* Match reset ------------------------------------------------------ */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Reset · score &amp; rounds
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          Closes the running fight, clears its gifts and opens a fresh match at round 1. Every open
+          arena tab picks the new match up on its own. The full wipe also removes past matches and
+          the whole gift history.
+        </p>
+        <MatchReset onAudit={(action, details) => record("match", action, details)} />
+      </section>
+
 
       {/* Commentator control --------------------------------------------- */}
       <section className="panel mt-4 rounded-2xl p-4">

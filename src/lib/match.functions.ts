@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { reduceEvents, type GiftEvent, type Side } from "@/lib/battle";
 
 /** Returns (or opens) the live match. Match lifecycle runs server-side only. */
@@ -52,4 +53,52 @@ export const finishMatch = createServerFn({ method: "POST" })
     if (error) throw new Error("Unable to finish the match");
     const match = Array.isArray(next) ? next[0] : next;
     return { id: match?.id as string, round: (match?.round as number) ?? 1 };
+  });
+
+/**
+ * Admin-only hard reset: closes every open match, wipes its gift feed and
+ * opens a brand new fight at round 1 (score, HP and round counter back to zero).
+ */
+export const resetMatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clearHistory?: boolean } | undefined) => ({
+    clearHistory: Boolean(input?.clearHistory),
+  }))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Which matches are we clearing? Everything when the admin asks for a full
+    // wipe, otherwise just the fights that are still open.
+    const { data: openRows } = await supabaseAdmin
+      .from("matches")
+      .select("id")
+      .is("ended_at", null);
+    const openIds = (openRows ?? []).map((r) => r.id as string);
+
+    if (data.clearHistory) {
+      await supabaseAdmin.from("gift_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabaseAdmin.from("matches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    } else {
+      if (openIds.length) {
+        await supabaseAdmin.from("gift_events").delete().in("match_id", openIds);
+        await supabaseAdmin
+          .from("matches")
+          .update({ ended_at: new Date().toISOString() })
+          .in("id", openIds);
+      }
+    }
+
+    const { data: fresh, error } = await supabaseAdmin
+      .from("matches")
+      .insert({ round: 1 })
+      .select("id, round")
+      .single();
+    if (error || !fresh) throw new Error("Unable to reset the match");
+    return { id: fresh.id as string, round: (fresh.round as number) ?? 1 };
   });
