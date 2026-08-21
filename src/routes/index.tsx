@@ -46,7 +46,7 @@ function BattlePage() {
   const [showChat, setShowChat] = useState(false);
 
   const { round, events, state, leaders, viewers, nickname, ready, sendGift } = useLiveMatch();
-  const lines = useCommentary(lang, events, state, muted);
+  useCommentary(lang, events, state, muted);
 
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
