@@ -131,6 +131,13 @@ function normalize(raw: unknown): HitConfig {
     }
   }
 
+  // Gift → fighter routing (Putin vs Trump rules).
+  for (const gift of GIFTS) {
+    const value = parsed.routing?.[gift.id];
+    if (value === "ru" || value === "us" || value === "auto") base.routing[gift.id] = value;
+  }
+
+
   const ref = parsed.referee;
   if (ref) {
     base.referee = {
