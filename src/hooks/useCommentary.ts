@@ -130,7 +130,7 @@ function speakFallback(next: Spoken, done: () => void) {
   if (voice) utterance.voice = voice;
   utterance.rate = next.priority >= 3 ? 1.14 : 1.08;
   utterance.pitch = 0.78;
-  utterance.volume = 1;
+  utterance.volume = getMix().voice;
   utterance.onend = done;
   utterance.onerror = done;
   synth.speak(utterance);
