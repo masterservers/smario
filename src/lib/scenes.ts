@@ -302,8 +302,8 @@ const BASE_FOLLOW_UPS: Move[] = [
   },
 ];
 
-/** Victory pose: the winner stands over the ring with both hands raised. */
-export const CHAMPION_POSE = { start: 28.6, end: 30.1, rate: 0.7 };
+/* The victory pose is placed on the premium reel further down. */
+
 
 /**
  * The gift → kind of blow → power mapping is no longer hard-coded: it lives in
