@@ -17,6 +17,9 @@ const SEQUENCES: Record<string, Sequence> = {
   rocket: { start: 23.0, end: 29.8, impact: 25.2, label: "FINISHER" },
 };
 
+const IDLE_START = 8.2;
+const IDLE_END = 11.6;
+
 type FloatItem = { id: string; emoji: string; side: Side; left: number };
 type DamageItem = { id: string; side: Side; amount: number };
 
