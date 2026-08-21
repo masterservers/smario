@@ -210,6 +210,19 @@ export function announceScene(scene: { id?: string; label: string }) {
   sceneAnnouncer?.(scene);
 }
 
+export type SparAnnouncement = { side: Side; label: string; tier: number };
+
+let sparAnnouncer: ((spar: SparAnnouncement) => void) | null = null;
+
+/**
+ * Called by the arena at the impact frame of a sparring spot (no gift behind
+ * it). The commentator calls the move by its real family — punch, kick, rope
+ * dive, throw, mat work — so the voice always matches what is on screen.
+ */
+export function announceSpar(spar: SparAnnouncement) {
+  sparAnnouncer?.(spar);
+}
+
 
 export function useCommentary(
   lang: Lang,
@@ -287,9 +300,23 @@ export function useCommentary(
       if (ambient.length === 0) return;
       push(pick(ambient), "idle");
     };
+    // Sparring impact: a real call for the move that just landed, but it never
+    // steps on a gift hit, a referee count or a knockout.
+    sparAnnouncer = ({ side, label, tier }) => {
+      if (pendingCalls.current.size > 0) return;
+      if (commentaryBusy()) return;
+      const names = sideVoiceNames(langRef.current);
+      const attacker = side === "ru" ? names.ru : names.us;
+      const defender = side === "ru" ? names.us : names.ru;
+      const family = familyOf({ label });
+      const pack = FAMILY_LINES[langRef.current][family].action;
+      if (pack.length === 0) return;
+      push(pick(pack)(attacker, defender), tier >= 4 ? "big" : "hit");
+    };
     return () => {
       hitAnnouncer = null;
       sceneAnnouncer = null;
+      sparAnnouncer = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -339,6 +339,8 @@ type Props = {
   }) => void;
   /** A scene started without a gift (feeling-out, rope work, mat scramble). */
   onScene?: (scene: { id: string; label: string }) => void;
+  /** A sparring spot landed: action only, but the commentator calls the move. */
+  onSpar?: (spar: { side: Side; label: string; tier: number }) => void;
 };
 
 export function Arena({
@@ -354,6 +356,7 @@ export function Arena({
   onLog,
   onHit,
   onScene,
+  onSpar,
 }: Props) {
   const logRef = useRef(onLog);
   logRef.current = onLog;
@@ -361,6 +364,8 @@ export function Arena({
   hitRef.current = onHit;
   const sceneRef = useRef(onScene);
   sceneRef.current = onScene;
+  const sparRef = useRef(onSpar);
+  sparRef.current = onSpar;
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
   const activeLayerRef = useRef(0);
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -955,7 +960,11 @@ export function Arena({
       koKind.current = kind;
       // Exactly-once confirmation: one gift id, one landed hit, one voice line.
       const rootId = event.id.split("-fu")[0]!;
-      // A sparring spot is pure action: it never scores and never speaks.
+      // A sparring spot never scores, but the commentator still calls the move
+      // by its real family so punches, kicks, dives and throws read correctly.
+      if (sparring.current) {
+        sparRef.current?.({ side: event.side, label: move.label, tier: move.tier });
+      }
       if (!sparring.current && !delivered.current.has(rootId)) {
         delivered.current.add(rootId);
         queuedAt.current.delete(rootId);
