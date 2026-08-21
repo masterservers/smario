@@ -118,7 +118,7 @@ function LivePage() {
         </div>
       </div>
 
-      <div className="absolute right-1.5 top-12 z-20 flex items-center gap-1 sm:bottom-1/2 sm:right-2 sm:top-auto sm:translate-y-1/2 sm:flex-col sm:gap-2">
+      <div className="fight-controls absolute right-1.5 top-12 z-20 flex items-center gap-1 md:bottom-1/2 md:right-2 md:top-auto md:translate-y-1/2 md:flex-col md:gap-2">
         <LangPicker lang={lang} onChange={(next) => void navigate({ search: { lang: next }, replace: true })} />
         <Button
           type="button"
@@ -144,7 +144,7 @@ function LivePage() {
           to="/"
           search={{ lang }}
           aria-label={t.sendGiftsFor}
-          className="hidden size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent sm:grid"
+          className="fight-secondary-control hidden size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent md:grid"
         >
           🎁
         </Link>

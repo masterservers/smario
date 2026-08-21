@@ -182,7 +182,7 @@ function BattlePage() {
 
       {/* Controls stay directly below the score on phones, never over the
           centre of the ring. Desktop keeps the compact side rail. */}
-      <div className="absolute right-1.5 top-12 z-20 flex items-center gap-1 sm:bottom-1/2 sm:right-2 sm:top-auto sm:translate-y-1/2 sm:flex-col sm:gap-2">
+      <div className="fight-controls absolute right-1.5 top-12 z-20 flex items-center gap-1 md:bottom-1/2 md:right-2 md:top-auto md:translate-y-1/2 md:flex-col md:gap-2">
         <LangPicker lang={lang} onChange={setLang} />
         <Button
           type="button"
@@ -210,7 +210,7 @@ function BattlePage() {
           aria-label={t.leaderboard}
           variant="outline"
           size="icon"
-          className="hidden size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md sm:inline-flex sm:size-10"
+          className="fight-secondary-control hidden size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md md:inline-flex md:size-10"
         >
           🔥
         </Button>
@@ -220,7 +220,7 @@ function BattlePage() {
           aria-label={t.eventLog}
           variant="outline"
           size="icon"
-          className="hidden size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md sm:inline-flex sm:size-10"
+          className="fight-secondary-control hidden size-9 shrink-0 rounded-full bg-background/80 text-base backdrop-blur-md md:inline-flex md:size-10"
         >
           🧾
         </Button>
@@ -228,7 +228,7 @@ function BattlePage() {
           to="/replays"
           search={{ lang }}
           aria-label={t.replays}
-          className="hidden size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent sm:grid"
+          className="fight-secondary-control hidden size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent md:grid"
         >
           ⏪
         </Link>
@@ -236,7 +236,7 @@ function BattlePage() {
           to="/live"
           search={{ lang }}
           aria-label={t.watchLive}
-          className="hidden size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent sm:grid"
+          className="fight-secondary-control hidden size-10 place-items-center rounded-full border border-border bg-background/80 text-base backdrop-blur-md transition-colors hover:bg-accent md:grid"
         >
           📡
         </Link>
