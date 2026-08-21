@@ -597,9 +597,12 @@ export function Arena({
       ]);
 
       logRef.current?.("move", `${event.side.toUpperCase()} · ${move.label}`);
+      // Move the wide shot to this block's corner of the ring.
+      setFrame(frameFor(move));
       seek(video, move.start);
       video.playbackRate = move.rate * cfgRef.current.speed;
       void video.play();
+
     }, cfg.tickMs);
     return () => window.clearInterval(timer);
   }, [ko, paused, cfg.tickMs]);
