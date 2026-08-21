@@ -156,7 +156,7 @@ function BattlePage() {
       </div>
 
       {/* Slim HUD strip on top — scoreboard only */}
-      <div className="absolute inset-x-0 top-0 z-10 px-[max(0.5rem,env(safe-area-inset-left))]">
+      <div className="absolute inset-x-0 top-0 z-10 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]">
         <Scoreboard
           lang={lang}
           round={round}
