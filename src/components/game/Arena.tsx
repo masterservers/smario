@@ -189,14 +189,24 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         void video.play();
       }
 
-      const event = queue.current.shift();
+      // A big spot leaves the opponent flat on the mat — follow it up with a
+      // dive from the top rope onto the downed fighter before taking new gifts.
+      const pendingFollow = follow.current;
+      const event = pendingFollow ? pendingFollow.event : queue.current.shift();
       if (!event) return;
+      follow.current = null;
 
       const tier = GIFT_TIER[event.gift] ?? 1;
-      const move = pick(movesForTier(tier), recentMoves.current, (m) => m.id);
-      recentMoves.current = [...recentMoves.current, move.id].slice(-4);
+      const move = pendingFollow
+        ? pendingFollow.move
+        : pick(movesForTier(tier), recentMoves.current, (m) => m.id);
+      recentMoves.current = [...recentMoves.current, move.id].slice(-6);
+      if (!pendingFollow && tier >= 4 && Math.random() < 0.7) {
+        follow.current = { event: { ...event, id: `${event.id}-fu` }, move: pick(FOLLOW_UPS) };
+      }
 
       const gift = GIFT_BY_ID[event.gift];
+
       currentEvent.current = event;
       currentMove.current = move;
       playing.current = true;
