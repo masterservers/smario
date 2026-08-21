@@ -273,7 +273,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     <div className="absolute inset-0 overflow-hidden bg-background">
       <video
         ref={videoRef}
-        src={fightVideo.url}
+        src={FIGHT_VIDEO}
         muted
         autoPlay
         loop
