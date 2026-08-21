@@ -604,11 +604,22 @@
 }
 
 
-/* Portrait phones: the wide ring shot is width-limited, so zoom it slightly and
-   lift it out of the dead space between the scoreboard and the gift dock. */
+/* Portrait phones: the wide ring shot is width-limited, so zoom it and lift it
+   out of the dead space between the scoreboard and the gift dock. */
 @media (orientation: portrait) {
   .arena-video {
-    transform: scale(1.42) translateY(-4%);
+    transform: scale(1.5) translateY(-3%);
     transform-origin: center center;
   }
 }
+
+/* Landscape phones: object-contain left black bars on the sides and the ring
+   looked small and off-centre. Fill the screen edge to edge instead. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .arena-video {
+    object-fit: cover;
+    object-position: center 45%;
+    transform: none;
+  }
+}
+
