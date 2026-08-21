@@ -11,8 +11,9 @@ type Props = {
 };
 
 /**
- * Tuning for the referee's comic interventions. Nothing here touches the fight
- * scheduler — the wrestling animation runs exactly the same either way.
+ * Placement of Mr. Bean's face on the referee who is already inside the ring
+ * footage. Nothing here touches the fight scheduler — the wrestling animation
+ * runs exactly the same either way.
  */
 export function RefereeGags({ onAudit }: Props) {
   const [cfg, setCfg] = useState<BeanConfig>(BEAN_DEFAULTS);
@@ -26,114 +27,71 @@ export function RefereeGags({ onAudit }: Props) {
   const apply = () => {
     const saved = saveBeanConfig(cfg);
     setCfg(saved);
-    onAudit?.("referee gags", saved as unknown as Record<string, unknown>);
-    toast.success(
-      saved.enabled
-        ? `Referee every ${saved.minSec}–${saved.maxSec}s`
-        : "Referee interventions off",
-    );
+    onAudit?.("referee face", saved as unknown as Record<string, unknown>);
+    toast.success(saved.headEnabled ? "Mr. Bean face applied" : "Referee face off");
   };
 
   const reset = () => {
     const saved = saveBeanConfig(BEAN_DEFAULTS);
     setCfg(saved);
-    toast.success("Referee timing back to default");
+    toast.success("Referee face back to default");
   };
+
+  const row = (
+    label: string,
+    value: number,
+    min: number,
+    max: number,
+    step: number,
+    unit: string,
+    key: "headX" | "headY" | "headSize",
+  ) => (
+    <div>
+      <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+        <span>{label}</span>
+        <span className="tabular-nums text-foreground">
+          {value}
+          {unit}
+        </span>
+      </div>
+      <Slider
+        value={[value]}
+        min={min}
+        max={max}
+        step={step}
+        onValueChange={([next]) => patch({ [key]: next } as Partial<BeanConfig>)}
+      />
+    </div>
+  );
 
   return (
     <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        The referee stays the one filmed in the ring — only his head is replaced by Mr. Bean.
+        Use the sliders to line the face up with his shoulders.
+      </p>
+
       <div className="flex items-center justify-between gap-3">
-        <Label htmlFor="bean-on" className="text-sm">
-          Interventions enabled
+        <Label htmlFor="bean-head-on" className="text-sm">
+          Mr. Bean face on the referee
         </Label>
         <Switch
-          id="bean-on"
-          checked={cfg.enabled}
-          onCheckedChange={(enabled) => patch({ enabled })}
+          id="bean-head-on"
+          checked={cfg.headEnabled}
+          onCheckedChange={(headEnabled) => patch({ headEnabled })}
         />
       </div>
 
-      <div>
-        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-          <span>Interval between gags</span>
-          <span className="tabular-nums text-foreground">
-            {cfg.minSec}–{cfg.maxSec}s
-          </span>
-        </div>
-        <Slider
-          value={[cfg.minSec, cfg.maxSec]}
-          min={4}
-          max={60}
-          step={1}
-          minStepsBetweenThumbs={1}
-          onValueChange={([min, max]) =>
-            patch({ minSec: min ?? cfg.minSec, maxSec: max ?? cfg.maxSec })
-          }
-        />
-      </div>
+      {row("Horizontal position", cfg.headX, 0, 100, 0.5, "%", "headX")}
+      {row("Vertical position", cfg.headY, 0, 100, 0.5, "%", "headY")}
+      {row("Head size", cfg.headSize, 1, 15, 0.1, "%", "headSize")}
 
-      <div>
-        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-          <span>Also step in every N hits</span>
-          <span className="tabular-nums text-foreground">
-            {cfg.everyNHits ? cfg.everyNHits : "off"}
-          </span>
-        </div>
-        <Slider
-          value={[cfg.everyNHits]}
-          min={0}
-          max={20}
-          step={1}
-          onValueChange={([v]) => patch({ everyNHits: v ?? 0 })}
-        />
-      </div>
-
-      <div>
-        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-          <span>Also step in on a combo of</span>
-          <span className="tabular-nums text-foreground">
-            {cfg.comboTrigger ? cfg.comboTrigger : "off"}
-          </span>
-        </div>
-        <Slider
-          value={[cfg.comboTrigger]}
-          min={0}
-          max={10}
-          step={1}
-          onValueChange={([v]) => patch({ comboTrigger: v ?? 0 })}
-        />
-      </div>
-
-      <div>
-        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-          <span>Time on the mat · quiet time after</span>
-          <span className="tabular-nums text-foreground">
-            {(cfg.visibleMs / 1000).toFixed(1)}s · {cfg.cooldownSec}s
-          </span>
-        </div>
-        <Slider
-          value={[cfg.visibleMs]}
-          min={2000}
-          max={9000}
-          step={200}
-          onValueChange={([v]) => patch({ visibleMs: v ?? cfg.visibleMs })}
-        />
-        <Slider
-          className="mt-3"
-          value={[cfg.cooldownSec]}
-          min={0}
-          max={30}
-          step={1}
-          onValueChange={([v]) => patch({ cooldownSec: v ?? cfg.cooldownSec })}
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2">
         <Button size="sm" onClick={apply}>
-          Save referee timing
+          Save
         </Button>
-        <Button size="sm" variant="secondary" onClick={reset}>
-          Defaults
+        <Button size="sm" variant="outline" onClick={reset}>
+          Reset
         </Button>
       </div>
     </div>
