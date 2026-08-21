@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import fightVideo from "@/assets/arena-heights2.webm.asset.json";
+import { PRIMARY_REEL } from "@/lib/reels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FOLLOW_UPS, MOVES, familyOf, type Move } from "@/lib/scenes";
 
-const FIGHT_VIDEO = fightVideo.url;
+const FIGHT_VIDEO = PRIMARY_REEL;
 
 export const Route = createFileRoute("/moves")({
   head: () => ({
@@ -61,6 +61,11 @@ function MovesShowcase() {
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    const src = current.src ?? FIGHT_VIDEO;
+    if (!video.src.endsWith(src)) {
+      video.src = src;
+      video.load();
+    }
     video.currentTime = current.start;
     video.playbackRate = current.rate;
     if (playing) void video.play();

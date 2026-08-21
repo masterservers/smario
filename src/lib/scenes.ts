@@ -6,9 +6,17 @@
  */
 
 import { WRESTLING_FOLLOW_UPS, WRESTLING_MOVES } from "@/lib/wrestlingMoves";
+import { reelFor } from "@/lib/reels";
+
+/** Spread a hand-written block across the three masters. */
+function spread<T extends { src?: string }>(list: T[], offset: number): T[] {
+  return list.map((scene, i) => (scene.src ? scene : { ...scene, src: reelFor(i + offset) }));
+}
 
 export type Move = {
   id: string;
+  /** Which master reel this scene plays from (defaults to the primary reel). */
+  src?: string;
   start: number;
   end: number;
   impact: number;
@@ -18,7 +26,14 @@ export type Move = {
   tier: number;
 };
 
-export type IdleScene = { id: string; start: number; end: number; rate: number; label: string };
+export type IdleScene = {
+  id: string;
+  src?: string;
+  start: number;
+  end: number;
+  rate: number;
+  label: string;
+};
 
 const BASE_MOVES: Move[] = [
   // Tier 1 — boxing strikes from block A.
@@ -617,21 +632,26 @@ const VARIETY_IDLE: IdleScene[] = [
 ];
 
 export const MOVES: Move[] = [
-  ...BASE_MOVES,
-  ...EXTRA_MOVES,
-  ...ROPE_MOVES,
-  ...VARIETY_MOVES,
+  ...spread(BASE_MOVES, 0),
+  ...spread(EXTRA_MOVES, 1),
+  ...spread(ROPE_MOVES, 2),
+  ...spread(VARIETY_MOVES, 1),
   ...WRESTLING_MOVES,
 ];
 
 export const FOLLOW_UPS: Move[] = [
-  ...BASE_FOLLOW_UPS,
-  ...EXTRA_FOLLOW_UPS,
-  ...ROPE_FOLLOW_UPS,
-  ...VARIETY_FOLLOW_UPS,
+  ...spread(BASE_FOLLOW_UPS, 2),
+  ...spread(EXTRA_FOLLOW_UPS, 0),
+  ...spread(ROPE_FOLLOW_UPS, 1),
+  ...spread(VARIETY_FOLLOW_UPS, 2),
   ...WRESTLING_FOLLOW_UPS,
 ];
-export const IDLE_SCENES: IdleScene[] = [...BASE_IDLE, ...EXTRA_IDLE, ...ROPE_IDLE, ...VARIETY_IDLE];
+export const IDLE_SCENES: IdleScene[] = [
+  ...spread(BASE_IDLE, 0),
+  ...spread(EXTRA_IDLE, 1),
+  ...spread(ROPE_IDLE, 2),
+  ...spread(VARIETY_IDLE, 0),
+];
 
 /** Every scene the scheduler can pick, for the admin list and the debug panel. */
 export const ALL_SCENES = [
