@@ -618,7 +618,15 @@ export function Arena({
       impacted.current = true;
       const defender: Side = event.side === "ru" ? "us" : "ru";
       const gift = GIFT_BY_ID[event.gift];
+      const kind = kindOf(move);
       setImpact({ id: event.id, side: defender, label: move.label });
+      // Distinct physical read per hit type: jitter for punches, a step back for
+      // kicks, loss of balance for throws and aerials, then a recovery.
+      setReaction({ id: event.id, kind, dir: defender === "ru" ? -1 : 1 });
+      window.setTimeout(
+        () => setReaction((previous) => (previous?.id === event.id ? null : previous)),
+        kind === "punch" ? 420 : kind === "kick" ? 700 : 1000,
+      );
       cheer(move.tier >= 4 ? 1.5 : 1);
       setDamages((previous) => [
         ...previous.slice(-1),
@@ -630,6 +638,7 @@ export function Arena({
         900,
       );
     }
+
 
     if (video.currentTime >= stopAt.current) {
       playing.current = false;
