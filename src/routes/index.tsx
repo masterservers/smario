@@ -198,8 +198,14 @@ function BattlePage() {
       </div>
 
       {/* Slim HUD strip on top — scoreboard only */}
-      <div className="absolute inset-x-0 top-0 z-10 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]">
+      {/* Slim HUD strip on top — scoreboard only. Its real height is measured
+          and published as --hud-h, so the ring never starts under it. */}
+      <div
+        ref={hudRef}
+        className="absolute inset-x-0 top-0 z-10 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]"
+      >
         <Scoreboard
+
           lang={lang}
           round={round}
           viewers={viewers}
