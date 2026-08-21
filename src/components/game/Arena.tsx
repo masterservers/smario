@@ -306,6 +306,8 @@ type Props = {
     label: string;
     force: number;
   }) => void;
+  /** A scene started without a gift (feeling-out, rope work, mat scramble). */
+  onScene?: (scene: { id: string; label: string }) => void;
 };
 
 export function Arena({
@@ -320,11 +322,14 @@ export function Arena({
   koConfirmed = true,
   onLog,
   onHit,
+  onScene,
 }: Props) {
   const logRef = useRef(onLog);
   logRef.current = onLog;
   const hitRef = useRef(onHit);
   hitRef.current = onHit;
+  const sceneRef = useRef(onScene);
+  sceneRef.current = onScene;
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
   const activeLayerRef = useRef(0);
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -725,6 +730,7 @@ export function Arena({
             lockUntil.current =
               performance.now() + Math.max(0, ((next.end - next.start) / rate) * 1000 - 120);
           }
+          sceneRef.current?.({ id: next.id, label: next.label });
           sceneStarted({
             id: next.id,
             label: next.label,

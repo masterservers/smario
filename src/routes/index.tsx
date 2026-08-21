@@ -12,7 +12,7 @@ import { useRemoteConfig } from "@/lib/useRemoteConfig";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Button } from "@/components/ui/button";
-import { announceHit, useCommentary } from "@/hooks/useCommentary";
+import { announceHit, announceScene, useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
 import { useTopBanner } from "@/hooks/useTopBanner";
@@ -150,6 +150,7 @@ function BattlePage() {
           koConfirmed={referee.koConfirmed}
           onLog={pushLog}
           onHit={announceHit}
+          onScene={announceScene}
         />
         <RefereeCount lang={lang} referee={referee} />
         <SceneDebugPanel />
