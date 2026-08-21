@@ -971,7 +971,7 @@ export function Arena({
       };
       {
         // One burst at a time on lite devices, up to three otherwise.
-        setSparks((previous) => [...previous.slice(lite ? -0 : -2), burst]);
+        setSparks((previous) => (lite ? [burst] : [...previous.slice(-2), burst]));
         window.setTimeout(
           () => setSparks((previous) => previous.filter((item) => item.id !== burst.id)),
           burst.life,
