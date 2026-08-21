@@ -458,11 +458,6 @@ const IDLE_SCENES: Array<{ start: number; end: number; rate: number }> = [
 
 
 
-function pick<T>(items: T[], avoid: string[] = [], key?: (item: T) => string): T {
-  const pool = key ? items.filter((item) => !avoid.includes(key(item))) : items;
-  const list = pool.length > 0 ? pool : items;
-  return list[Math.floor(Math.random() * list.length)]!;
-}
 
 type IdleScene = (typeof IDLE_SCENES)[number];
 
