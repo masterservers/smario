@@ -747,21 +747,57 @@ export function Arena({
     else if (playing.current) void video.play();
   }, [paused, ko]);
 
+  // Gift intake: every gift enters an ordered queue, exactly once. The `seen`
+  // set is the de-duplication guard (realtime can deliver the same row twice,
+  // and a reload re-reads the history), `queued` tracks what is still waiting.
   useEffect(() => {
     if (!primed.current) {
       if (events.length === 0) return;
-      for (const event of events) seen.current.add(event.id);
+      for (const event of events) {
+        seen.current.add(event.id);
+        delivered.current.add(event.id);
+      }
       primed.current = true;
       return;
     }
-    const fresh: GiftEvent[] = [];
     for (const event of events) {
       if (seen.current.has(event.id)) continue;
       seen.current.add(event.id);
-      fresh.push(event);
+      queuedAt.current.set(event.id, performance.now());
+      queue.current.push(event);
     }
-    queue.current.push(...fresh.slice(-5));
+    // Burst protection: keep the queue bounded, always dropping the oldest.
+    if (queue.current.length > 24) {
+      const dropped = queue.current.splice(0, queue.current.length - 24);
+      for (const item of dropped) {
+        queuedAt.current.delete(item.id);
+        delivered.current.add(item.id); // consciously skipped, never retried
+        logRef.current?.("impact", `queue overflow · ${item.gift} (${item.side}) skipped`);
+      }
+    }
   }, [events]);
+
+  // Reconciliation: a gift must trigger exactly one hit. Anything that was
+  // accepted but never landed (a lost scene switch, a tab going to sleep) is
+  // pushed back into the queue; anything already landed can never fire twice.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const now = performance.now();
+      const waiting = new Set(queue.current.map((item) => item.id));
+      for (const event of events) {
+        if (!seen.current.has(event.id)) continue;
+        if (delivered.current.has(event.id) || waiting.has(event.id)) continue;
+        if (currentEvent.current?.id === event.id || follow.current?.event.id === event.id) continue;
+        const since = queuedAt.current.get(event.id) ?? 0;
+        if (now - since < 12000) continue;
+        queuedAt.current.set(event.id, now);
+        queue.current.push(event);
+        logRef.current?.("impact", `reconcile · re-queued ${event.gift} (${event.side})`);
+      }
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [events]);
+
 
   // Knockout: finish the active move first, then replay the finish in slow motion.
   // This prevents a gift that reaches zero HP from cutting a lift, throw or fall.
