@@ -497,6 +497,11 @@ export function Arena({
     const finisher = MOVES.find((move) => move.id === "finisher")!;
     cheer(2);
     setReplay(true);
+    // KO reads heaviest of all: full loss of balance, then the shot settles.
+    setFrame({ x: 0, y: 0.5, scale: 1.02, rotate: 0 });
+    setReaction({ id: `ko-${ko}`, kind: "throw", dir: ko === "ru" ? 1 : -1 });
+    window.setTimeout(() => setReaction(null), 1400);
+
     logRef.current?.("ko", `KO — ${ko === "ru" ? names.us : names.ru} down`);
     logRef.current?.("replay", "slow-motion replay");
 
