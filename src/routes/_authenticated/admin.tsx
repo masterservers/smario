@@ -28,6 +28,7 @@ import {
 
 import { ConfigManager } from "@/components/admin/ConfigManager";
 import { BroadcastControl } from "@/components/admin/BroadcastControl";
+import { OutfitControl } from "@/components/admin/OutfitControl";
 import { SessionLinks } from "@/components/admin/SessionLinks";
 import { GuestChat } from "@/components/admin/GuestChat";
 import { RoundMapping } from "@/components/admin/RoundMapping";
@@ -523,6 +524,19 @@ function AdminPage() {
         <MatchReset onAudit={(action, details) => record("match", action, details)} />
       </section>
 
+
+      {/* Outfit switch ---------------------------------------------------- */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Outfit · suit / ring gear
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          Sends a fighter out with or without his jacket. The change lands instantly in every open
+          arena tab and on the spectator links, and it is kept for the running match across reloads
+          and restarts.
+        </p>
+        <OutfitControl onAudit={(action, details) => record("outfit", action, details)} />
+      </section>
 
       {/* Commentator control --------------------------------------------- */}
       <section className="panel mt-4 rounded-2xl p-4">
