@@ -1,13 +1,13 @@
 /**
- * The arena no longer plays a single 40s reel: three separate masters are
- * cycled, so the same technique name is backed by genuinely different footage
- * instead of the handful of windows everyone kept seeing on loop.
+ * The arena cycles two master reels that share the same ring, the same camera
+ * distance and fighters of realistic proportions. The old "heights" master was
+ * dropped: it rendered Putin as a dwarf next to Trump, which broke the show.
  */
 import heights2 from "@/assets/arena-heights2.webm.asset.json";
-import heights from "@/assets/arena-heights.webm.asset.json";
 import moves from "@/assets/arena-moves.webm.asset.json";
 
-export const REELS: string[] = [heights2.url, heights.url, moves.url];
+export const REELS: string[] = [heights2.url, moves.url];
+
 
 /** Reel used by the very first frame and by anything without an explicit source. */
 export const PRIMARY_REEL = REELS[0]!;
