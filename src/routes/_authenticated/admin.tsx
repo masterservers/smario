@@ -32,6 +32,7 @@ import { SessionLinks } from "@/components/admin/SessionLinks";
 import { GuestChat } from "@/components/admin/GuestChat";
 import { RoundMapping } from "@/components/admin/RoundMapping";
 import { MatchReset } from "@/components/admin/MatchReset";
+import { CombatAssets } from "@/components/admin/CombatAssets";
 import { RefereeGags } from "@/components/admin/RefereeGags";
 import { MatchTitleControl } from "@/components/admin/MatchTitle";
 import { TwoFactorGate, TwoFactorSettings, useMfaState } from "@/components/admin/TwoFactor";
