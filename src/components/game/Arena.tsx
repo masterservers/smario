@@ -408,41 +408,99 @@ const GIFT_TIER: Record<string, number> = {
   rocket: 5,
 };
 
-/** Feeling-out scenarios played when nobody is sending gifts. */
+/**
+ * Each gift reads as a specific kind of blow, delivered by the fighter the gift
+ * was sent to: a rose is a strike, a rocket ends with a throw.
+ */
+const GIFT_KIND: Record<string, HitKind[]> = {
+  rose: ["punch"],
+  donut: ["kick", "punch"],
+  tiktok: ["grapple", "kick"],
+  gift: ["aerial", "grapple"],
+  rocket: ["throw", "aerial"],
+};
+
+/**
+ * Feeling-out scenarios played when nobody is sending gifts. Deliberately many,
+ * so the idle fight keeps travelling across the ring instead of looping the
+ * same two or three windows.
+ */
 const IDLE_SCENES: Array<{ start: number; end: number; rate: number }> = [
   { start: 0.2, end: 2.4, rate: 0.8 },
+  { start: 1.4, end: 3.6, rate: 0.78 },
   { start: 2.2, end: 4.6, rate: 0.75 },
+  { start: 3.4, end: 5.6, rate: 0.82 },
   { start: 4.4, end: 6.8, rate: 0.8 },
+  { start: 5.6, end: 7.8, rate: 0.76 },
   { start: 6.6, end: 9.0, rate: 0.75 },
+  { start: 8.0, end: 10.1, rate: 0.8 },
   { start: 10.2, end: 12.6, rate: 0.82 },
+  { start: 11.4, end: 13.6, rate: 0.8 },
   { start: 12.4, end: 14.8, rate: 0.78 },
+  { start: 13.8, end: 16.0, rate: 0.76 },
   { start: 15.0, end: 17.4, rate: 0.8 },
+  { start: 16.2, end: 18.6, rate: 0.78 },
   { start: 17.2, end: 19.8, rate: 0.76 },
+  { start: 18.6, end: 20.6, rate: 0.8 },
   { start: 20.4, end: 22.6, rate: 0.74 },
+  { start: 21.6, end: 23.8, rate: 0.76 },
+  { start: 23.0, end: 25.2, rate: 0.78 },
+  { start: 24.6, end: 26.8, rate: 0.74 },
   { start: 26.6, end: 29.4, rate: 0.78 },
+  { start: 28.2, end: 30.2, rate: 0.76 },
   { start: 30.5, end: 32.8, rate: 0.8 },
+  { start: 31.8, end: 34.0, rate: 0.78 },
   { start: 32.6, end: 35.0, rate: 0.76 },
+  { start: 34.4, end: 36.6, rate: 0.78 },
+  { start: 36.2, end: 38.4, rate: 0.76 },
+  { start: 37.4, end: 39.6, rate: 0.8 },
 ];
 
 
-function pick<T>(items: T[], avoid: string[] = [], key?: (item: T) => string): T {
-  const pool = key ? items.filter((item) => !avoid.includes(key(item))) : items;
-  const list = pool.length > 0 ? pool : items;
-  return list[Math.floor(Math.random() * list.length)]!;
-}
+
+
+type IdleScene = (typeof IDLE_SCENES)[number];
 
 /**
- * Pool for a gift tier: the exact tier plus the neighbouring ones, so a stream
- * of small gifts still produces punches, kicks, rope work and takedowns instead
- * of cycling the same handful of jabs.
+ * Idle scenes rotate least-recently-used as well: every feeling-out window is
+ * shown before any of them comes back, so the fight never loops the same beat.
  */
-function movesForTier(tier: number): Move[] {
-  const near = MOVES.filter((move) => Math.abs(move.tier - tier) <= 1);
+function drawIdle(
+  usage: Map<string, number>,
+  recent: string[],
+  current: IdleScene,
+): IdleScene {
+  const blocked = new Set([...recent.slice(-Math.floor(IDLE_SCENES.length / 2)), `${current.start}`]);
+  const open = IDLE_SCENES.filter((scene) => !blocked.has(`${scene.start}`));
+  const list = open.length > 0 ? open : IDLE_SCENES;
+  let best = Infinity;
+  for (const scene of list) best = Math.min(best, usage.get(`${scene.start}`) ?? 0);
+  const fresh = list.filter((scene) => (usage.get(`${scene.start}`) ?? 0) === best);
+  const chosen = fresh[Math.floor(Math.random() * fresh.length)]!;
+  usage.set(`${chosen.start}`, (usage.get(`${chosen.start}`) ?? 0) + 1);
+  recent.push(`${chosen.start}`);
+  if (recent.length > IDLE_SCENES.length) recent.shift();
+  return chosen;
+}
+
+
+/**
+ * Pool for a gift: the moves whose physical kind matches the gift (rose = a
+ * strike, rocket = a throw) at that power tier, widened to the neighbouring
+ * tiers so a stream of the same gift still produces different scenes.
+ */
+function movesForGift(giftId: string, tier: number): Move[] {
+  const kinds = GIFT_KIND[giftId];
   const exact = MOVES.filter((move) => move.tier === tier);
-  // Weight the exact tier twice so the gift still reads at the right power.
-  const pool = [...exact, ...exact, ...near];
+  const near = MOVES.filter((move) => Math.abs(move.tier - tier) <= 1);
+  const matching = kinds
+    ? near.filter((move) => kinds.includes(kindOf(move)))
+    : [];
+  // Weight: the gift's own kind first, then the exact tier, then the neighbours.
+  const pool = [...matching, ...matching, ...exact, ...near];
   return pool.length > 0 ? pool : MOVES;
 }
+
 
 /**
  * Least-recently-used draw: every move in the pool is played before any of them
@@ -553,6 +611,10 @@ export function Arena({
   const moveUsage = useRef<Map<string, number>>(new Map());
   const followUsage = useRef<Map<string, number>>(new Map());
   const idleScene = useRef(IDLE_SCENES[0]!);
+  /** LRU memory of the feeling-out scenes, so none of them repeats early. */
+  const idleUsage = useRef<Map<string, number>>(new Map());
+  const recentIdle = useRef<string[]>([]);
+
   const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
   const primed = useRef(false);
   /** A KO may be scored during a move, but its replay must never cut that move. */
@@ -833,11 +895,7 @@ export function Arena({
       const scene = idleScene.current;
       if (video.paused || video.currentTime < scene.start || video.currentTime > scene.end) {
         if (video.currentTime < scene.start || video.currentTime > scene.end) {
-          idleScene.current = pick(
-            IDLE_SCENES,
-            [`${idleScene.current.start}`],
-            (scene) => `${scene.start}`,
-          );
+          idleScene.current = drawIdle(idleUsage.current, recentIdle.current, idleScene.current);
           switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed);
           return;
         }
@@ -858,12 +916,13 @@ export function Arena({
       const move = pendingFollow
         ? pendingFollow.move
         : drawMove(
-            movesForTier(tier),
+            movesForGift(event.gift, tier),
             recentMoves.current,
             moveUsage.current,
             moveCooldowns.current,
             varietyRef.current.cooldownMs,
           );
+
       recentMoves.current = [...recentMoves.current, move.id].slice(
         -Math.max(cfgRef.current.moveMemory, varietyRef.current.rotation),
       );
@@ -1039,11 +1098,8 @@ export function Arena({
       lockUntil.current = pendingKo.current ? 0 : performance.now() + 350;
       // Wake the deferred-KO effect only after the complete landing/recovery.
       if (pendingKo.current) setCompletedSequences((value) => value + 1);
-      idleScene.current = pick(
-        IDLE_SCENES,
-        [`${idleScene.current.start}`],
-        (scene) => `${scene.start}`,
-      );
+      idleScene.current = drawIdle(idleUsage.current, recentIdle.current, idleScene.current);
+
       // Between spots the fighters keep circling: drift the framing back.
       // Recovery: the camera eases out of the mat framing first, then drifts on
       // into the next resting shot — no snap between the two.
@@ -1178,26 +1234,36 @@ export function Arena({
           labels and gift particles stay off the ring so both fighters remain
           unobstructed on small screens. */}
 
-      {/* Knockout: no overlay panel over the ring — the loser stays down on the
-          mat and only a headline sits at the top-centre of the screen. */}
-      {ko && koConfirmed && (
-        <div className="pointer-events-none absolute inset-x-0 top-[8%] z-20 flex flex-col items-center gap-1 text-center">
+      {/* Knockout: nothing covers the ring. The loser stays down on the mat, the
+          referee counts to ten, and a small "KNOCKDOWN" tag sits on the side
+          opposite the fighter who is down. */}
+      {ko && (
+        <div
+          className={`pointer-events-none absolute top-[26%] z-20 flex max-w-[36vw] flex-col gap-0.5 ${
+            ko === "ru"
+              ? "left-[3%] items-start text-left"
+              : "right-[3%] items-end text-right"
+          }`}
+        >
           {replay && (
-            <div className="display animate-fade-in text-xs tracking-widest text-outline opacity-80 sm:text-sm">
+            <div className="display animate-fade-in text-[10px] tracking-widest text-outline opacity-80 sm:text-xs">
               ● REPLAY
             </div>
           )}
-          <div className="display text-5xl text-gold text-outline sm:text-7xl">{t.knockout}</div>
-          <div className="display text-xl text-outline sm:text-3xl">
+          <div className="display animate-fade-in text-base tracking-widest text-gold text-outline sm:text-2xl">
+            {t.knockdown.toUpperCase()}
+          </div>
+          <div className="display text-[10px] text-outline opacity-90 sm:text-sm">
             {ko === "ru" ? names.us : names.ru} — {t.knockedDown}
           </div>
-          {champion && (
-            <div className="display animate-fade-in text-lg text-gold text-outline sm:text-2xl">
+          {champion && koConfirmed && (
+            <div className="display animate-fade-in text-xs text-gold text-outline sm:text-lg">
               🏆 {ko === "ru" ? names.ru : names.us}
             </div>
           )}
         </div>
       )}
+
 
       {/* Instant replay controls — same camera, no cut away from the ring. */}
       {ko && koConfirmed && showReplayPanel && (
