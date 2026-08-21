@@ -951,7 +951,7 @@ export function Arena({
       if (!event) return;
       follow.current = null;
 
-      const tier = GIFT_TIER[event.gift] ?? 1;
+      const tier = ruleFor(event.gift).tier;
       const move = pendingFollow
         ? pendingFollow.move
         : drawMove(
