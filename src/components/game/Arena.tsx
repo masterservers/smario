@@ -533,6 +533,13 @@ export function Arena({
   const baseFrame = useRef<Frame>({ x: 0, y: 0, scale: 1, rotate: 0 });
 
   const [damages, setDamages] = useState<DamageItem[]>([]);
+  /** Impact sparks: count and spread scale with the force of the hit. */
+  const [sparks, setSparks] = useState<
+    { id: string; side: Side; force: number; life: number; count: number }[]
+  >([]);
+  /** Instant-replay panel shown after the count is confirmed. */
+  const [showReplayPanel, setShowReplayPanel] = useState(false);
+  const koReplayRef = useRef<(() => void) | null>(null);
 
   // Slow "breathing" of the wide shot between spots: the camera keeps living
   // without ever cutting in close. Only the video layer moves — the scoreboard
@@ -635,6 +642,19 @@ export function Arena({
     if (!ko) {
       handledKo.current = null;
       pendingKo.current = null;
+      setShowReplayPanel(false);
+      koReplayRef.current = null;
+      // Smooth return to live speed after the slow-motion finish.
+      const video = activeVideoRef.current;
+      if (video && video.playbackRate < 0.95) {
+        const ramp = window.setInterval(() => {
+          const target = activeVideoRef.current;
+          if (!target) return window.clearInterval(ramp);
+          const next = Math.min(1, target.playbackRate + 0.08);
+          target.playbackRate = next;
+          if (next >= 1) window.clearInterval(ramp);
+        }, 70);
+      }
       return;
     }
     if (handledKo.current === ko) return;
@@ -676,7 +696,23 @@ export function Arena({
     video.playbackRate = 0.45;
     switchScene(Math.max(0, finisher.impact - 1.2), 0.45, true);
 
+    // Instant replay of the finish, re-runnable from the panel below.
+    const runReplay = () => {
+      setShowReplayPanel(false);
+      setReplay(true);
+      logRef.current?.("replay", "instant replay");
+      switchScene(Math.max(0, finisher.impact - 1.2), 0.4, true);
+      window.setTimeout(() => {
+        setReplay(false);
+        // Return to the champion shot in the very same camera framing.
+        switchScene(CHAMPION_POSE.start, CHAMPION_POSE.rate, true);
+        setShowReplayPanel(true);
+      }, 3400);
+    };
+    koReplayRef.current = runReplay;
+
     let pose = 0;
+    let panel = 0;
     const settle = window.setTimeout(() => {
       setReplay(false);
       switchScene(finisher.impact, 0.35, true);
@@ -688,12 +724,15 @@ export function Arena({
         switchScene(CHAMPION_POSE.start, CHAMPION_POSE.rate, true);
         cheer(2);
         logRef.current?.("ko", `champion pose — ${ko === "ru" ? names.ru : names.us}`);
+        panel = window.setTimeout(() => setShowReplayPanel(true), 900);
       }, 2600);
     }, 2500);
     return () => {
       window.clearTimeout(settle);
       window.clearTimeout(pose);
+      window.clearTimeout(panel);
       setChampion(false);
+      setShowReplayPanel(false);
     };
   }, [ko, completedSequences, names.ru, names.us]);
 
@@ -819,14 +858,36 @@ export function Arena({
       // Dynamic camera: a light push-in on contact, drifting towards the hit.
       setPhase("impact");
       const shot = baseFrame.current;
+      // Micro-impulse only: a very short nudge and push-in at the moment of
+      // contact, then straight back to the base shot so the blending stays
+      // smooth and the picture never wobbles.
       setFrame(
         clampFrame({
-          x: shot.x + (defender === "ru" ? -1.2 : 1.2) * profile.force,
-          y: shot.y + profile.impactZoom * 8,
-          scale: shot.scale + profile.impactZoom,
-          rotate: shot.rotate + (defender === "ru" ? -0.3 : 0.3),
+          x: shot.x + (defender === "ru" ? -0.5 : 0.5) * profile.force,
+          y: shot.y + profile.impactZoom * 3,
+          scale: shot.scale + profile.impactZoom * 0.45,
+          rotate: shot.rotate + (defender === "ru" ? -0.12 : 0.12),
         }),
       );
+      window.setTimeout(() => {
+        if (playing.current) setFrame(clampFrame(baseFrame.current));
+      }, 190);
+      // Sparks live exactly as long as the stun plus the landing/recovery beat.
+      const sparkLife = Math.round(profile.stun + profile.recovery * 520);
+      const burst = {
+        id: event.id,
+        side: defender,
+        force: profile.force,
+        life: sparkLife,
+        count: Math.round(8 + profile.force * 10 + move.tier * 2),
+      };
+      if (!lite) {
+        setSparks((previous) => [...previous.slice(-2), burst]);
+        window.setTimeout(
+          () => setSparks((previous) => previous.filter((item) => item.id !== burst.id)),
+          sparkLife,
+        );
+      }
       setDamages((previous) => [
         ...previous.slice(-1),
         { id: event.id, side: defender, amount: gift?.damage ?? 4 },
@@ -979,6 +1040,31 @@ export function Arena({
               className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter,opacity]"
             />
           ))}
+
+          {/* Impact sparks — density and spread follow the force of the hit. */}
+          {sparks.map((burst) => (
+            <div
+              key={burst.id}
+              className="spark-burst"
+              style={{
+                left: burst.side === "ru" ? "38%" : "62%",
+                ["--spark-life" as string]: `${burst.life}ms`,
+              }}
+            >
+              {Array.from({ length: burst.count }).map((_, index) => (
+                <span
+                  key={index}
+                  className="spark"
+                  style={{
+                    ["--a" as string]: `${(index / burst.count) * 360 + Math.random() * 24}deg`,
+                    ["--d" as string]: `${(24 + Math.random() * 46) * burst.force}px`,
+                    ["--s" as string]: `${(2 + Math.random() * 2.4) * burst.force}px`,
+                    animationDelay: `${Math.random() * 90}ms`,
+                  }}
+                />
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -1005,6 +1091,30 @@ export function Arena({
               🏆 {ko === "ru" ? names.ru : names.us}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Instant replay controls — same camera, no cut away from the ring. */}
+      {ko && koConfirmed && showReplayPanel && (
+        <div className="absolute inset-x-0 bottom-[12%] z-30 flex animate-fade-in justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => koReplayRef.current?.()}
+            className="display rounded-full bg-foreground/10 px-5 py-2 text-sm tracking-widest text-outline backdrop-blur transition hover:bg-foreground/20 sm:text-base"
+          >
+            ⟲ REPLAY
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowReplayPanel(false);
+              setReplay(false);
+              switchScene(CHAMPION_POSE.start, CHAMPION_POSE.rate, true);
+            }}
+            className="display rounded-full bg-gold/20 px-5 py-2 text-sm tracking-widest text-gold text-outline backdrop-blur transition hover:bg-gold/30 sm:text-base"
+          >
+            ▶ LIVE
+          </button>
         </div>
       )}
     </div>
