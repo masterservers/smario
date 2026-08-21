@@ -30,13 +30,19 @@ export type RefereeRules = {
   resumeDelayMs: number;
 };
 
+/** Which fighter a gift always hits for, or "auto" (the sender decides). */
+export type GiftTargetRule = "ru" | "us" | "auto";
+
 export type HitConfig = {
   /** Base mapping, used by every round that has no override. */
   gifts: Record<GiftId, GiftHitRule>;
   /** Per-round overrides: rounds["3"].rocket replaces the base rule in round 3. */
   rounds: Record<string, Partial<Record<GiftId, GiftHitRule>>>;
+  /** Routing rules: a gift can be locked to Putin (ru) or Trump (us). */
+  routing: Record<GiftId, GiftTargetRule>;
   referee: RefereeRules;
 };
+
 
 const DEFAULT_RULES: Record<GiftId, GiftHitRule> = {
   rose: { kinds: ["punch"], tier: 1, force: 1, stun: 1 },
@@ -67,12 +73,17 @@ export function defaultHitConfig(): HitConfig {
   const gifts = Object.fromEntries(
     GIFTS.map((gift) => [gift.id, { ...DEFAULT_RULES[gift.id]!, kinds: [...DEFAULT_RULES[gift.id]!.kinds] }]),
   ) as Record<GiftId, GiftHitRule>;
+  const routing = Object.fromEntries(
+    GIFTS.map((gift) => [gift.id, "auto" as GiftTargetRule]),
+  ) as Record<GiftId, GiftTargetRule>;
   return {
     gifts,
     rounds: Object.fromEntries(CONFIGURABLE_ROUNDS.map((r) => [String(r), {}])),
+    routing,
     referee: { knockdownCount: 8, finalCount: 10, countMs: 950, resumeDelayMs: 900 },
   };
 }
+
 
 const KEY = "pvt.hitConfig";
 
@@ -119,6 +130,13 @@ function normalize(raw: unknown): HitConfig {
       };
     }
   }
+
+  // Gift → fighter routing (Putin vs Trump rules).
+  for (const gift of GIFTS) {
+    const value = parsed.routing?.[gift.id];
+    if (value === "ru" || value === "us" || value === "auto") base.routing[gift.id] = value;
+  }
+
 
   const ref = parsed.referee;
   if (ref) {
@@ -215,4 +233,19 @@ export function setServerRules(entries: { eventId: string; rule: GiftHitRule }[]
 /** The rule for one recorded gift: server verdict first, local mapping second. */
 export function ruleForEvent(eventId: string, gift: string, round: number = activeRound): GiftHitRule {
   return serverRules.get(eventId) ?? ruleFor(gift, round);
+}
+
+/**
+ * Putin vs Trump routing: a gift locked to a side always hits that fighter,
+ * whatever side the sender picked; "auto" keeps the sender's choice.
+ */
+export function resolveHitSide(gift: string, requested: "ru" | "us"): "ru" | "us" {
+  const rule = getHitConfig().routing[gift as GiftId] ?? "auto";
+  return rule === "auto" ? requested : rule;
+}
+
+/** Writes the routing table (used by the admin gift settings). */
+export function setGiftRouting(routing: Partial<Record<GiftId, GiftTargetRule>>) {
+  const cfg = getHitConfig();
+  saveHitConfig({ ...cfg, routing: { ...cfg.routing, ...routing } as Record<GiftId, GiftTargetRule> });
 }

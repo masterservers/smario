@@ -5,7 +5,7 @@ import { UI_TEXT, type Lang } from "@/lib/i18n";
 import { finishMatch, getCurrentMatch } from "@/lib/match.functions";
 import { reduceEvents, randomNickname, type GiftEvent, type GiftId, type Side } from "@/lib/battle";
 import { resolveRing } from "@/lib/referee.functions";
-import { setServerRules } from "@/lib/hitConfig";
+import { resolveHitSide, setServerRules } from "@/lib/hitConfig";
 
 type LeaderRow = { sender: string; total: number; side: Side };
 
@@ -200,16 +200,20 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
       if (!matchId) return;
       const t = UI_TEXT[lang];
 
+      // Putin vs Trump rules: a gift locked to a fighter always lands on him.
+      const target = resolveHitSide(gift, side);
+
       // No throttling: a viewer may tap a gift as often as they want.
       const { data, error } = await supabase
         .from("gift_events")
         .insert({
           match_id: matchId,
-          side,
+          side: target,
           gift,
           sender: nickname,
           message: message ?? null,
         })
+
         .select("id, side, gift, value, sender, created_at")
         .single();
 
