@@ -281,6 +281,7 @@ function AdminPage() {
               <tr>
                 <th className="py-1 pr-3">When</th>
                 <th className="py-1 pr-3">Who</th>
+                <th className="py-1 pr-3">IP</th>
                 <th className="py-1 pr-3">Section</th>
                 <th className="py-1 pr-3">Change</th>
                 <th className="py-1">Details</th>
@@ -293,6 +294,7 @@ function AdminPage() {
                     {new Date(entry.created_at).toLocaleString()}
                   </td>
                   <td className="py-1.5 pr-3">{entry.actor_email ?? "—"}</td>
+                  <td className="py-1.5 pr-3 font-mono text-muted-foreground">{entry.ip ?? "—"}</td>
                   <td className="py-1.5 pr-3">{entry.section}</td>
                   <td className="py-1.5 pr-3">{entry.action}</td>
                   <td className="py-1.5 break-all text-muted-foreground">
@@ -302,7 +304,7 @@ function AdminPage() {
               ))}
               {audit.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-3 text-muted-foreground">
+                  <td colSpan={6} className="py-3 text-muted-foreground">
                     No changes recorded yet.
                   </td>
                 </tr>
