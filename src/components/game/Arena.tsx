@@ -1280,6 +1280,10 @@ export function Arena({
         </div>
       </div>
 
+      {/* Mr. Bean officiates: between the real exchanges he wanders in for a
+          gag, gets clipped by a stray punch, or staggers across the apron. */}
+      <RefereeBean ko={ko} paused={paused} />
+
       {/* Gift effects live on the ring itself: symbol, name and value rise out
           of the fighter's corner. No widgets, no chat, nothing under the mat. */}
       <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
