@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import beanImg from "@/assets/mr-bean-ref-cutout.png";
 import type { Lang } from "@/lib/i18n";
 import { useDebugView } from "@/lib/debugView";
@@ -103,6 +103,25 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
     setStruck((n) => n + 1);
   }, [beat]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  // The reel is letterboxed 16:9 inside this box, so Bean must live in the same
+  // fitted rectangle — otherwise his feet land in the black bars on wide screens.
+  const [fit, setFit] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  useLayoutEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+    const measure = () => {
+      const { width, height } = el.getBoundingClientRect();
+      if (!width || !height) return;
+      const w = Math.min(width, (height * 16) / 9);
+      setFit({ w, h: (w * 9) / 16 });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [run?.id]);
+
   if (!run || counting) return null;
   const line = LINES[lang][run.gag];
   const separating = run.gag === "separate" || run.gag === "break";
@@ -111,11 +130,13 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
   return (
     // The reel is 16:9 and letterboxed, so Bean lives inside the same box — he
     // always stands on the mat, never down in the black bars.
-    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
+    <div
+      ref={hostRef}
+      className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden"
+    >
       <div
-        className={`relative aspect-video max-h-full w-full max-w-full ${
-          debug ? "outline outline-1 outline-sky-400/80" : ""
-        }`}
+        style={{ width: fit.w, height: fit.h }}
+        className={`relative ${debug ? "outline outline-1 outline-sky-400/80" : ""}`}
       >
         <div
           key={`${run.id}-${struck}`}
