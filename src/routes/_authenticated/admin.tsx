@@ -159,17 +159,67 @@ function AdminPage() {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const liveLink = `${origin}/live?lang=${lang}&s=${admin.liveSession}`;
 
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/auth";
+  };
+
+  if (role === "loading") {
+    return (
+      <main className="mx-auto w-full max-w-4xl px-4 py-16 text-sm text-muted-foreground">
+        Checking your access…
+      </main>
+    );
+  }
+
+  if (!role) {
+    return (
+      <main className="mx-auto w-full max-w-md px-4 py-16">
+        <h1 className="display text-2xl text-gold">No access</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {actor ? `${actor} has no ` : "This account has no "}admin or moderator role, so the
+          battle console stays locked. Ask an administrator to grant you a role.
+        </p>
+        <div className="mt-4 flex gap-2">
+          <Button type="button" variant="outline" onClick={() => void signOut()}>
+            Sign out
+          </Button>
+          <Link
+            to="/"
+            search={{ lang }}
+            className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground"
+          >
+            ← Arena
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const readOnly = role === "moderator";
+
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="display text-2xl text-gold">Battle admin</h1>
-        <Link
-          to="/"
-          search={{ lang }}
-          className="rounded-md border border-border px-3 py-1 text-sm text-muted-foreground"
-        >
-          ← Arena
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="display text-2xl text-gold">Battle admin</h1>
+          <p className="text-xs text-muted-foreground">
+            {actor} · role: {role}
+            {readOnly ? " (moderator — changes are logged and reviewed)" : ""}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => void signOut()}>
+            Sign out
+          </Button>
+          <Link
+            to="/"
+            search={{ lang }}
+            className="rounded-md border border-border px-3 py-1 text-sm text-muted-foreground"
+          >
+            ← Arena
+          </Link>
+        </div>
       </div>
 
       {/* Fighters ------------------------------------------------------- */}
