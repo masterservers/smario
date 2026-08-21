@@ -533,6 +533,13 @@ export function Arena({
   const baseFrame = useRef<Frame>({ x: 0, y: 0, scale: 1, rotate: 0 });
 
   const [damages, setDamages] = useState<DamageItem[]>([]);
+  /** Impact sparks: count and spread scale with the force of the hit. */
+  const [sparks, setSparks] = useState<
+    { id: string; side: Side; force: number; life: number; count: number }[]
+  >([]);
+  /** Instant-replay panel shown after the count is confirmed. */
+  const [showReplayPanel, setShowReplayPanel] = useState(false);
+  const koReplayRef = useRef<(() => void) | null>(null);
 
   // Slow "breathing" of the wide shot between spots: the camera keeps living
   // without ever cutting in close. Only the video layer moves — the scoreboard
@@ -819,14 +826,36 @@ export function Arena({
       // Dynamic camera: a light push-in on contact, drifting towards the hit.
       setPhase("impact");
       const shot = baseFrame.current;
+      // Micro-impulse only: a very short nudge and push-in at the moment of
+      // contact, then straight back to the base shot so the blending stays
+      // smooth and the picture never wobbles.
       setFrame(
         clampFrame({
-          x: shot.x + (defender === "ru" ? -1.2 : 1.2) * profile.force,
-          y: shot.y + profile.impactZoom * 8,
-          scale: shot.scale + profile.impactZoom,
-          rotate: shot.rotate + (defender === "ru" ? -0.3 : 0.3),
+          x: shot.x + (defender === "ru" ? -0.5 : 0.5) * profile.force,
+          y: shot.y + profile.impactZoom * 3,
+          scale: shot.scale + profile.impactZoom * 0.45,
+          rotate: shot.rotate + (defender === "ru" ? -0.12 : 0.12),
         }),
       );
+      window.setTimeout(() => {
+        if (playing.current) setFrame(clampFrame(baseFrame.current));
+      }, 190);
+      // Sparks live exactly as long as the stun plus the landing/recovery beat.
+      const sparkLife = Math.round(profile.stun + profile.recovery * 520);
+      const burst = {
+        id: event.id,
+        side: defender,
+        force: profile.force,
+        life: sparkLife,
+        count: Math.round(8 + profile.force * 10 + move.tier * 2),
+      };
+      if (!lite) {
+        setSparks((previous) => [...previous.slice(-2), burst]);
+        window.setTimeout(
+          () => setSparks((previous) => previous.filter((item) => item.id !== burst.id)),
+          sparkLife,
+        );
+      }
       setDamages((previous) => [
         ...previous.slice(-1),
         { id: event.id, side: defender, amount: gift?.damage ?? 4 },
