@@ -17,6 +17,50 @@ type Move = {
   tier: number;
 };
 
+/** How a hit reads physically on screen. */
+type HitKind = "punch" | "kick" | "grapple" | "aerial" | "throw";
+
+function kindOf(move: Move): HitKind {
+  const l = move.label;
+  if (/KICK|TEEP|DROPKICK/.test(l)) return "kick";
+  if (/ROPE|CLIMB|DIVE|SPLASH|MOONSAULT|JUMP|DROP/.test(l)) return "aerial";
+  if (/SLAM|THROW|POWERBOMB|TOSS|FINISHER/.test(l)) return "throw";
+  if (/JAB|HOOK|CROSS|RIGHT|UPPERCUT|ELBOW|COMBO|COMBINATION|COUNTER|SHOT/.test(l)) return "punch";
+  return "grapple";
+}
+
+/**
+ * Framing presets: the fighters travel across the ring instead of staying
+ * pinned in the centre. Values stay small (no close-ups) — they only shift the
+ * wide shot left/right, a touch nearer/further, with a controlled tilt.
+ */
+type Frame = { x: number; y: number; scale: number; rotate: number };
+
+const FRAMES: Frame[] = [
+  { x: 0, y: 0, scale: 1, rotate: 0 },
+  { x: -4.5, y: 0.5, scale: 1.04, rotate: -0.9 },
+  { x: 4.5, y: 0.5, scale: 1.04, rotate: 0.9 },
+  { x: -6, y: -1, scale: 1.06, rotate: 1.1 },
+  { x: 6, y: -1, scale: 1.06, rotate: -1.1 },
+  { x: 0, y: 1.5, scale: 0.97, rotate: 0 },
+  { x: -2.5, y: -1.5, scale: 1.02, rotate: 0.6 },
+  { x: 2.5, y: -1.5, scale: 1.02, rotate: -0.6 },
+];
+
+/** Each block of the reel gets its own corner of the ring, plus a little drift. */
+function frameFor(move: Move): Frame {
+  const block = Math.floor(move.start / 10); // 0..3
+  const base = FRAMES[(block * 2 + (move.tier % 2) + 1) % FRAMES.length]!;
+  const drift = (Math.random() - 0.5) * 2.4;
+  return {
+    x: Math.max(-7, Math.min(7, base.x + drift)),
+    y: base.y + (Math.random() - 0.5) * 1.2,
+    scale: base.scale,
+    rotate: base.rotate + (Math.random() - 0.5) * 0.5,
+  };
+}
+
+
 /**
  * The reel is one continuous wide camera, 40s long, built from four blocks:
  *   A  0.0 – 10.0  stand-up exchange: circling, punches, lock-up
