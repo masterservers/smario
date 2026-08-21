@@ -42,7 +42,7 @@ export const Route = createFileRoute("/api/public/active-config")({
         });
         const { data, error } = await client
           .from("config_versions")
-          .select("id, label, is_active, created_by_email, created_at, bundle")
+          .select("id, label, is_active, created_at, bundle")
           .eq("is_active", true)
           .limit(1)
           .maybeSingle();
@@ -59,8 +59,7 @@ export const Route = createFileRoute("/api/public/active-config")({
             version: {
               id: data.id,
               label: data.label,
-              publishedBy: data.created_by_email,
-              publishedAt: data.created_at,
+                            publishedAt: data.created_at,
             },
             bundle: data.bundle,
           },

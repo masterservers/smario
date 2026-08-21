@@ -65,10 +65,7 @@ export const resetMatch = createServerFn({ method: "POST" })
     clearHistory: Boolean(input?.clearHistory),
   }))
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
+    const { data: isAdmin } = await context.supabase.rpc("current_user_has_role", { _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

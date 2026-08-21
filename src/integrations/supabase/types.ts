@@ -223,6 +223,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      current_user_has_role: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Returns: boolean
+      }
       daily_leaderboard: {
         Args: never
         Returns: {

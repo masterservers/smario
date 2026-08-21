@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { resolveLiveSession } from "@/lib/liveSession.functions";
 import { isLang, type Lang } from "@/lib/i18n";
 
 /** What a viewer is allowed to do with the link they opened. */
@@ -46,29 +46,25 @@ export function useViewerAccess(token: string | undefined): ViewerAccess {
     setAccess({ ...OPEN, loading: true, allowed: false });
 
     void (async () => {
-      const { data } = await supabase
-        .from("live_sessions")
-        .select("label, lang, allow_gifts, is_active, expires_at")
-        .eq("token", token)
-        .maybeSingle();
+      const data = await resolveLiveSession({ data: { token } }).catch(() => null);
       if (cancelled) return;
 
-      if (!data) {
+      if (!data || !data.found) {
         setAccess({ ...OPEN, allowed: false, reason: "unknown" });
         return;
       }
-      if (!data.is_active) {
+      if (!data.isActive) {
         setAccess({ ...OPEN, allowed: false, reason: "paused", label: data.label });
         return;
       }
-      if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) {
+      if (data.expiresAt && new Date(data.expiresAt).getTime() < Date.now()) {
         setAccess({ ...OPEN, allowed: false, reason: "expired", label: data.label });
         return;
       }
       setAccess({
         loading: false,
         allowed: true,
-        canGift: data.allow_gifts,
+        canGift: data.allowGifts,
         lang: isLang(data.lang) ? data.lang : null,
         label: data.label,
         reason: "ok",
