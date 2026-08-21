@@ -104,7 +104,8 @@ export function Scoreboard({
 
         <div className="flex flex-col items-center px-1 leading-none">
           <span className="display text-sm text-gold sm:text-base">VS</span>
-          <span className="mt-1 text-[8px] uppercase text-muted-foreground sm:text-[9px]">
+          <span className="display mt-0.5 text-xs tabular-nums text-gold sm:text-sm">{time}</span>
+          <span className="mt-0.5 text-[8px] uppercase text-muted-foreground sm:text-[9px]">
             {t.round} {round} · {viewers}
           </span>
         </div>
