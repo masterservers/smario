@@ -35,6 +35,8 @@ import { SessionLinks } from "@/components/admin/SessionLinks";
 import { GuestChat } from "@/components/admin/GuestChat";
 import { RoundMapping } from "@/components/admin/RoundMapping";
 import { MatchReset } from "@/components/admin/MatchReset";
+import { EnginePresets } from "@/components/admin/EnginePresets";
+import { MoveLogExport } from "@/components/admin/MoveLogExport";
 import { MatchTitleControl } from "@/components/admin/MatchTitle";
 import { TwoFactorGate, TwoFactorSettings, useMfaState } from "@/components/admin/TwoFactor";
 import { ALL_SCENES } from "@/lib/scenes";
@@ -527,6 +529,32 @@ function AdminPage() {
         <MatchReset onAudit={(action, details) => record("match", action, details)} />
       </section>
 
+
+      {/* Engine difficulty presets ---------------------------------------- */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Engine · difficulty presets
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          Sets how strong the fight reads: the probability of each strength level 1–5, how often
+          aerial spots and finishers appear, and how long a move stays out of the rotation. Timing
+          and commentary sync are untouched.
+        </p>
+        <EnginePresets onAudit={(action, details) => record("engine", action, details)} />
+      </section>
+
+      {/* Match log export -------------------------------------------------- */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Match log · per round &amp; per move
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          Every executed move with its time, type, strength, the fighter it belonged to and the
+          announcer line in the language on air — exportable as CSV or JSON, per round or for the
+          whole match.
+        </p>
+        <MoveLogExport onAudit={(action, details) => record("log", action, details)} />
+      </section>
 
       {/* Outfit switch ---------------------------------------------------- */}
       <section className="panel mt-4 rounded-2xl p-4">
