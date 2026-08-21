@@ -185,6 +185,8 @@ function BattlePage() {
         <MrBeanReferee
           lang={lang}
           beat={events.length}
+          combo={state.combo}
+          muted={muted}
           counting={referee.count > 0 && !referee.koConfirmed}
         />
         <RefereeCount lang={lang} referee={referee} />

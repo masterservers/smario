@@ -32,6 +32,7 @@ import { SessionLinks } from "@/components/admin/SessionLinks";
 import { GuestChat } from "@/components/admin/GuestChat";
 import { RoundMapping } from "@/components/admin/RoundMapping";
 import { MatchReset } from "@/components/admin/MatchReset";
+import { RefereeGags } from "@/components/admin/RefereeGags";
 import { MatchTitleControl } from "@/components/admin/MatchTitle";
 import { TwoFactorGate, TwoFactorSettings, useMfaState } from "@/components/admin/TwoFactor";
 import { ALL_SCENES } from "@/lib/scenes";
@@ -521,6 +522,18 @@ function AdminPage() {
           the whole gift history.
         </p>
         <MatchReset onAudit={(action, details) => record("match", action, details)} />
+      </section>
+
+      {/* Referee interventions ------------------------------------------- */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Referee · comic interventions
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          Sets how often Mr. Bean steps in (random gap inside the chosen window) and which match
+          events pull him in early. The fight animation is never paused or slowed by this.
+        </p>
+        <RefereeGags onAudit={(action, details) => record("match", action, details)} />
       </section>
 
 
