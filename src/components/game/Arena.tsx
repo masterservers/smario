@@ -93,6 +93,21 @@ function frameFor(move: Move): Frame {
 }
 
 
+/**
+ * A spot runs through phases; the camera and the cross-fade blend differently in
+ * each one, so lift → throw → landing → recovery reads as one continuous motion
+ * instead of a jump between states.
+ */
+type Phase = "idle" | "windup" | "impact" | "landing" | "recovery";
+
+const PHASE_BLEND: Record<Phase, { camera: number; ease: string; fade: number }> = {
+  idle:     { camera: 1400, ease: "cubic-bezier(0.4, 0, 0.2, 1)", fade: 320 },
+  windup:   { camera: 700,  ease: "cubic-bezier(0.33, 0, 0.2, 1)", fade: 240 },
+  impact:   { camera: 220,  ease: "cubic-bezier(0.16, 1, 0.3, 1)", fade: 120 },
+  landing:  { camera: 900,  ease: "cubic-bezier(0.22, 0.9, 0.28, 1)", fade: 160 },
+  recovery: { camera: 1200, ease: "cubic-bezier(0.4, 0, 0.2, 1)", fade: 260 },
+};
+
 /** Clamp every camera move so the shot stays wide and readable. */
 function clampFrame(frame: Frame): Frame {
   return {
@@ -506,6 +521,8 @@ export function Arena({
   const [floats, setFloats] = useState<FloatItem[]>([]);
   /** Current camera framing: where in the ring the action sits. */
   const [frame, setFrame] = useState<Frame>({ x: 0, y: 0, scale: 1, rotate: 0 });
+  /** Which phase of the current spot the camera is blending towards. */
+  const [phase, setPhase] = useState<Phase>("idle");
   /** Physical reaction to the last landed hit (drives the shake/stagger). */
   const [reaction, setReaction] = useState<
     { id: string; kind: HitKind; dir: number; force: number; stun: number } | null
@@ -532,6 +549,7 @@ export function Arena({
         rotate: shot.rotate + (Math.random() - 0.5) * 0.25,
       });
       baseFrame.current = drift;
+      setPhase("idle");
       setFrame(drift);
     }, 3800);
     return () => window.clearInterval(timer);
@@ -761,6 +779,7 @@ export function Arena({
       // Move the wide shot to this block's corner of the ring.
       const shot = frameFor(move);
       baseFrame.current = shot;
+      setPhase("windup");
       setFrame(clampFrame(shot));
       switchScene(move.start, move.rate * cfgRef.current.speed, true);
 
@@ -798,6 +817,7 @@ export function Arena({
       );
       cheer(profile.cheer * (move.tier >= 4 ? 1.15 : 1));
       // Dynamic camera: a light push-in on contact, drifting towards the hit.
+      setPhase("impact");
       const shot = baseFrame.current;
       setFrame(
         clampFrame({
@@ -832,6 +852,7 @@ export function Arena({
           stopAt.current = limit;
           lockUntil.current = performance.now() + ((limit - video.currentTime) / settleRate) * 1000;
           // Camera follows the slam down to the mat: tilt down, a touch nearer.
+          setPhase("landing");
           const shot = baseFrame.current;
           setFrame(
             clampFrame({
@@ -858,6 +879,11 @@ export function Arena({
       if (pendingKo.current) setCompletedSequences((value) => value + 1);
       idleScene.current = pick(IDLE_SCENES);
       // Between spots the fighters keep circling: drift the framing back.
+      // Recovery: the camera eases out of the mat framing first, then drifts on
+      // into the next resting shot — no snap between the two.
+      const from = baseFrame.current;
+      setPhase("recovery");
+      setFrame(clampFrame({ x: from.x * 0.5, y: from.y * 0.4, scale: 1 + (from.scale - 1) * 0.35, rotate: from.rotate * 0.3 }));
       const rest = clampFrame({
         x: (Math.random() - 0.5) * 5,
         y: (Math.random() - 0.5) * 1.5,
@@ -865,7 +891,10 @@ export function Arena({
         rotate: (Math.random() - 0.5) * 0.8,
       });
       baseFrame.current = rest;
-      setFrame(rest);
+      window.setTimeout(() => {
+        setPhase("idle");
+        setFrame(rest);
+      }, 620);
       switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed, true);
 
       window.setTimeout(
@@ -892,9 +921,11 @@ export function Arena({
       {/* Framing layer: shifts the wide shot around the ring (left/right,
           nearer/further, slight tilt) so the action never stays pinned. */}
       <div
-        className="absolute inset-0 transition-transform duration-[900ms] ease-out"
+        className="absolute inset-0 transition-transform will-change-transform"
         style={{
           transform: `translate3d(${frame.x}%, ${frame.y}%, 0) scale(${frame.scale}) rotate(${frame.rotate}deg)`,
+          transitionDuration: `${PHASE_BLEND[phase].camera}ms`,
+          transitionTimingFunction: PHASE_BLEND[phase].ease,
         }}
       >
         {/* Reaction layer: per-hit physical response (jitter, step back, loss of
@@ -940,8 +971,12 @@ export function Arena({
                 willChange: lite ? undefined : "filter, opacity",
                 opacity: layer === activeLayer ? 1 : 0,
                 zIndex: layer === activeLayer ? 1 : 0,
+                // Blend between the two decoded layers with the current phase's
+                // easing: quick inside a spot, longer between spots.
+                transitionDuration: `${PHASE_BLEND[phase].fade}ms`,
+                transitionTimingFunction: PHASE_BLEND[phase].ease,
               }}
-              className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter,opacity] duration-200"
+              className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter,opacity]"
             />
           ))}
         </div>
