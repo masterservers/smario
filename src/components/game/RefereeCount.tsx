@@ -24,7 +24,15 @@ export function RefereeCount({ lang, referee }: Props) {
       }`}
     >
       <div className="display text-[9px] tracking-[0.3em] text-outline opacity-80 sm:text-xs">
-        🧑‍⚖️ {t.referee} · {t.count}
+      <div className="flex items-center gap-1.5">
+        <img
+          src={refereeAvatar.url}
+          alt=""
+          className="h-7 w-7 rounded-full border border-gold/70 object-cover object-top sm:h-9 sm:w-9"
+        />
+        <span className="display text-[9px] tracking-[0.3em] text-outline opacity-80 sm:text-xs">
+          {t.referee} · {t.count}
+        </span>
       </div>
       <div
         key={referee.count}
