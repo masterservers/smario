@@ -38,9 +38,9 @@ export const BEAN_DEFAULTS: BeanConfig = {
   visibleMs: 4200,
   cooldownSec: 6,
   headEnabled: true,
-  headX: 38,
-  headY: 33,
-  headSize: 3.4,
+  headX: 39.5,
+  headY: 40.5,
+  headSize: 3.2,
 };
 
 const KEY = "pvt.bean";
