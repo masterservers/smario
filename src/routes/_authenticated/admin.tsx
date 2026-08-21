@@ -27,6 +27,9 @@ import {
 } from "@/lib/hitConfig";
 
 import { ConfigManager } from "@/components/admin/ConfigManager";
+import { BroadcastControl } from "@/components/admin/BroadcastControl";
+import { GuestChat } from "@/components/admin/GuestChat";
+import { RoundMapping } from "@/components/admin/RoundMapping";
 import { TwoFactorGate, TwoFactorSettings, useMfaState } from "@/components/admin/TwoFactor";
 import { ALL_SCENES } from "@/lib/scenes";
 import {
@@ -170,6 +173,13 @@ function AdminPage() {
       return next;
     });
     record("hits", `gift ${id}`, patch);
+  };
+
+  /** Saves a whole hit config (used by the per-round mapping editor). */
+  const applyHits = (next: HitConfig, detail: string) => {
+    setHits(next);
+    saveHitConfig(next);
+    record("hits", "round mapping", { change: detail });
   };
 
   const patchReferee = (patch: Partial<RefereeRules>) => {
@@ -466,6 +476,43 @@ function AdminPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Commentator control --------------------------------------------- */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Commentator · language &amp; commands
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          Switches the on-air language for every open arena tab instantly and sends spoken commands
+          the commentator reads out in that language.
+        </p>
+        <BroadcastControl initial={lang} />
+      </section>
+
+      {/* Guests: chat + gifts (arena stays clean) ------------------------- */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Guests · chat &amp; gifts
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          The area under the ring stays completely free — all messages and gifts are sent from
+          here, and only their effect shows on the ring.
+        </p>
+        <GuestChat lang={lang} />
+      </section>
+
+      {/* Gift catalog per round ------------------------------------------- */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Gift catalog · mapping per round
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          Every gift in the catalog (America / Trump, Russia / Putin and universal), with its own
+          blow, tier, force and hit-stun for each round. A round without an override uses the base
+          mapping below.
+        </p>
+        <RoundMapping lang={lang} hits={hits} onChange={applyHits} />
       </section>
 
       {/* Hits & referee -------------------------------------------------- */}
