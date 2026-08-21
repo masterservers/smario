@@ -107,7 +107,7 @@ export function Scoreboard({
               {names.ruTeam} · {names.ru}
             </span>
             {leader === "ru" && <span className="text-xs">👑</span>}
-            <span className="display ml-auto text-base leading-none sm:text-xl" style={{ color: "var(--ru-glow)" }}>
+            <span className="display ml-auto text-xl leading-none sm:text-3xl" style={{ color: "var(--ru-glow)" }}>
               {scoreRu}
             </span>
           </div>
@@ -142,7 +142,7 @@ export function Scoreboard({
 
         <div className="min-w-0 text-right">
           <div className="flex items-center justify-end gap-1.5">
-            <span className="display mr-auto text-base leading-none sm:text-xl" style={{ color: "var(--us-glow)" }}>
+            <span className="display mr-auto text-xl leading-none sm:text-3xl" style={{ color: "var(--us-glow)" }}>
               {scoreUs}
             </span>
             {leader === "us" && <span className="text-xs">👑</span>}
@@ -158,6 +158,13 @@ export function Scoreboard({
             <HpBar hp={hpUs} align="right" />
           </div>
         </div>
+      </div>
+
+      <div
+        className="display mt-0.5 text-center text-xs uppercase tracking-[0.2em] text-gold sm:text-sm"
+        aria-hidden="true"
+      >
+        {names.ru} vs {names.us}
       </div>
     </div>
   );
