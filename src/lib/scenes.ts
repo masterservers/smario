@@ -637,30 +637,31 @@ const VARIETY_IDLE: IdleScene[] = [
 /* ------------------------------------------------------------------ *
  * Premium reel mapping
  *
- * The arena no longer plays a 40 s loop: it plays a 459 s reel cut from the
- * twelve pieces of real ring footage. Every scene above keeps its identity
- * (label, tier, playback rate and its own length), but its window is placed
- * on the new reel so that no two scenes share the same seconds and no window
- * ever crosses a cut between two pieces of footage.
+ * The arena no longer plays a 40 s loop: it plays a 455 s reel cut from the
+ * pieces of real ring footage, framed wide so the whole ring stays in shot and
+ * with the on-screen writing of the original recordings taken out. Every scene
+ * above keeps its identity (label, tier, playback rate and its own length), but
+ * its window is placed on the reel so that no two scenes share the same seconds
+ * and no window ever crosses a cut between two pieces of footage.
  * ------------------------------------------------------------------ */
 
 /** Start/end of each piece of footage inside the master reel, in seconds. */
 export const REEL_CLIPS: Array<[number, number]> = [
-  [0.4, 86.0],
-  [86.6, 93.3],
-  [93.8, 102.2],
-  [102.8, 111.2],
-  [111.8, 146.1],
-  [146.7, 170.4],
-  [171.0, 219.1],
-  [219.7, 311.9],
-  [312.5, 384.4],
-  [385.0, 421.1],
-  [421.6, 454.7],
-  [455.2, 458.9],
+  [0.4, 85.9],
+  [86.6, 93.2],
+  [93.9, 102.2],
+  [102.9, 111.2],
+  [111.9, 146.0],
+  [146.8, 170.3],
+  [171.0, 219.0],
+  [219.8, 311.9],
+  [312.6, 384.4],
+  [385.1, 421.0],
+  [421.7, 454.6],
 ];
 
-export const REEL_DURATION = 459.1;
+export const REEL_DURATION = 454.9;
+
 
 const GAP = 0.2;
 
