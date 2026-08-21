@@ -643,8 +643,8 @@
 @media (orientation: portrait) {
   .arena-video {
     --arena-zoom: 1;
-    --arena-lift: -2%;
-    --arena-focus: 48%;
+    --arena-lift: 0%;
+    --arena-focus: 50%;
   }
 }
 
