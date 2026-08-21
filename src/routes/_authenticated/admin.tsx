@@ -68,7 +68,9 @@ type HistoryRow = {
 function AdminPage() {
   const { lang } = Route.useSearch();
   const [config, setConfig] = useState<GiftConfig>(() => getGiftConfig());
+  const [hits, setHits] = useState<HitConfig>(() => getHitConfig());
   const [admin, setAdmin] = useState<AdminConfig>(() => getAdminConfig());
+
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<HistoryRow[]>([]);
