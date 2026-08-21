@@ -1156,10 +1156,21 @@ export function Arena({
         ))}
       </div>
 
+      {/* Name of the technique currently executed in the ring — small tag on the
+          side of the attacker, so the wrestling vocabulary is visible without
+          covering the fighters. */}
+      {impact && !ko && (
+        <div
+          className={`pointer-events-none absolute top-[16%] z-20 max-w-[40vw] ${
+            impact.side === "ru" ? "right-[3%] text-right" : "left-[3%] text-left"
+          }`}
+        >
+          <div className="display animate-fade-in text-xs tracking-widest text-gold text-outline sm:text-lg">
+            {impact.label}
+          </div>
+        </div>
+      )}
 
-      {/* Impact state remains synchronized for commentary and logs, but visual
-          labels and gift particles stay off the ring so both fighters remain
-          unobstructed on small screens. */}
 
       {/* Knockout: nothing covers the ring. The loser stays down on the mat, the
           referee counts to ten, and a small "KNOCKDOWN" tag sits on the side
