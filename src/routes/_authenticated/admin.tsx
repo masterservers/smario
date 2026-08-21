@@ -28,15 +28,10 @@ import {
 
 import { ConfigManager } from "@/components/admin/ConfigManager";
 import { BroadcastControl } from "@/components/admin/BroadcastControl";
-import { MixControl } from "@/components/admin/MixControl";
-import { publishControl, useBroadcastLang } from "@/lib/control";
-import { OutfitControl } from "@/components/admin/OutfitControl";
 import { SessionLinks } from "@/components/admin/SessionLinks";
 import { GuestChat } from "@/components/admin/GuestChat";
 import { RoundMapping } from "@/components/admin/RoundMapping";
 import { MatchReset } from "@/components/admin/MatchReset";
-import { EnginePresets } from "@/components/admin/EnginePresets";
-import { MoveLogExport } from "@/components/admin/MoveLogExport";
 import { MatchTitleControl } from "@/components/admin/MatchTitle";
 import { TwoFactorGate, TwoFactorSettings, useMfaState } from "@/components/admin/TwoFactor";
 import { ALL_SCENES } from "@/lib/scenes";
@@ -100,7 +95,6 @@ type HistoryRow = {
 
 function AdminPage() {
   const { lang } = Route.useSearch();
-  const onAirLang = useBroadcastLang(lang);
   const [config, setConfig] = useState<GiftConfig>(() => getGiftConfig());
   const [hits, setHits] = useState<HitConfig>(() => getHitConfig());
   const [scenes, setScenes] = useState<SceneConfig>(() => getSceneConfig());
@@ -530,45 +524,6 @@ function AdminPage() {
       </section>
 
 
-      {/* Engine difficulty presets ---------------------------------------- */}
-      <section className="panel mt-4 rounded-2xl p-4">
-        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
-          Engine · difficulty presets
-        </h2>
-        <p className="mt-1 mb-3 text-xs text-muted-foreground">
-          Sets how strong the fight reads: the probability of each strength level 1–5, how often
-          aerial spots and finishers appear, and how long a move stays out of the rotation. Timing
-          and commentary sync are untouched.
-        </p>
-        <EnginePresets onAudit={(action, details) => record("engine", action, details)} />
-      </section>
-
-      {/* Match log export -------------------------------------------------- */}
-      <section className="panel mt-4 rounded-2xl p-4">
-        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
-          Match log · per round &amp; per move
-        </h2>
-        <p className="mt-1 mb-3 text-xs text-muted-foreground">
-          Every executed move with its time, type, strength, the fighter it belonged to and the
-          announcer line in the language on air — exportable as CSV or JSON, per round or for the
-          whole match.
-        </p>
-        <MoveLogExport onAudit={(action, details) => record("log", action, details)} />
-      </section>
-
-      {/* Outfit switch ---------------------------------------------------- */}
-      <section className="panel mt-4 rounded-2xl p-4">
-        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
-          Outfit · suit / ring gear
-        </h2>
-        <p className="mt-1 mb-3 text-xs text-muted-foreground">
-          Sends a fighter out with or without his jacket. The change lands instantly in every open
-          arena tab and on the spectator links, and it is kept for the running match across reloads
-          and restarts.
-        </p>
-        <OutfitControl onAudit={(action, details) => record("outfit", action, { details })} />
-      </section>
-
       {/* Commentator control --------------------------------------------- */}
       <section className="panel mt-4 rounded-2xl p-4">
         <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
@@ -579,21 +534,6 @@ function AdminPage() {
           the commentator reads out in that language.
         </p>
         <BroadcastControl initial={lang} />
-      </section>
-
-      {/* Audio mix + session language ------------------------------------- */}
-      <section className="panel mt-4 rounded-2xl p-4">
-        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
-          Audio · announcer, crowd &amp; session language
-        </h2>
-        <p className="mt-1 mb-3 text-xs text-muted-foreground">
-          Balances the commentator against the arena ambience and sets the language used for this
-          match session. Changes apply live in the arena and for every spectator.
-        </p>
-        <MixControl
-          lang={onAirLang}
-          onLang={(next) => publishControl({ type: "lang", lang: next })}
-        />
       </section>
 
       {/* Guests: chat + gifts (arena stays clean) ------------------------- */}

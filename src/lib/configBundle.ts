@@ -62,8 +62,6 @@ const hitRuleSchema = z
 const hitsSchema = z
   .object({
     gifts: z.record(z.enum(giftIds), hitRuleSchema).optional(),
-    routing: z.record(z.enum(giftIds), z.enum(["ru", "us", "auto"])).optional(),
-
     referee: z
       .object({
         knockdownCount: z.number().min(3).max(12),
@@ -347,10 +345,8 @@ export function resolveBundle(bundle: ConfigBundle): { scenes: SceneConfig; hits
   const hits: HitConfig = {
     gifts: { ...currentHits.gifts },
     rounds: { ...currentHits.rounds },
-    routing: { ...currentHits.routing, ...defined(bundle.hits?.routing) } as HitConfig["routing"],
     referee: { ...currentHits.referee, ...defined(bundle.hits?.referee) } as HitConfig["referee"],
   };
-
   for (const gift of GIFTS) {
     const patch = bundle.hits?.gifts?.[gift.id];
     if (!patch) continue;

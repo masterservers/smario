@@ -46,26 +46,6 @@ export function SceneDebugPanel() {
         last block: <span className="text-foreground">{debug.blockedBy}</span>
         {blockedAgo !== null && blockedAgo < 60000 ? ` (${blockedAgo} ms ago)` : ""}
       </div>
-      <div className="mt-1 flex items-center justify-between rounded bg-secondary/50 px-1.5 py-1">
-        <span className="uppercase tracking-widest text-muted-foreground">mode</span>
-        <span className="font-semibold">{debug.mode}</span>
-      </div>
-      <div className="text-muted-foreground">
-        why: <span className="text-foreground">{debug.modeReason}</span>
-      </div>
-      <div className="text-muted-foreground">
-        beat{" "}
-        <span className="text-foreground">
-          {debug.beatIndex + 1}/{debug.beatCount || "—"} · {debug.beat}
-        </span>{" "}
-        → next <span className="text-foreground">{debug.nextBeat}</span>
-        {debug.newSetNext ? <span className="text-gold"> · new set next</span> : null}
-      </div>
-      <div className="text-muted-foreground">
-        momentum <span className="text-foreground">{Math.round(debug.momentum * 100)}%</span> · spar{" "}
-        <span className="text-foreground">{Math.round(debug.sparChance * 100)}%</span> · quiet{" "}
-        <span className="text-foreground">{Math.round(debug.quietMs)} ms</span>
-      </div>
       <div className="mt-1 text-muted-foreground">
         rules: min {transitions.minSceneMs}ms · tail {transitions.tailMs}ms ·{" "}
         {transitions.lockIdle ? "idle locked" : "idle free"} ·{" "}

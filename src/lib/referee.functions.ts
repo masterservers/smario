@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { judgeRingSafe, type RingVerdict } from "@/lib/referee.server";
+import { judgeRing, type RingVerdict } from "@/lib/referee.server";
 
 /**
  * Server-side referee. The browser sends only the match id; the score, the
@@ -12,4 +12,4 @@ export const resolveRing = createServerFn({ method: "POST" })
     }
     return { matchId: input.matchId };
   })
-  .handler(async ({ data }): Promise<RingVerdict> => judgeRingSafe(data.matchId));
+  .handler(async ({ data }): Promise<RingVerdict> => judgeRing(data.matchId));

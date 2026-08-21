@@ -1,4 +1,3 @@
-import { getMix } from "@/lib/mix";
 import { useEffect, useRef, useState } from "react";
 import { GIFT_BY_ID, type BattleState, type GiftEvent, type Side } from "@/lib/battle";
 import { COMMENTARY, LANG_META, REFEREE_LINES, UI_TEXT, type Lang } from "@/lib/i18n";
@@ -6,17 +5,6 @@ import { sideVoiceNames } from "@/lib/adminConfig";
 import { publishSubtitle } from "@/lib/subtitles";
 import { familyOf } from "@/lib/scenes";
 import { FAMILY_LINES } from "@/lib/familyLines";
-import {
-  getVoiceClip,
-  peekVoiceClip,
-  playVoiceClip,
-  prefetchVoice,
-  stopVoiceClip,
-  type VoiceTone,
-} from "@/lib/voice";
-import { crowdReact, duckCrowd } from "@/lib/crowd";
-import { dropCue, markCue, resolveCue, type CueKind } from "@/lib/syncMeter";
-import { logLine } from "@/lib/moveLog";
 
 export type CommentaryLine = { id: string; text: string; tone: "hit" | "big" | "ko" | "idle" };
 
@@ -81,7 +69,7 @@ function pickVoice(speechLang: string): SpeechSynthesisVoice | null {
   return neutral ?? pool[0] ?? null;
 }
 
-type Spoken = { text: string; lang: Lang; priority: number; cue?: number };
+type Spoken = { text: string; lang: Lang; priority: number };
 
 /**
  * Priority lanes for the commentator:
@@ -102,134 +90,66 @@ let speaking = false;
 let speakingPriority = -1;
 let lastEndAt = 0;
 let drainTimer = 0;
-let laneGeneration = 0;
 const MIN_GAP_MS = 320;
-/**
- * Live calls (referee count, big blow, knockout) must land on the frame, so
- * they skip the breathing gap between lines entirely.
- */
-const URGENT_PRIORITY = 2;
-/**
- * How long a call may wait for its neural clip before we switch to the local
- * voice. Anything longer would drift behind the picture.
- */
-const VOICE_DEADLINE_MS = 260;
 const MAX_QUEUE = 2;
 
 export function commentaryBusy() {
   return speaking || speechQueue.length > 0;
 }
 
-/**
- * Priority of what currently holds the voice lane (-1 when it is free). A
- * sparring call may cut ambient filler (0) but never a referee count, a big
- * hit or a knockout (>= 2).
- */
-export function commentaryLanePriority() {
-  const queued = speechQueue.length > 0 ? speechQueue[0]!.priority : -1;
-  return Math.max(speaking ? speakingPriority : -1, queued);
-}
-
-function toneOf(priority: number): VoiceTone {
-  return priority >= 3 ? "ko" : priority >= 2 ? "big" : "normal";
-}
-
-/** Browser synthesis, used only when the neural voice is unavailable. */
-function speakFallback(next: Spoken, done: () => void) {
-  const synth = window.speechSynthesis;
-  const speechLang = LANG_META[next.lang].speech;
-  const utterance = new SpeechSynthesisUtterance(next.text);
-  utterance.lang = speechLang;
-  const voice = pickVoice(speechLang);
-  if (voice) utterance.voice = voice;
-  utterance.rate = next.priority >= 3 ? 1.14 : 1.08;
-  utterance.pitch = 0.78;
-  utterance.volume = getMix().voice;
-  utterance.onend = done;
-  utterance.onerror = done;
-  synth.speak(utterance);
-  window.setTimeout(
-    () => {
-      if (speaking && !synth.speaking) done();
-    },
-    800 + next.text.length * 90,
-  );
-}
-
 function drain() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   if (speaking || speechQueue.length === 0 || drainTimer) return;
-  const urgent = speechQueue[0]!.priority >= URGENT_PRIORITY;
-  const wait = urgent ? 0 : Math.max(0, lastEndAt + MIN_GAP_MS - Date.now());
+  const wait = Math.max(0, lastEndAt + MIN_GAP_MS - Date.now());
   drainTimer = window.setTimeout(() => {
     drainTimer = 0;
     const next = speechQueue.shift();
     if (!next) return;
-    const generation = ++laneGeneration;
+    const synth = window.speechSynthesis;
+    const speechLang = LANG_META[next.lang].speech;
+    const utterance = new SpeechSynthesisUtterance(next.text);
+    utterance.lang = speechLang;
+    const voice = pickVoice(speechLang);
+    if (voice) utterance.voice = voice;
+    utterance.rate = next.priority >= 3 ? 1.14 : 1.08;
+    utterance.pitch = 0.78; // deeper, male broadcast tone
+    utterance.volume = 1;
     const done = () => {
-      if (generation !== laneGeneration) return;
       speaking = false;
       speakingPriority = -1;
       lastEndAt = Date.now();
-      duckCrowd(false);
       drain();
     };
+    utterance.onend = done;
+    utterance.onerror = done;
     speaking = true;
     speakingPriority = next.priority;
-    // Match log: the line that goes with the move currently on screen.
-    logLine(next.text, next.lang);
-    duckCrowd(true);
-    const tone = toneOf(next.priority);
-    // Already generated? Start on this frame, zero latency.
-    const ready = peekVoiceClip(next.text, next.lang, tone);
-    if (ready) {
-      resolveCue(next.cue, "cache", { text: next.text, lang: next.lang });
-      playVoiceClip(ready, done);
-      return;
-    }
-    // Otherwise race the neural clip against a short deadline so the call
-    // never lags behind the punch, the count or the knockout on screen.
-    let started = false;
-    const start = (url: string | null) => {
-      if (started || generation !== laneGeneration) return;
-      started = true;
-      window.clearTimeout(deadline);
-      if (url) {
-        resolveCue(next.cue, "neural", { text: next.text, lang: next.lang });
-        playVoiceClip(url, done);
-      } else if ("speechSynthesis" in window) {
-        resolveCue(next.cue, "local", { text: next.text, lang: next.lang });
-        speakFallback(next, done);
-      } else {
-        resolveCue(next.cue, "silent", { text: next.text, lang: next.lang });
-        done();
-      }
-    };
-    const deadline = window.setTimeout(() => start(null), VOICE_DEADLINE_MS);
-    void getVoiceClip(next.text, next.lang, tone).then(start);
+    synth.speak(utterance);
+    // Safety net: some engines never fire onend, so release the lane anyway.
+    window.setTimeout(
+      () => {
+        if (speaking && !synth.speaking) done();
+      },
+      800 + next.text.length * 90,
+    );
   }, wait);
 }
 
 function clearLane() {
-  laneGeneration += 1;
-  for (const item of speechQueue) dropCue(item.cue, { text: item.text, lang: item.lang });
   speechQueue.length = 0;
   window.clearTimeout(drainTimer);
   drainTimer = 0;
   speaking = false;
   speakingPriority = -1;
-  stopVoiceClip();
-  duckCrowd(false);
-  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  window.speechSynthesis.cancel();
 }
 
 export function stopCommentary() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   clearLane();
 }
 
-
-function speak(text: string, lang: Lang, priority: number, cue?: number) {
+function speak(text: string, lang: Lang, priority: number) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
   // A more important call interrupts whatever is on air right now.
@@ -237,23 +157,16 @@ function speak(text: string, lang: Lang, priority: number, cue?: number) {
     clearLane();
     lastEndAt = 0;
   } else if (speaking && priority < speakingPriority && priority <= 0) {
-    dropCue(cue, { text, lang });
     return; // ambient filler never queues behind an important call
   } else {
     // Drop pending lines that matter less than the newcomer.
     for (let i = speechQueue.length - 1; i >= 0; i -= 1) {
-      if (speechQueue[i]!.priority < priority) {
-        dropCue(speechQueue[i]!.cue, { text: speechQueue[i]!.text, lang: speechQueue[i]!.lang });
-        speechQueue.splice(i, 1);
-      }
+      if (speechQueue[i]!.priority < priority) speechQueue.splice(i, 1);
     }
-    if (speechQueue.length >= MAX_QUEUE) {
-      const stale = speechQueue.shift();
-      dropCue(stale?.cue, { text: stale?.text, lang: stale?.lang });
-    }
+    if (speechQueue.length >= MAX_QUEUE) speechQueue.shift();
   }
 
-  speechQueue.push(cue === undefined ? { text, lang, priority } : { text, lang, priority, cue });
+  speechQueue.push({ text, lang, priority });
   // Highest priority first, stable for equal lanes.
   speechQueue.sort((a, b) => b.priority - a.priority);
   drain();
@@ -264,8 +177,8 @@ function speak(text: string, lang: Lang, priority: number, cue?: number) {
  * Speak a top-bar announcement (referee call or gift ticker) in the selected
  * language, on the same voice lane as the commentary so the two never overlap.
  */
-export function announce(text: string, lang: Lang, priority = 2, cueKind: CueKind = "count") {
-  speak(text, lang, priority, markCue(cueKind));
+export function announce(text: string, lang: Lang, priority = 2) {
+  speak(text, lang, priority);
 }
 
 export type HitAnnouncement = {
@@ -297,19 +210,6 @@ export function announceScene(scene: { id?: string; label: string }) {
   sceneAnnouncer?.(scene);
 }
 
-export type SparAnnouncement = { side: Side; label: string; tier: number };
-
-let sparAnnouncer: ((spar: SparAnnouncement) => void) | null = null;
-
-/**
- * Called by the arena at the impact frame of a sparring spot (no gift behind
- * it). The commentator calls the move by its real family — punch, kick, rope
- * dive, throw, mat work — so the voice always matches what is on screen.
- */
-export function announceSpar(spar: SparAnnouncement) {
-  sparAnnouncer?.(spar);
-}
-
 
 export function useCommentary(
   lang: Lang,
@@ -336,12 +236,10 @@ export function useCommentary(
     hit: 0,
     idle: 0,
   });
-  // `force` is used for calls tied to a frame on screen (a landed blow): the
-  // move must always be named, even if another hit was called a second ago.
-  const push = (text: string, tone: CommentaryLine["tone"], force = false) => {
+  const push = (text: string, tone: CommentaryLine["tone"]) => {
     const now = Date.now();
     // Spacing per lane so the same kind of call never floods the broadcast.
-    if (!force && now - lastToneAt.current[tone] < TONE_COOLDOWN_MS[tone]) return;
+    if (now - lastToneAt.current[tone] < TONE_COOLDOWN_MS[tone]) return;
     // Never repeat one of the recent lines.
     if (recent.current.includes(text)) return;
     lastToneAt.current[tone] = now;
@@ -351,10 +249,7 @@ export function useCommentary(
       { id: `${now}-${Math.random().toString(36).slice(2)}`, text, tone },
     ]);
     publishSubtitle(text, "commentary", 3200);
-    if (tone === "ko") crowdReact("ko");
-    else if (tone === "big") crowdReact("big");
-    else if (tone === "hit") crowdReact("hit");
-    if (!mutedRef.current) speak(text, langRef.current, PRIORITY[tone], markCue(tone as CueKind));
+    if (!mutedRef.current) speak(text, langRef.current, PRIORITY[tone]);
   };
 
 
@@ -392,25 +287,9 @@ export function useCommentary(
       if (ambient.length === 0) return;
       push(pick(ambient), "idle");
     };
-    // Sparring impact: a real call for the move that just landed, but it never
-    // steps on a gift hit, a referee count or a knockout.
-    sparAnnouncer = ({ side, label, tier }) => {
-      if (pendingCalls.current.size > 0) return;
-      // Ambient filler is cut off by the move that just landed; only a referee
-      // count, a big hit or a knockout keeps the lane.
-      if (commentaryLanePriority() >= 2) return;
-      const names = sideVoiceNames(langRef.current);
-      const attacker = side === "ru" ? names.ru : names.us;
-      const defender = side === "ru" ? names.us : names.ru;
-      const family = familyOf({ label });
-      const pack = FAMILY_LINES[langRef.current][family].action;
-      if (pack.length === 0) return;
-      push(pick(pack)(attacker, defender), tier >= 4 ? "big" : "hit", true);
-    };
     return () => {
       hitAnnouncer = null;
       sceneAnnouncer = null;
-      sparAnnouncer = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -432,13 +311,8 @@ export function useCommentary(
     const defender = last.side === "ru" ? names.us : names.ru;
     const gift = GIFT_BY_ID[last.gift];
 
-    const big = (gift?.damage ?? 0) >= 20;
-    // Pick the generic call now and warm its neural clip, so when the blow
-    // lands the voice starts on the same frame instead of after a fetch.
-    const plainLine = big ? pick(c.bigHit)(attacker, defender) : pick(c.hit)(attacker, defender);
-    if (!mutedRef.current) prefetchVoice(plainLine, lang, big ? "big" : "normal");
-
     const call = (label?: string) => {
+      const big = (gift?.damage ?? 0) >= 20;
       if (state.combo >= 4 && state.comboSide === last.side) {
         push(pick(c.combo)(attacker, defender, String(state.combo)), "big");
         return;
@@ -453,9 +327,8 @@ export function useCommentary(
           return;
         }
       }
-      push(plainLine, big ? "big" : "hit");
+      push(big ? pick(c.bigHit)(attacker, defender) : pick(c.hit)(attacker, defender), big ? "big" : "hit");
     };
-
     // Fallback well after the usual impact delay, in case no confirmation comes.
     const timer = window.setTimeout(() => flushCall(last.id), IMPACT_DELAY_MS + 3200);
     pendingCalls.current.set(last.id, { run: call, timer });
@@ -552,25 +425,6 @@ export function useCommentary(
       round && round > 0 ? `${UI_TEXT[lang].round} ${round} — ` : "";
     push(`${label}${intro}`, "idle");
   }, [lang, round]);
-
-  // Premium neural voice: pre-generate the lines that must fire instantly and
-  // always match the event — the referee's ten counts, the "back up" call, the
-  // knockdown shout and the knockout call — in the selected language.
-  useEffect(() => {
-    if (muted) return;
-    const names = sideVoiceNames(lang);
-    const r = REFEREE_LINES[lang];
-    const ui = UI_TEXT[lang];
-    for (const fighter of [names.ru, names.us]) {
-      for (let n = 1; n <= 10; n += 1) {
-        prefetchVoice(r.count(n, fighter), lang, n >= 8 ? "ko" : "big");
-      }
-      prefetchVoice(r.ko(fighter), lang, "ko");
-      prefetchVoice(r.up(fighter), lang, "normal");
-      prefetchVoice(`${ui.knockdown.toUpperCase()} — ${fighter}!`, lang, "big");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang, muted]);
 
   // Voice list loads asynchronously in most browsers; warm it up so the very
   // first call already uses the male voice.

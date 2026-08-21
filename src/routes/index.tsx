@@ -8,26 +8,22 @@ import { loadDifficulty, type Difficulty } from "@/lib/difficulty";
 import { loadVariety, VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
 import { loadSubtitlesOn } from "@/lib/subtitles";
 import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
-import { SyncMeter } from "@/components/game/SyncMeter";
 import { useRemoteConfig } from "@/lib/useRemoteConfig";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Button } from "@/components/ui/button";
-import { MixButton } from "@/components/game/MixButton";
-import { OutfitButton } from "@/components/game/OutfitButton";
-import { announce, announceHit, announceScene, announceSpar, useCommentary } from "@/hooks/useCommentary";
-import { setCrowdEnabled } from "@/lib/crowd";
+import { announceHit, announceScene, useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
 import { useTopBanner } from "@/hooks/useTopBanner";
 import type { Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
-import { useBroadcastLang, useBroadcastMix, useControlBus, type ControlMessage } from "@/lib/control";
+import { useBroadcastLang, useControlBus, type ControlMessage } from "@/lib/control";
 import { setActiveRound } from "@/lib/hitConfig";
-import { setSyncRound } from "@/lib/syncMeter";
 import { publishSubtitle } from "@/lib/subtitles";
 
 
+const VOICE_LOCALE: Record<Lang, string> = {'en': 'en-US', 'de': 'de-DE', 'sr': 'sr-RS', 'ro': 'ro-RO', 'ru': 'ru-RU'};
 
 type Search = { lang: Lang };
 
@@ -70,7 +66,6 @@ function BattleRoute() {
 function BattlePage() {
   const { lang: linkLang } = Route.useSearch();
   const lang = useBroadcastLang(linkLang);
-  useBroadcastMix(); // keeps announcer/crowd levels in sync with the admin faders
   const [muted, setMuted] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
 
@@ -135,14 +130,7 @@ function BattlePage() {
   // The gift → hit mapping may differ from round to round.
   useEffect(() => {
     setActiveRound(round);
-    setSyncRound(round);
   }, [round]);
-
-  // Arena ambience follows the same sound switch as the announcer.
-  useEffect(() => {
-    setCrowdEnabled(!muted);
-    return () => setCrowdEnabled(false);
-  }, [muted]);
 
   // Spoken commands pushed live from the admin console.
   useControlBus(
@@ -150,8 +138,10 @@ function BattlePage() {
       (message: ControlMessage) => {
         if (message.type !== "say") return;
         publishSubtitle(message.text, "ref", 4000);
-        if (muted) return;
-        announce(message.text, message.lang, 3);
+        if (muted || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+        const utterance = new SpeechSynthesisUtterance(message.text);
+        utterance.lang = VOICE_LOCALE[message.lang];
+        window.speechSynthesis.speak(utterance);
       },
       [muted],
     ),
@@ -187,11 +177,9 @@ function BattlePage() {
           onLog={pushLog}
           onHit={announceHit}
           onScene={announceScene}
-          onSpar={announceSpar}
         />
         <RefereeCount lang={lang} referee={referee} />
         <SceneDebugPanel />
-        <SyncMeter />
       </div>
 
       {/* Slim HUD strip on top — scoreboard only */}
@@ -228,8 +216,6 @@ function BattlePage() {
         >
           {muted ? "🔇" : "🔊"}
         </Button>
-        <MixButton lang={lang} />
-        <OutfitButton />
         <Link
           to="/admin"
           search={{ lang }}

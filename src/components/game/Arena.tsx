@@ -1,13 +1,12 @@
 import { DIFFICULTY_CONFIG, type Difficulty } from "@/lib/difficulty";
 import { VARIETY_DEFAULT, type VarietyConfig } from "@/lib/variety";
 import { useEffect, useRef, useState } from "react";
-import fightVideo from "@/assets/arena-clean2.mp4.asset.json";
+import fightVideo from "@/assets/arena-heights2.webm.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { ruleFor, ruleForEvent, type HitKind } from "@/lib/hitConfig";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 import { getGiftConfig } from "@/lib/giftConfig";
 import { giftName } from "@/lib/giftCatalog";
-import { RefereeBean } from "@/components/game/RefereeBean";
 import {
   CHAMPION_POSE,
   FOLLOW_UPS,
@@ -15,7 +14,6 @@ import {
   MOVES,
   inRoundTheme,
   advanceSceneBeat,
-  beatInfo,
   setSceneRound,
   familyOf,
   familyBlocked,
@@ -26,10 +24,7 @@ import {
 import { moveKind } from "@/lib/moveKind";
 import { commitPendingConfig } from "@/lib/pendingConfig";
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
-import { sceneBlocked, sceneImpact, sceneStarted, sceneTelemetry } from "@/lib/sceneDebug";
-import { decideSpar } from "@/lib/sparRules";
-import { getTuning, shapePool } from "@/lib/tuning";
-import { logMove } from "@/lib/moveLog";
+import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
 
 const FIGHT_VIDEO = fightVideo.url;
 
@@ -174,49 +169,6 @@ export function familyTrace(): SceneFamily[] {
   return recentFamilies.slice(-8);
 }
 
-/**
- * Rotation on the *kind* of blow — punch, kick, aerial, throw, grapple.
- * Families already stop "another rope spot" from chaining; this second guard
- * keeps the categories themselves alternating, so a round never turns into ten
- * punches with the odd kick. Two rules:
- *   1. hard — no more than `maxKindStreak` scenes of the same kind in a row,
- *      and no kind may fill more than half of the recent window;
- *   2. soft — among the scenes that survive, prefer the categories that have
- *      been waiting the longest, so the round cycles through all five.
- */
-const ROTATION_KINDS: HitKind[] = ["punch", "kick", "aerial", "throw", "grapple"];
-const recentKinds: HitKind[] = [];
-let maxKindStreak = 2;
-
-export function setKindStreak(value: number) {
-  maxKindStreak = Math.max(1, Math.round(value));
-}
-
-/** Live snapshot for the debug panel. */
-export function kindTrace(): HitKind[] {
-  return recentKinds.slice(-8);
-}
-
-/** Resets the category rotation, e.g. when a new round starts. */
-export function resetKindRotation() {
-  recentKinds.length = 0;
-}
-
-function kindBlocked(kind: HitKind, window = 6): boolean {
-  let streak = 0;
-  for (let i = recentKinds.length - 1; i >= 0 && recentKinds[i] === kind; i--) streak++;
-  if (streak >= maxKindStreak) return true;
-  const slice = recentKinds.slice(-window);
-  const share = slice.filter((k) => k === kind).length;
-  return slice.length >= window && share > Math.ceil(window / 2);
-}
-
-/** How long ago this category last ran; larger = more overdue. */
-function kindAge(kind: HitKind): number {
-  const index = recentKinds.lastIndexOf(kind);
-  return index === -1 ? Number.MAX_SAFE_INTEGER : recentKinds.length - index;
-}
-
 function drawLRU<T extends { id: string }>(
   pool: T[],
   usage: Map<string, number>,
@@ -248,26 +200,6 @@ function drawLRU<T extends { id: string }>(
     (item) => !familyBlocked(item as { label?: string }, recentFamilies, maxFamilyStreak),
   );
   if (varied.length > 0) list = varied;
-  // Category rotation (hard rule): punch / kick / aerial / throw / grapple may
-  // not chain past `maxKindStreak` or take over the recent window.
-  const rotated = list.filter((item) => {
-    const label = (item as { label?: string }).label;
-    return typeof label !== "string" || !kindBlocked(kindOf(item as unknown as Move));
-  });
-  if (rotated.length > 0) list = rotated;
-  // Category rotation (soft rule): favour the categories that have been waiting
-  // the longest, so a round walks through all five instead of two.
-  const labelled = list.filter((item) => typeof (item as { label?: string }).label === "string");
-  if (labelled.length > 0 && recentKinds.length > 0 && Math.random() < 0.75) {
-    let best = -1;
-    const ages = new Map<HitKind, number>();
-    for (const kind of ROTATION_KINDS) ages.set(kind, kindAge(kind));
-    for (const item of labelled) best = Math.max(best, ages.get(kindOf(item as unknown as Move)) ?? 0);
-    const overdue = labelled.filter(
-      (item) => (ages.get(kindOf(item as unknown as Move)) ?? 0) >= best,
-    );
-    if (overdue.length > 0) list = overdue;
-  }
   // Continuity: among the eligible scenes, favour the ones that carry on from
   // where the picture is right now, so the cut reads as one continuous action.
   if (prefer) {
@@ -289,10 +221,6 @@ function drawLRU<T extends { id: string }>(
   if (recent.length > unique.length) recent.shift();
   recentFamilies.push(familyOf(chosen as { id: string; label?: string }));
   if (recentFamilies.length > 12) recentFamilies.shift();
-  if (typeof (chosen as { label?: string }).label === "string") {
-    recentKinds.push(kindOf(chosen as unknown as Move));
-    if (recentKinds.length > 12) recentKinds.shift();
-  }
   return chosen;
 }
 
@@ -324,34 +252,9 @@ function movesForGift(giftId: string, tier: number): Move[] {
   const matching = near.filter((move) => kinds.includes(kindOf(move)));
   // Weight: the gift's own kind first, then the exact tier, then the neighbours.
   const pool = [...matching, ...matching, ...exact, ...near];
-  // Admin preset: tier probabilities plus the aerial / finisher bias.
-  return shapePool(pool.length > 0 ? pool : MOVES, getTuning().tuning);
+  return pool.length > 0 ? pool : MOVES;
 }
 
-/**
- * Sparring pool: what the fighters do on their own while no gift is waiting.
- * Light strikes and kicks carry the rhythm, but the big spots — rope dives,
- * turnbuckle climbs, suplexes and throws over the ropes — stay in the mix so
- * the ring keeps showing real action between gifts.
- */
-const SPAR_MOVES: Move[] = [
-  ...MOVES.filter((move) => move.tier <= 2),
-  ...MOVES.filter((move) => move.tier <= 2),
-  ...MOVES.filter((move) => move.tier === 3),
-  ...MOVES.filter((move) => move.tier >= 4),
-];
-
-
-
-
-
-/**
- * Cooldown actually in force: the admin preset wins over the referee panel
- * default, so "how often a move may come back" is one single control.
- */
-function tunedCooldown(): number {
-  return getTuning().tuning.cooldownMs;
-}
 
 /** Moves use the same strict LRU cycle, with the arguments kept in the old order. */
 function drawMove(
@@ -418,8 +321,6 @@ type Props = {
   }) => void;
   /** A scene started without a gift (feeling-out, rope work, mat scramble). */
   onScene?: (scene: { id: string; label: string }) => void;
-  /** A sparring spot landed: action only, but the commentator calls the move. */
-  onSpar?: (spar: { side: Side; label: string; tier: number }) => void;
 };
 
 export function Arena({
@@ -435,7 +336,6 @@ export function Arena({
   onLog,
   onHit,
   onScene,
-  onSpar,
 }: Props) {
   const logRef = useRef(onLog);
   logRef.current = onLog;
@@ -443,8 +343,6 @@ export function Arena({
   hitRef.current = onHit;
   const sceneRef = useRef(onScene);
   sceneRef.current = onScene;
-  const sparRef = useRef(onSpar);
-  sparRef.current = onSpar;
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
   const activeLayerRef = useRef(0);
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -487,13 +385,7 @@ export function Arena({
   const recentIdle = useRef<string[]>([]);
 
   const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
-  /** True while the ring is showing a sparring spot: action only, no score. */
-  const sparring = useRef(false);
-  /** When the last gift arrived, and the rolling window used for momentum. */
-  const lastGiftAt = useRef(0);
-  const giftTimes = useRef<number[]>([]);
   const primed = useRef(false);
-
   /** A KO may be scored during a move, but its replay must never cut that move. */
   const handledKo = useRef<Side | null>(null);
   const pendingKo = useRef<Side | null>(null);
@@ -588,8 +480,6 @@ export function Arena({
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
 
-
-
   const seek = (video: HTMLVideoElement, time: number) => {
     video.currentTime = time;
   };
@@ -661,10 +551,7 @@ export function Arena({
     for (const event of events) {
       if (seen.current.has(event.id)) continue;
       seen.current.add(event.id);
-      const at = performance.now();
-      queuedAt.current.set(event.id, at);
-      lastGiftAt.current = at;
-      giftTimes.current = [...giftTimes.current, at].slice(-40);
+      queuedAt.current.set(event.id, performance.now());
       queue.current.push(event);
     }
     // Burst protection: keep the queue bounded, always dropping the oldest.
@@ -710,10 +597,8 @@ export function Arena({
       koReplayRef.current = null;
       // A new round starts here: staged configuration imports go live now.
       commitPendingConfig("round");
-      // Next round leans on a different family of scenes and restarts the
-      // punch/kick/aerial/throw/grapple rotation from a clean slate.
+      // Next round leans on a different family of scenes.
       roundNo.current += 1;
-      resetKindRotation();
       setSceneRound(roundNo.current);
       // Smooth return to live speed after the slow-motion finish.
       const video = activeVideoRef.current;
@@ -848,92 +733,7 @@ export function Arena({
           // Safe boundary: the previous scene finished, so a staged
           // configuration import can be applied without cutting the action.
           commitPendingConfig("scene");
-
-          // Sparring: with no gift waiting the two keep fighting on their own —
-          // punches, kicks, rope spots, throws — instead of only circling.
-          const decision = decideSpar({
-            giftWaiting,
-            paused,
-            lastGiftAt: lastGiftAt.current,
-            giftTimes: giftTimes.current,
-            now: performance.now(),
-          });
-          const beats = beatInfo();
-          sceneTelemetry({
-            beat: beats.current,
-            nextBeat: beats.next,
-            beatIndex: beats.index,
-            beatCount: beats.length,
-            newSetNext: beats.newSetNext,
-            mode: giftWaiting ? "gift action" : decision.spar ? "sparring" : "feeling out",
-            modeReason: decision.reason,
-            momentum: decision.momentum,
-            sparChance: decision.chance,
-            quietMs: Number.isFinite(decision.quietMs) ? decision.quietMs : 0,
-          });
-
-          if (decision.spar) {
-            const move = drawMove(
-              shapePool(SPAR_MOVES, getTuning().tuning),
-              recentMoves.current,
-              moveUsage.current,
-              moveCooldowns.current,
-              tunedCooldown(),
-            );
-            recentMoves.current = [...recentMoves.current, move.id].slice(
-              -Math.max(cfgRef.current.moveMemory, varietyRef.current.rotation),
-            );
-            const side: Side = Math.random() < 0.5 ? "ru" : "us";
-            currentEvent.current = {
-              id: `spar-${Math.random().toString(36).slice(2, 8)}`,
-              side,
-              gift: "rose",
-              value: 0,
-              sender: "spar",
-              created_at: new Date().toISOString(),
-            };
-            currentMove.current = move;
-            sparring.current = true;
-            playing.current = true;
-            impacted.current = false;
-            settling.current = false;
-            stopAt.current = move.end;
-            impactAt.current = move.impact;
-            const entry = entryOf(move, varietyRef.current.entryJitter);
-            lockUntil.current =
-              performance.now() +
-              ((move.end - entry) / (move.rate * cfgRef.current.speed)) * 1000;
-            setAttacker(side);
-            logMove({
-              round: roundNo.current || 1,
-              side,
-              source: "spar",
-              gift: "—",
-              moveId: move.id,
-              label: move.label,
-              kind: kindOf(move),
-              tier: move.tier,
-            });
-            logRef.current?.("move", `${side.toUpperCase()} · ${move.label}`);
-            const shot = frameFor(move);
-            baseFrame.current = shot;
-            setPhase("windup");
-            setFrame(clampFrame(shot));
-            switchScene(entry, move.rate * cfgRef.current.speed, true);
-            sceneStartedAt.current = performance.now();
-            sceneRef.current?.({ id: move.id, label: move.label });
-            sceneStarted({
-              id: move.id,
-              label: move.label,
-              group: "move",
-              plannedMs: lockUntil.current - performance.now(),
-              reason: `sparring — ${decision.reason}`,
-            });
-            return;
-          }
-
           const next = drawIdle(idleUsage.current, recentIdle.current, video.currentTime);
-
           idleScene.current = next;
           const rate = next.rate * cfgRef.current.speed;
           switchScene(next.start, rate);
@@ -965,10 +765,6 @@ export function Arena({
       const pendingFollow = follow.current;
       const event = pendingFollow ? pendingFollow.event : queue.current.shift();
       if (!event) return;
-      sceneTelemetry({
-        mode: "gift action",
-        modeReason: pendingFollow ? "follow-up spot" : "gift taken from the queue",
-      });
       follow.current = null;
 
 
@@ -981,7 +777,7 @@ export function Arena({
             recentMoves.current,
             moveUsage.current,
             moveCooldowns.current,
-            tunedCooldown(),
+            varietyRef.current.cooldownMs,
           );
 
       recentMoves.current = [...recentMoves.current, move.id].slice(
@@ -998,7 +794,7 @@ export function Arena({
           recentFollows.current,
           followUsage.current,
           followCooldowns.current,
-          tunedCooldown() * 0.5,
+          varietyRef.current.cooldownMs * 0.5,
         );
         recentFollows.current = [...recentFollows.current, next.id].slice(
           -cfgRef.current.followMemory,
@@ -1014,7 +810,6 @@ export function Arena({
 
       currentEvent.current = event;
       currentMove.current = move;
-      sparring.current = false;
       playing.current = true;
       impacted.current = false;
       settling.current = false;
@@ -1039,16 +834,6 @@ export function Arena({
         },
       ]);
 
-      logMove({
-        round: roundNo.current || 1,
-        side: event.side,
-        source: pendingFollow ? "follow" : "gift",
-        gift: event.gift,
-        moveId: move.id,
-        label: move.label,
-        kind: kindOf(move),
-        tier: move.tier,
-      });
       logRef.current?.("move", `${event.side.toUpperCase()} · ${move.label}`);
       // Move the wide shot to this block's corner of the ring.
       const shot = frameFor(move);
@@ -1092,20 +877,9 @@ export function Arena({
         stun: base.stun * rule.stun,
       };
       koKind.current = kind;
-      sceneImpact({
-        side: event.side,
-        label: move.label,
-        kind,
-        sparring: sparring.current,
-      });
       // Exactly-once confirmation: one gift id, one landed hit, one voice line.
       const rootId = event.id.split("-fu")[0]!;
-      // A sparring spot never scores, but the commentator still calls the move
-      // by its real family so punches, kicks, dives and throws read correctly.
-      if (sparring.current) {
-        sparRef.current?.({ side: event.side, label: move.label, tier: move.tier });
-      }
-      if (!sparring.current && !delivered.current.has(rootId)) {
+      if (!delivered.current.has(rootId)) {
         delivered.current.add(rootId);
         queuedAt.current.delete(rootId);
         hitRef.current?.({
@@ -1165,12 +939,10 @@ export function Arena({
           sparkLife,
         );
       }
-      if (!sparring.current) {
-        setDamages((previous) => [
-          ...previous.slice(-1),
-          { id: event.id, side: defender, amount: gift?.damage ?? 4 },
-        ]);
-      }
+      setDamages((previous) => [
+        ...previous.slice(-1),
+        { id: event.id, side: defender, amount: gift?.damage ?? 4 },
+      ]);
       window.setTimeout(() => setImpact(null), 600);
       window.setTimeout(
         () => setDamages((previous) => previous.filter((item) => item.id !== event.id)),
@@ -1211,7 +983,6 @@ export function Arena({
 
       settling.current = false;
       playing.current = false;
-      sparring.current = false;
       currentEvent.current = null;
       currentMove.current = null;
       // Short breath after the recovery, unless a KO is waiting to be replayed.
@@ -1333,9 +1104,6 @@ export function Arena({
             />
           ))}
 
-
-
-
           {/* Impact sparks — density and spread follow the force of the hit. */}
           {sparks.map((burst) => (
             <div
@@ -1362,10 +1130,6 @@ export function Arena({
           ))}
         </div>
       </div>
-
-      {/* Mr. Bean officiates: between the real exchanges he wanders in for a
-          gag, gets clipped by a stray punch, or staggers across the apron. */}
-      <RefereeBean ko={ko} paused={paused} />
 
       {/* Gift effects live on the ring itself: symbol, name and value rise out
           of the fighter's corner. No widgets, no chat, nothing under the mat. */}

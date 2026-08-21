@@ -9,14 +9,12 @@ import { DifficultyPicker } from "@/components/game/DifficultyPicker";
 import { useHudHeight } from "@/hooks/useHudHeight";
 import { loadDifficulty, saveDifficulty, type Difficulty } from "@/lib/difficulty";
 import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
-import { SyncMeter } from "@/components/game/SyncMeter";
 import { useRemoteConfig } from "@/lib/useRemoteConfig";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Subtitles } from "@/components/game/Subtitles";
 import { Button } from "@/components/ui/button";
-import { announce, announceHit, announceScene, announceSpar, useCommentary } from "@/hooks/useCommentary";
-import { setCrowdEnabled } from "@/lib/crowd";
+import { announceHit, announceScene, useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
 import { useTopBanner } from "@/hooks/useTopBanner";
@@ -25,12 +23,12 @@ import { RoundSummaryCard } from "@/components/game/RoundSummaryCard";
 import { SpectatorChat } from "@/components/game/SpectatorChat";
 import type { GiftId, Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
-import { useBroadcastLang, useBroadcastMix, useControlBus, type ControlMessage } from "@/lib/control";
+import { useBroadcastLang, useControlBus, type ControlMessage } from "@/lib/control";
 import { ACCESS_TEXT, useViewerAccess } from "@/lib/liveSession";
 import { setActiveRound } from "@/lib/hitConfig";
-import { setSyncRound } from "@/lib/syncMeter";
 import { publishSubtitle } from "@/lib/subtitles";
 
+const VOICE_LOCALE: Record<Lang, string> = {'en': 'en-US', 'de': 'de-DE', 'sr': 'sr-RS', 'ro': 'ro-RO', 'ru': 'ru-RU'};
 
 type Search = { lang: Lang; s?: string };
 
@@ -77,7 +75,6 @@ function LivePage() {
   const lang = useBroadcastLang(access.lang ?? linkLang);
   const navigate = useNavigate({ from: Route.fullPath });
   const hud = useHudHeight();
-  useBroadcastMix(); // keeps announcer/crowd levels in sync with the admin faders
   const [muted, setMuted] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
 
@@ -116,14 +113,7 @@ function LivePage() {
   // The gift → hit mapping may differ from round to round.
   useEffect(() => {
     setActiveRound(round);
-    setSyncRound(round);
   }, [round]);
-
-  // Arena ambience follows the same sound switch as the announcer.
-  useEffect(() => {
-    setCrowdEnabled(!muted);
-    return () => setCrowdEnabled(false);
-  }, [muted]);
 
   // Spoken commands pushed live from the admin console.
   useControlBus(
@@ -131,8 +121,10 @@ function LivePage() {
       (message: ControlMessage) => {
         if (message.type !== "say") return;
         publishSubtitle(message.text, "ref", 4000);
-        if (muted) return;
-        announce(message.text, message.lang, 3);
+        if (muted || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+        const utterance = new SpeechSynthesisUtterance(message.text);
+        utterance.lang = VOICE_LOCALE[message.lang];
+        window.speechSynthesis.speak(utterance);
       },
       [muted],
     ),
@@ -184,11 +176,9 @@ function LivePage() {
           koConfirmed={referee.koConfirmed}
           onHit={announceHit}
           onScene={announceScene}
-          onSpar={announceSpar}
         />
         <RefereeCount lang={lang} referee={referee} />
         <SceneDebugPanel />
-        <SyncMeter />
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]">

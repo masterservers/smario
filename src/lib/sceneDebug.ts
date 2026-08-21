@@ -19,20 +19,6 @@ export type SceneDebugState = {
   /** Last rule that refused a transition. */
   blockedBy: string;
   blockedAt: number;
-  /** Round-plan read-out: beat on air, beat coming next, new-set marker. */
-  beat: string;
-  nextBeat: string;
-  beatIndex: number;
-  beatCount: number;
-  newSetNext: boolean;
-  /** What drives the ring right now and why. */
-  mode: "gift action" | "sparring" | "feeling out" | "ko";
-  modeReason: string;
-  /** Crowd momentum 0..1 and the resulting sparring probability. */
-  momentum: number;
-  sparChance: number;
-  /** Milliseconds since the last gift arrived. */
-  quietMs: number;
 };
 
 const initial: SceneDebugState = {
@@ -44,16 +30,6 @@ const initial: SceneDebugState = {
   endedReason: "—",
   blockedBy: "—",
   blockedAt: 0,
-  beat: "—",
-  nextBeat: "—",
-  beatIndex: 0,
-  beatCount: 0,
-  newSetNext: false,
-  mode: "feeling out",
-  modeReason: "—",
-  momentum: 0,
-  sparChance: 0,
-  quietMs: 0,
 };
 
 let state: SceneDebugState = initial;
@@ -82,26 +58,6 @@ export function sceneStarted(entry: {
   emit();
 }
 
-/** Live scheduler telemetry: round beat, drive mode and crowd momentum. */
-export function sceneTelemetry(entry: Partial<
-  Pick<
-    SceneDebugState,
-    | "beat"
-    | "nextBeat"
-    | "beatIndex"
-    | "beatCount"
-    | "newSetNext"
-    | "mode"
-    | "modeReason"
-    | "momentum"
-    | "sparChance"
-    | "quietMs"
-  >
->) {
-  state = { ...state, ...entry };
-  emit();
-}
-
 /** A rule refused a transition (animation lock, minimum duration, tail). */
 export function sceneBlocked(rule: string) {
   if (state.blockedBy === rule && performance.now() - state.blockedAt < 400) return;
@@ -118,30 +74,4 @@ export function useSceneDebug(): SceneDebugState {
     };
   }, []);
   return value;
-}
-
-/**
- * Impact marker for the end-to-end sync test: every landed frame is recorded
- * with a high-resolution timestamp so a browser test can compare it with the
- * moment the commentator actually starts speaking.
- */
-export type ImpactMark = {
-  at: number;
-  side: string;
-  label: string;
-  kind: string;
-  sparring: boolean;
-};
-
-declare global {
-  interface Window {
-    __fightImpacts?: ImpactMark[];
-  }
-}
-
-export function sceneImpact(mark: Omit<ImpactMark, "at">) {
-  if (typeof window === "undefined") return;
-  const list = (window.__fightImpacts ??= []);
-  list.push({ ...mark, at: performance.now() });
-  if (list.length > 200) list.splice(0, list.length - 200);
 }

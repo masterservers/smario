@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { GIFTS, type GiftId, type Side } from "@/lib/battle";
 import { LANGS, type Lang } from "@/lib/i18n";
 import { giftName } from "@/lib/giftCatalog";
-import { setGiftRouting } from "@/lib/hitConfig";
-
 
 /** Where a gift always lands, or "auto" to keep the sender's chosen side. */
 export type GiftTarget = Side | "auto";
@@ -69,13 +67,8 @@ export function getGiftConfig(): GiftConfig {
 export function saveGiftConfig(value: GiftConfig) {
   current = normalize(value);
   if (typeof window !== "undefined") window.localStorage.setItem(KEY, JSON.stringify(current));
-  // Keep the authoritative routing table (gift → Putin / Trump) in sync.
-  setGiftRouting(
-    Object.fromEntries(GIFTS.map((g) => [g.id, current![g.id]!.target])) as Record<GiftId, GiftTarget>,
-  );
   for (const listener of listeners) listener(current);
 }
-
 
 export function resetGiftConfig() {
   saveGiftConfig(defaultGiftConfig());

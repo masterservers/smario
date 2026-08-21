@@ -157,35 +157,6 @@ export type Database = {
         }
         Relationships: []
       }
-      match_outfits: {
-        Row: {
-          match_id: string
-          ru: string
-          updated_at: string
-          us: string
-        }
-        Insert: {
-          match_id: string
-          ru?: string
-          updated_at?: string
-          us?: string
-        }
-        Update: {
-          match_id?: string
-          ru?: string
-          updated_at?: string
-          us?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "match_outfits_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: true
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       matches: {
         Row: {
           ended_at: string | null

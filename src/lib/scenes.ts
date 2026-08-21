@@ -5,9 +5,6 @@
  * rotation and the admin panel all work from the same list.
  */
 
-import { CATALOG_ENTRIES } from "@/lib/moveCatalog";
-import type { HitKind } from "@/lib/hitConfig";
-
 export type Move = {
   id: string;
   start: number;
@@ -17,8 +14,6 @@ export type Move = {
   rate: number;
   /** 1 = light strike, 5 = finisher */
   tier: number;
-  /** Explicit physical reading of the move; falls back to the label heuristic. */
-  kind?: HitKind;
 };
 
 export type IdleScene = { id: string; start: number; end: number; rate: number; label: string };
@@ -307,8 +302,8 @@ const BASE_FOLLOW_UPS: Move[] = [
   },
 ];
 
-/* The victory pose is placed on the premium reel further down. */
-
+/** Victory pose: the winner stands over the ring with both hands raised. */
+export const CHAMPION_POSE = { start: 28.6, end: 30.1, rate: 0.7 };
 
 /**
  * The gift → kind of blow → power mapping is no longer hard-coded: it lives in
@@ -499,26 +494,6 @@ function currentBeat(): Beat {
   return plan[beat % plan.length]!;
 }
 
-/**
- * Live read-out of the round plan: which beat is on air, which one follows and
- * whether the next draw restarts the round's set of beats. Consumed by the
- * scheduler debug panel.
- */
-export function beatInfo() {
-  const plan = ROUND_PLANS[activeRound % ROUND_PLANS.length]!;
-  const index = beat % plan.length;
-  return {
-    round: activeRound,
-    index,
-    length: plan.length,
-    plan,
-    current: plan[index]!,
-    next: plan[(index + 1) % plan.length]!,
-    /** The next draw wraps the plan around: a new set starts. */
-    newSetNext: index === plan.length - 1,
-  };
-}
-
 /** True when the scene matches the beat the round is currently asking for. */
 export function inRoundTheme(item: { label?: string }): boolean {
   const rule = FAMILY_PATTERNS[currentBeat()];
@@ -639,112 +614,15 @@ const VARIETY_IDLE: IdleScene[] = [
   { id: "i-v6", start: 36.8, end: 39.0, rate: 0.78, label: "STARE DOWN AT THE ROPES" },
 ];
 
-/* ------------------------------------------------------------------ *
- * Premium reel mapping
- *
- * The arena no longer plays a 40 s loop: it plays a 455 s reel cut from the
- * pieces of real ring footage, framed wide so the whole ring stays in shot and
- * with the on-screen writing of the original recordings taken out. Every scene
- * above keeps its identity (label, tier, playback rate and its own length), but
- * its window is placed on the reel so that no two scenes share the same seconds
- * and no window ever crosses a cut between two pieces of footage.
- * ------------------------------------------------------------------ */
+export const MOVES: Move[] = [...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES, ...VARIETY_MOVES];
 
-/** Start/end of each piece of footage inside the master reel, in seconds. */
-export const REEL_CLIPS: Array<[number, number]> = [
-  [0.4, 85.9],
-  [86.6, 93.2],
-  [93.9, 102.2],
-  [102.9, 111.2],
-  [111.9, 146.0],
-  [146.8, 170.3],
-  [171.0, 219.0],
-  [219.8, 311.9],
-  [312.6, 384.4],
-  [385.1, 421.0],
-  [421.7, 454.6],
+export const FOLLOW_UPS: Move[] = [
+  ...BASE_FOLLOW_UPS,
+  ...EXTRA_FOLLOW_UPS,
+  ...ROPE_FOLLOW_UPS,
+  ...VARIETY_FOLLOW_UPS,
 ];
-
-export const REEL_DURATION = 454.9;
-
-
-const GAP = 0.2;
-
-/**
- * Lays a list of scenes out over the given pieces of footage: same length,
- * same impact offset, but each one on its own stretch of the reel.
- */
-function layout<T extends { start: number; end: number; impact?: number }>(
-  items: T[],
-  lanes: Array<[number, number]>,
-): T[] {
-  const cursors = lanes.map(([from]) => from);
-  return items.map((item, index) => {
-    const lane = index % lanes.length;
-    const [from, to] = lanes[lane]!;
-    const duration = Math.max(0.8, Math.min(item.end - item.start, to - from - 0.2));
-    const impactOffset = Math.min(
-      duration - 0.1,
-      Math.max(0.2, (item.impact ?? item.start + duration * 0.75) - item.start),
-    );
-    if (cursors[lane]! + duration > to) cursors[lane] = from;
-    const start = cursors[lane]!;
-    cursors[lane] = start + duration + GAP;
-    return {
-      ...item,
-      start: Number(start.toFixed(2)),
-      end: Number((start + duration).toFixed(2)),
-      ...(item.impact === undefined ? {} : { impact: Number((start + impactOffset).toFixed(2)) }),
-    };
-  });
-}
-
-const LONG_CLIPS = REEL_CLIPS.filter(([from, to]) => to - from > 20);
-const MAT_CLIPS = [REEL_CLIPS[7]!, REEL_CLIPS[8]!, REEL_CLIPS[9]!, REEL_CLIPS[0]!];
-const AMBIENT_CLIPS = [REEL_CLIPS[0]!, REEL_CLIPS[4]!, REEL_CLIPS[5]!, REEL_CLIPS[6]!, REEL_CLIPS[10]!];
-
-/** Victory pose: the winner stands over the ring with both hands raised. */
-export const CHAMPION_POSE = { start: 451.8, end: 454.2, rate: 0.7 };
-
-/**
- * The full wrestling catalog (clotheslines, suplexes, dives, drivers,
- * submissions, pins…) turned into playable scenes. Standing techniques run in
- * the ring, mat techniques run as follow-ups on a downed opponent.
- */
-const catalogMove = (entry: (typeof CATALOG_ENTRIES)[number]): Move => ({
-  id: entry.id,
-  start: 0,
-  end: entry.seconds,
-  impact: Number((entry.seconds * 0.78).toFixed(2)),
-  label: entry.label,
-  rate: entry.rate,
-  tier: entry.tier,
-  kind: entry.kind,
-});
-
-const CATALOG_MOVES: Move[] = CATALOG_ENTRIES.filter((e) => !e.mat).map(catalogMove);
-const CATALOG_FOLLOW_UPS: Move[] = CATALOG_ENTRIES.filter((e) => e.mat).map(catalogMove);
-
-/** Keeps the first scene for any id that appears twice. */
-function unique<T extends { id: string }>(items: T[]): T[] {
-  const seen = new Set<string>();
-  return items.filter((item) => (seen.has(item.id) ? false : (seen.add(item.id), true)));
-}
-
-export const MOVES: Move[] = unique([
-  ...layout([...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES, ...VARIETY_MOVES], LONG_CLIPS),
-  ...layout(CATALOG_MOVES, REEL_CLIPS),
-]);
-
-export const FOLLOW_UPS: Move[] = unique([
-  ...layout([...BASE_FOLLOW_UPS, ...EXTRA_FOLLOW_UPS, ...ROPE_FOLLOW_UPS, ...VARIETY_FOLLOW_UPS], MAT_CLIPS),
-  ...layout(CATALOG_FOLLOW_UPS, MAT_CLIPS),
-]);
-
-export const IDLE_SCENES: IdleScene[] = layout(
-  [...BASE_IDLE, ...EXTRA_IDLE, ...ROPE_IDLE, ...VARIETY_IDLE],
-  AMBIENT_CLIPS,
-);
+export const IDLE_SCENES: IdleScene[] = [...BASE_IDLE, ...EXTRA_IDLE, ...ROPE_IDLE, ...VARIETY_IDLE];
 
 /** Every scene the scheduler can pick, for the admin list and the debug panel. */
 export const ALL_SCENES = [
@@ -752,4 +630,3 @@ export const ALL_SCENES = [
   ...FOLLOW_UPS.map((m) => ({ id: m.id, label: m.label, group: "follow" as const })),
   ...IDLE_SCENES.map((s) => ({ id: s.id, label: s.label, group: "idle" as const })),
 ];
-

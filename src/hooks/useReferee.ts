@@ -27,8 +27,6 @@ const IDLE: RefereeState = { side: null, count: 0, final: false, koConfirmed: fa
 export function useReferee(hpRu: number, hpUs: number, ko: Side | null): RefereeState {
   const [state, setState] = useState<RefereeState>(IDLE);
   const armed = useRef<Side | null>(null);
-  const countTimer = useRef(0);
-  const resumeTimer = useRef(0);
   // Re-subscribe when the admin changes the rules.
   const cfg = useHitConfig().referee;
 
@@ -69,24 +67,18 @@ export function useReferee(hpRu: number, hpUs: number, ko: Side | null): Referee
     const downed: Side | null = hpRu <= limit ? "ru" : hpUs <= limit ? "us" : null;
     if (!downed) {
       armed.current = null;
-      window.clearInterval(countTimer.current);
-      window.clearTimeout(resumeTimer.current);
-      countTimer.current = 0;
-      resumeTimer.current = 0;
       return;
     }
     if (armed.current === downed) return;
     armed.current = downed;
 
     let n = 1;
+    let resume = 0;
     setState({ side: downed, count: 1, final: false, koConfirmed: false, resuming: false });
-    // The count lives in refs: a new gift landing mid-count must never tear the
-    // timer down, otherwise the referee freezes on a number and the ring with it.
-    countTimer.current = window.setInterval(() => {
+    const timer = window.setInterval(() => {
       n += 1;
       if (n > rules.knockdownCount) {
-        window.clearInterval(countTimer.current);
-        countTimer.current = 0;
+        window.clearInterval(timer);
         // Soft hand-over: the fighter is up, the arena eases back into the
         // action instead of cutting straight to the next scene.
         setState({
@@ -96,16 +88,15 @@ export function useReferee(hpRu: number, hpUs: number, ko: Side | null): Referee
           koConfirmed: false,
           resuming: true,
         });
-        resumeTimer.current = window.setTimeout(() => {
-          setState(IDLE);
-          // Free the lock so a later knockdown can start a fresh count even if
-          // the fighter's HP never climbed back over the line.
-          armed.current = null;
-        }, rules.resumeDelayMs);
+        resume = window.setTimeout(() => setState(IDLE), rules.resumeDelayMs);
         return;
       }
       setState({ side: downed, count: n, final: false, koConfirmed: false, resuming: false });
     }, rules.countMs);
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(resume);
+    };
   }, [hpRu, hpUs, ko, cfg.knockdownCount, cfg.countMs, cfg.resumeDelayMs]);
 
   return state;

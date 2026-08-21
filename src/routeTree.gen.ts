@@ -18,7 +18,6 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicActiveConfigRouteImport } from './routes/api/public/active-config'
 import { Route as ApiPublicGiftRouteImport } from './routes/api/public/gift'
-import { Route as ApiPublicTtsRouteImport } from './routes/api/public/tts'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,11 +63,6 @@ const ApiPublicGiftRoute = ApiPublicGiftRouteImport.update({
   path: '/api/public/gift',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicTtsRoute = ApiPublicTtsRouteImport.update({
-  id: '/api/public/tts',
-  path: '/api/public/tts',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -79,7 +73,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/api/public/active-config': typeof ApiPublicActiveConfigRoute
   '/api/public/gift': typeof ApiPublicGiftRoute
-  '/api/public/tts': typeof ApiPublicTtsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,7 +83,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/api/public/active-config': typeof ApiPublicActiveConfigRoute
   '/api/public/gift': typeof ApiPublicGiftRoute
-  '/api/public/tts': typeof ApiPublicTtsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,7 +95,6 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/api/public/active-config': typeof ApiPublicActiveConfigRoute
   '/api/public/gift': typeof ApiPublicGiftRoute
-  '/api/public/tts': typeof ApiPublicTtsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -116,7 +107,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/api/public/active-config'
     | '/api/public/gift'
-    | '/api/public/tts'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -127,7 +117,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/api/public/active-config'
     | '/api/public/gift'
-    | '/api/public/tts'
   id:
     | '__root__'
     | '/'
@@ -139,7 +128,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/api/public/active-config'
     | '/api/public/gift'
-    | '/api/public/tts'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -151,7 +139,6 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicActiveConfigRoute: typeof ApiPublicActiveConfigRoute
   ApiPublicGiftRoute: typeof ApiPublicGiftRoute
-  ApiPublicTtsRoute: typeof ApiPublicTtsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -219,13 +206,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGiftRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/tts': {
-      id: '/api/public/tts'
-      path: '/api/public/tts'
-      fullPath: '/api/public/tts'
-      preLoaderRoute: typeof ApiPublicTtsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -249,7 +229,6 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicActiveConfigRoute: ApiPublicActiveConfigRoute,
   ApiPublicGiftRoute: ApiPublicGiftRoute,
-  ApiPublicTtsRoute: ApiPublicTtsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
