@@ -29,6 +29,8 @@ import { commitPendingConfig } from "@/lib/pendingConfig";
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
 import { sceneBlocked, sceneImpact, sceneStarted, sceneTelemetry } from "@/lib/sceneDebug";
 import { decideSpar } from "@/lib/sparRules";
+import { getTuning, shapePool } from "@/lib/tuning";
+import { logMove } from "@/lib/moveLog";
 
 const FIGHT_VIDEO = fightVideo.url;
 
@@ -323,7 +325,8 @@ function movesForGift(giftId: string, tier: number): Move[] {
   const matching = near.filter((move) => kinds.includes(kindOf(move)));
   // Weight: the gift's own kind first, then the exact tier, then the neighbours.
   const pool = [...matching, ...matching, ...exact, ...near];
-  return pool.length > 0 ? pool : MOVES;
+  // Admin preset: tier probabilities plus the aerial / finisher bias.
+  return shapePool(pool.length > 0 ? pool : MOVES, getTuning().tuning);
 }
 
 /**
@@ -342,6 +345,14 @@ const SPAR_MOVES: Move[] = [
 
 
 
+
+/**
+ * Cooldown actually in force: the admin preset wins over the referee panel
+ * default, so "how often a move may come back" is one single control.
+ */
+function tunedCooldown(): number {
+  return getTuning().tuning.cooldownMs;
+}
 
 /** Moves use the same strict LRU cycle, with the arguments kept in the old order. */
 function drawMove(
@@ -864,11 +875,11 @@ export function Arena({
 
           if (decision.spar) {
             const move = drawMove(
-              SPAR_MOVES,
+              shapePool(SPAR_MOVES, getTuning().tuning),
               recentMoves.current,
               moveUsage.current,
               moveCooldowns.current,
-              varietyRef.current.cooldownMs,
+              tunedCooldown(),
             );
             recentMoves.current = [...recentMoves.current, move.id].slice(
               -Math.max(cfgRef.current.moveMemory, varietyRef.current.rotation),
@@ -894,6 +905,16 @@ export function Arena({
               performance.now() +
               ((move.end - entry) / (move.rate * cfgRef.current.speed)) * 1000;
             setAttacker(side);
+            logMove({
+              round: roundNo.current || 1,
+              side,
+              source: "spar",
+              gift: "—",
+              moveId: move.id,
+              label: move.label,
+              kind: kindOf(move),
+              tier: move.tier,
+            });
             logRef.current?.("move", `${side.toUpperCase()} · ${move.label}`);
             const shot = frameFor(move);
             baseFrame.current = shot;
@@ -961,7 +982,7 @@ export function Arena({
             recentMoves.current,
             moveUsage.current,
             moveCooldowns.current,
-            varietyRef.current.cooldownMs,
+            tunedCooldown(),
           );
 
       recentMoves.current = [...recentMoves.current, move.id].slice(
@@ -978,7 +999,7 @@ export function Arena({
           recentFollows.current,
           followUsage.current,
           followCooldowns.current,
-          varietyRef.current.cooldownMs * 0.5,
+          tunedCooldown() * 0.5,
         );
         recentFollows.current = [...recentFollows.current, next.id].slice(
           -cfgRef.current.followMemory,
@@ -1019,6 +1040,16 @@ export function Arena({
         },
       ]);
 
+      logMove({
+        round: roundNo.current || 1,
+        side: event.side,
+        source: pendingFollow ? "follow" : "gift",
+        gift: event.gift,
+        moveId: move.id,
+        label: move.label,
+        kind: kindOf(move),
+        tier: move.tier,
+      });
       logRef.current?.("move", `${event.side.toUpperCase()} · ${move.label}`);
       // Move the wide shot to this block's corner of the ring.
       const shot = frameFor(move);

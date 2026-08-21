@@ -16,6 +16,7 @@ import {
 } from "@/lib/voice";
 import { crowdReact, duckCrowd } from "@/lib/crowd";
 import { dropCue, markCue, resolveCue, type CueKind } from "@/lib/syncMeter";
+import { logLine } from "@/lib/moveLog";
 
 export type CommentaryLine = { id: string; text: string; tone: "hit" | "big" | "ko" | "idle" };
 
@@ -175,6 +176,8 @@ function drain() {
     };
     speaking = true;
     speakingPriority = next.priority;
+    // Match log: the line that goes with the move currently on screen.
+    logLine(next.text, next.lang);
     duckCrowd(true);
     const tone = toneOf(next.priority);
     // Already generated? Start on this frame, zero latency.
