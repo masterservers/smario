@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { GIFTS, type GiftId, type Side } from "@/lib/battle";
-import { LANGS, UI_TEXT, type Lang } from "@/lib/i18n";
+import { LANGS, type Lang } from "@/lib/i18n";
+import { giftName } from "@/lib/giftCatalog";
 
 /** Where a gift always lands, or "auto" to keep the sender's chosen side. */
 export type GiftTarget = Side | "auto";
@@ -19,7 +20,7 @@ export type GiftConfig = Record<GiftId, GiftSetting>;
 export function defaultGiftConfig(): GiftConfig {
   const entries = GIFTS.map((gift) => {
     const phrases = Object.fromEntries(
-      LANGS.map((lang) => [lang, UI_TEXT[lang].gifts[gift.id] ?? gift.id]),
+      LANGS.map((lang) => [lang, giftName(gift.id, lang)]),
     ) as Record<Lang, string>;
     return [gift.id, { emoji: gift.emoji, target: "auto" as GiftTarget, phrases }];
   });
