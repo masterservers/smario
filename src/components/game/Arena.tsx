@@ -492,6 +492,9 @@ type Props = {
   lang: Lang;
   /** Pace preset: speed, move frequency and anti-repetition memory. */
   difficulty?: Difficulty;
+  /** Referee anti-repetition tuning: cooldown, LRU rotation, entry variation. */
+  variety?: VarietyConfig;
+
   events: GiftEvent[];
   ko: Side | null;
   combo: number;
