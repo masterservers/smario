@@ -672,6 +672,45 @@ function AdminPage() {
 
         </div>
 
+        <details className="mt-3 rounded-lg border border-border p-2 text-xs">
+          <summary className="cursor-pointer text-muted-foreground">
+            Edit the JSON directly (active scenes, weights, transition rules)
+          </summary>
+          <textarea
+            value={sceneJson}
+            onChange={(e) => setSceneJson(e.target.value)}
+            onFocus={() => {
+              if (!sceneJson) setSceneJson(exportSceneConfig());
+            }}
+            spellCheck={false}
+            rows={12}
+            className="mt-2 w-full rounded-md border border-border bg-background p-2 font-mono text-[11px]"
+            placeholder="Paste here the JSON exported earlier…"
+            aria-label="scenes json"
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Button className="h-8" onClick={() => applySceneJson(sceneJson)}>
+              Apply JSON
+            </Button>
+            <Button
+              variant="outline"
+              className="h-8"
+              onClick={() => {
+                setSceneJson(exportSceneConfig());
+                setSceneIo({ ok: true, text: "Reloaded from the current settings." });
+              }}
+            >
+              Reload current
+            </Button>
+            {sceneIo ? (
+              <span className={sceneIo.ok ? "text-emerald-500" : "text-destructive"}>
+                {sceneIo.text}
+              </span>
+            ) : null}
+          </div>
+        </details>
+
+
         {(["move", "follow", "idle"] as const).map((group) => (
           <div key={group} className="mt-3">
             <div className="display text-xs uppercase tracking-widest text-muted-foreground">
