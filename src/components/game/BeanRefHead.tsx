@@ -76,20 +76,31 @@ export function BeanRefHead() {
     let smooth: RefSpot | null = null;
     const loop = (now: number) => {
       raf = window.requestAnimationFrame(loop);
-      if (document.hidden || now - last < 180) return;
+      if (document.hidden || now - last < 110) return;
       last = now;
       const video = document.querySelector<HTMLVideoElement>("video.arena-video");
       if (!video) return;
       const found = track(video);
-      if (!found) return;
-      smooth = smooth
-        ? {
-            x: smooth.x + (found.x - smooth.x) * 0.35,
-            y: smooth.y + (found.y - smooth.y) * 0.35,
-            width: smooth.width + (found.width - smooth.width) * 0.35,
+      if (!found) {
+        // Referee hidden behind the wrestlers: drop the face rather than
+        // leaving it stranded on the crowd.
+        smooth = null;
+        setSpot(null);
+        return;
+      }
+      // A big jump means the reel cut to another camera — snap instead of
+      // sliding the face across the ring.
+      const jumped =
+        !smooth ||
+        Math.hypot(found.x - smooth.x, found.y - smooth.y) > 7;
+      smooth = jumped
+        ? found
+        : {
+            x: smooth!.x + (found.x - smooth!.x) * 0.55,
+            y: smooth!.y + (found.y - smooth!.y) * 0.55,
+            width: smooth!.width + (found.width - smooth!.width) * 0.4,
             score: found.score,
-          }
-        : found;
+          };
       setSpot({ ...smooth });
     };
     raf = window.requestAnimationFrame(loop);
@@ -107,9 +118,13 @@ export function BeanRefHead() {
 
   if (!config.headEnabled) return null;
   // Tracked shirt wins; the admin sliders are the fallback anchor.
-  const anchorX = spot ? spot.x : config.headX;
-  const anchorY = spot ? spot.y - spot.width * 0.62 : config.headY;
-  const size = ((spot ? Math.max(2.4, spot.width * 0.62) : config.headSize) / 100) * fit.w;
+  const anchorX = spot ? spot.x - 1 : config.headX;
+  // The detector locks onto the torso; the head sits a bit above it.
+  const anchorY = spot ? spot.y - 7.5 : config.headY;
+  const sizePct = spot
+    ? Math.min(5, Math.max(2.2, spot.width * 1.2))
+    : config.headSize;
+  const size = (sizePct / 100) * fit.w;
 
   return (
     <div

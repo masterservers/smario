@@ -18,8 +18,8 @@ export type RefSpot = {
   score: number;
 };
 
-const W = 96;
-const H = 54;
+const W = 320;
+const H = 180;
 
 export function createRefTracker() {
   let canvas: HTMLCanvasElement | null = null;
@@ -56,24 +56,24 @@ export function createRefTracker() {
       const b = data[i * 4 + 2] ?? 0;
       const max = Math.max(r, g, b);
       const min = Math.min(r, g, b);
-      const grey = max - min < 46;
+      const grey = max - min < 40;
       const lum = (r + g + b) / 3;
-      if (grey && lum < 78) dark[i] = 1;
-      else if (grey && lum > 150) light[i] = 1;
+      if (grey && lum < 70) dark[i] = 1;
+      else if (grey && lum > 145) light[i] = 1;
     }
 
     // Score every cell of a small window grid: a shirt is a column-ish blob
     // with both tones present and several dark/light flips per row.
-    const win = 7; // ~7% of the frame width
-    const winH = 9;
+    const win = 8; // ~2.5% of the frame width — the shirt is a narrow column
+    const winH = 16;
     let best = { x: 0, y: 0, score: 0 };
     // The referee's torso always sits in the band between the crowd and the
     // mat — searching only there keeps ropes, apron logos and the turnbuckle
     // pads out of the running.
-    const yFrom = Math.round(H * 0.24);
-    const yTo = Math.round(H * 0.58);
-    for (let y = yFrom; y < yTo; y += 1) {
-      for (let x = 2; x < W - win - 2; x += 1) {
+    const yFrom = Math.round(H * 0.15);
+    const yTo = Math.round(H * 0.6);
+    for (let y = yFrom; y < yTo; y += 2) {
+      for (let x = 2; x < W - win - 2; x += 2) {
         let flips = 0;
         let darks = 0;
         let lights = 0;
@@ -90,13 +90,13 @@ export function createRefTracker() {
         }
         const cells = win * winH;
         const balance = Math.min(darks, lights) / cells;
-        if (balance < 0.16) continue;
+        if (balance < 0.15) continue;
         const score = balance * 2 + flips / cells;
         if (score > best.score) best = { x: x + win / 2, y: y + winH / 2, score };
       }
     }
 
-    if (best.score < 0.55) return null;
+    if (best.score < 0.5) return null;
     return {
       x: (best.x / W) * 100,
       y: (best.y / H) * 100,
