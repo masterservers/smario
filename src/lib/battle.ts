@@ -19,7 +19,10 @@ export const GIFTS: Gift[] = [
 
 export const GIFT_BY_ID = Object.fromEntries(GIFTS.map((g) => [g.id, g])) as Record<GiftId, Gift>;
 
-export const MAX_HP = 100;
+export const MAX_HP = 240;
+
+/** A match always runs at least five minutes before a knockout can happen. */
+export const MIN_MATCH_MS = 5 * 60 * 1000;
 
 export type GiftEvent = {
   id: string;
@@ -51,14 +54,21 @@ export function reduceEvents(events: GiftEvent[]): BattleState {
     ko: null,
   };
 
+  const first = events[0];
+  const startedAt = first ? new Date(first.created_at).getTime() : Date.now();
+
   for (const e of events) {
     const gift = GIFT_BY_ID[e.gift] ?? GIFTS[0]!;
+    const elapsed = new Date(e.created_at).getTime() - startedAt;
+    // Before the five-minute mark a fighter can be worn down, but never finished.
+    const floorHp = elapsed >= MIN_MATCH_MS ? 0 : 1;
+
     if (e.side === "ru") {
       state.scoreRu += gift.value;
-      state.hpUs = Math.max(0, state.hpUs - gift.damage);
+      state.hpUs = Math.max(floorHp, state.hpUs - gift.damage);
     } else {
       state.scoreUs += gift.value;
-      state.hpRu = Math.max(0, state.hpRu - gift.damage);
+      state.hpRu = Math.max(floorHp, state.hpRu - gift.damage);
     }
     state.combo = state.comboSide === e.side ? state.combo + 1 : 1;
     state.comboSide = e.side;
