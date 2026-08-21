@@ -18,8 +18,16 @@ type Props = {
 /** Presets + validation for the public match title. */
 export function MatchTitleControl({ onAudit }: Props) {
   const active = useMatchTitle();
+  const scale = useTitleScale();
   const [draft, setDraft] = useState(active);
   const check = validateTitle(draft);
+
+  const applyScale = (value: number) => {
+    const next = clampScale(value);
+    saveAdminConfig({ ...getAdminConfig(), titleScale: next });
+    onAudit?.("titleScale", { scale: next });
+  };
+
 
   const apply = (value: string) => {
     const result = validateTitle(value);
