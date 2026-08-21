@@ -17,6 +17,50 @@ type Move = {
   tier: number;
 };
 
+/** How a hit reads physically on screen. */
+type HitKind = "punch" | "kick" | "grapple" | "aerial" | "throw";
+
+function kindOf(move: Move): HitKind {
+  const l = move.label;
+  if (/KICK|TEEP|DROPKICK/.test(l)) return "kick";
+  if (/ROPE|CLIMB|DIVE|SPLASH|MOONSAULT|JUMP|DROP/.test(l)) return "aerial";
+  if (/SLAM|THROW|POWERBOMB|TOSS|FINISHER/.test(l)) return "throw";
+  if (/JAB|HOOK|CROSS|RIGHT|UPPERCUT|ELBOW|COMBO|COMBINATION|COUNTER|SHOT/.test(l)) return "punch";
+  return "grapple";
+}
+
+/**
+ * Framing presets: the fighters travel across the ring instead of staying
+ * pinned in the centre. Values stay small (no close-ups) — they only shift the
+ * wide shot left/right, a touch nearer/further, with a controlled tilt.
+ */
+type Frame = { x: number; y: number; scale: number; rotate: number };
+
+const FRAMES: Frame[] = [
+  { x: 0, y: 0, scale: 1, rotate: 0 },
+  { x: -4.5, y: 0.5, scale: 1.04, rotate: -0.9 },
+  { x: 4.5, y: 0.5, scale: 1.04, rotate: 0.9 },
+  { x: -6, y: -1, scale: 1.06, rotate: 1.1 },
+  { x: 6, y: -1, scale: 1.06, rotate: -1.1 },
+  { x: 0, y: 1.5, scale: 0.97, rotate: 0 },
+  { x: -2.5, y: -1.5, scale: 1.02, rotate: 0.6 },
+  { x: 2.5, y: -1.5, scale: 1.02, rotate: -0.6 },
+];
+
+/** Each block of the reel gets its own corner of the ring, plus a little drift. */
+function frameFor(move: Move): Frame {
+  const block = Math.floor(move.start / 10); // 0..3
+  const base = FRAMES[(block * 2 + (move.tier % 2) + 1) % FRAMES.length]!;
+  const drift = (Math.random() - 0.5) * 2.4;
+  return {
+    x: Math.max(-7, Math.min(7, base.x + drift)),
+    y: base.y + (Math.random() - 0.5) * 1.2,
+    scale: base.scale,
+    rotate: base.rotate + (Math.random() - 0.5) * 0.5,
+  };
+}
+
+
 /**
  * The reel is one continuous wide camera, 40s long, built from four blocks:
  *   A  0.0 – 10.0  stand-up exchange: circling, punches, lock-up
@@ -155,7 +199,17 @@ const MOVES: Move[] = [
     tier: 4,
   },
 
+  // Rope work — contact with the mesh, being pushed off the ropes, rebound
+  // jumps and turns, so the action leaves the centre of the ring.
+  { id: "rope-press", start: 12.6, end: 14.4, impact: 13.6, label: "PRESSED ON THE ROPES", rate: 0.96, tier: 2 },
+  { id: "rope-whip", start: 13.2, end: 15.2, impact: 14.5, label: "ROPE WHIP", rate: 1.0, tier: 2 },
+  { id: "rope-rebound", start: 15.2, end: 17.2, impact: 16.4, label: "ROPE REBOUND", rate: 1.02, tier: 2 },
+  { id: "rope-shoulder", start: 18.4, end: 20.0, impact: 19.5, label: "ROPE SHOULDER CHARGE", rate: 0.98, tier: 3 },
+  { id: "rope-spin", start: 20.6, end: 22.8, impact: 22.0, label: "ROPE SPIN OUT", rate: 0.94, tier: 3 },
+  { id: "rope-vault", start: 23.2, end: 25.6, impact: 24.8, label: "ROPE VAULT", rate: 0.9, tier: 4 },
+
   // Tier 5 — finishers.
+
   {
     id: "powerbomb-a",
     start: 34.2,
@@ -387,8 +441,13 @@ export function Arena({
   const [champion, setChampion] = useState(false);
   const [impact, setImpact] = useState<{ id: string; side: Side; label: string } | null>(null);
   const [floats, setFloats] = useState<FloatItem[]>([]);
+  /** Current camera framing: where in the ring the action sits. */
+  const [frame, setFrame] = useState<Frame>({ x: 0, y: 0, scale: 1, rotate: 0 });
+  /** Physical reaction to the last landed hit (drives the shake/stagger). */
+  const [reaction, setReaction] = useState<{ id: string; kind: HitKind; dir: number } | null>(null);
 
   const [damages, setDamages] = useState<DamageItem[]>([]);
+
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
 
@@ -438,6 +497,11 @@ export function Arena({
     const finisher = MOVES.find((move) => move.id === "finisher")!;
     cheer(2);
     setReplay(true);
+    // KO reads heaviest of all: full loss of balance, then the shot settles.
+    setFrame({ x: 0, y: 0.5, scale: 1.02, rotate: 0 });
+    setReaction({ id: `ko-${ko}`, kind: "throw", dir: ko === "ru" ? 1 : -1 });
+    window.setTimeout(() => setReaction(null), 1400);
+
     logRef.current?.("ko", `KO — ${ko === "ru" ? names.us : names.ru} down`);
     logRef.current?.("replay", "slow-motion replay");
 
@@ -538,9 +602,12 @@ export function Arena({
       ]);
 
       logRef.current?.("move", `${event.side.toUpperCase()} · ${move.label}`);
+      // Move the wide shot to this block's corner of the ring.
+      setFrame(frameFor(move));
       seek(video, move.start);
       video.playbackRate = move.rate * cfgRef.current.speed;
       void video.play();
+
     }, cfg.tickMs);
     return () => window.clearInterval(timer);
   }, [ko, paused, cfg.tickMs]);
@@ -556,7 +623,15 @@ export function Arena({
       impacted.current = true;
       const defender: Side = event.side === "ru" ? "us" : "ru";
       const gift = GIFT_BY_ID[event.gift];
+      const kind = kindOf(move);
       setImpact({ id: event.id, side: defender, label: move.label });
+      // Distinct physical read per hit type: jitter for punches, a step back for
+      // kicks, loss of balance for throws and aerials, then a recovery.
+      setReaction({ id: event.id, kind, dir: defender === "ru" ? -1 : 1 });
+      window.setTimeout(
+        () => setReaction((previous) => (previous?.id === event.id ? null : previous)),
+        kind === "punch" ? 420 : kind === "kick" ? 700 : 1000,
+      );
       cheer(move.tier >= 4 ? 1.5 : 1);
       setDamages((previous) => [
         ...previous.slice(-1),
@@ -569,11 +644,19 @@ export function Arena({
       );
     }
 
+
     if (video.currentTime >= stopAt.current) {
       playing.current = false;
       currentEvent.current = null;
       currentMove.current = null;
       idleScene.current = pick(IDLE_SCENES);
+      // Between spots the fighters keep circling: drift the framing back.
+      setFrame({
+        x: (Math.random() - 0.5) * 5,
+        y: (Math.random() - 0.5) * 1.5,
+        scale: 1 + (Math.random() - 0.5) * 0.03,
+        rotate: (Math.random() - 0.5) * 0.8,
+      });
       seek(video, idleScene.current.start);
       video.playbackRate = idleScene.current.rate * cfgRef.current.speed;
       void video.play();
@@ -585,34 +668,62 @@ export function Arena({
     }
   };
 
+  const reactionClass =
+    !reaction || lite
+      ? ""
+      : reaction.kind === "punch"
+        ? "animate-hit-punch"
+        : reaction.kind === "kick"
+          ? "animate-hit-kick"
+          : reaction.kind === "grapple"
+            ? "animate-hit-grapple"
+            : "animate-hit-heavy";
+
   return (
     <div className="absolute inset-0 overflow-hidden bg-background">
-      <video
-        ref={videoRef}
-        src={FIGHT_VIDEO}
-        muted
-        autoPlay
-        loop
-        playsInline
-        preload="auto"
-        aria-label={`${names.ru} versus ${names.us}`}
-        onLoadedData={(event) => {
-          event.currentTarget.currentTime = IDLE_SCENES[0]!.start;
-          void event.currentTarget.play();
-        }}
-        onTimeUpdate={handleTimeUpdate}
-        disablePictureInPicture
+      {/* Framing layer: shifts the wide shot around the ring (left/right,
+          nearer/further, slight tilt) so the action never stays pinned. */}
+      <div
+        className="absolute inset-0 transition-transform duration-[900ms] ease-out"
         style={{
-          // Crowd/lighting: the arena lifts in brightness and contrast on every
-          // landed hit so the audience in the stands stays clearly readable.
-          filter: lite
-            ? "brightness(1.1) contrast(1.12) saturate(1.08)"
-            : `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
-          contain: "paint",
-          willChange: lite ? undefined : "filter",
+          transform: `translate3d(${frame.x}%, ${frame.y}%, 0) scale(${frame.scale}) rotate(${frame.rotate}deg)`,
         }}
-        className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter] duration-200"
-      />
+      >
+        {/* Reaction layer: per-hit physical response (jitter, step back, loss of
+            balance, recovery). */}
+        <div
+          className={`absolute inset-0 ${reactionClass}`}
+          style={{ ["--hit-dir" as string]: String(reaction?.dir ?? 1) }}
+        >
+          <video
+            ref={videoRef}
+            src={FIGHT_VIDEO}
+            muted
+            autoPlay
+            loop
+            playsInline
+            preload="auto"
+            aria-label={`${names.ru} versus ${names.us}`}
+            onLoadedData={(event) => {
+              event.currentTarget.currentTime = IDLE_SCENES[0]!.start;
+              void event.currentTarget.play();
+            }}
+            onTimeUpdate={handleTimeUpdate}
+            disablePictureInPicture
+            style={{
+              // Crowd/lighting: the arena lifts in brightness and contrast on every
+              // landed hit so the audience in the stands stays clearly readable.
+              filter: lite
+                ? "brightness(1.1) contrast(1.12) saturate(1.08)"
+                : `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
+              contain: "paint",
+              willChange: lite ? undefined : "filter",
+            }}
+            className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter] duration-200"
+          />
+        </div>
+      </div>
+
 
       {/* Impact state remains synchronized for commentary and logs, but visual
           labels and gift particles stay off the ring so both fighters remain
