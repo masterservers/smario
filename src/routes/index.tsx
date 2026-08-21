@@ -90,7 +90,7 @@ function BattlePage() {
 
   const { matchId, round, events, state, viewers } = useLiveMatch(lang, pushLog);
   const referee = useReferee(state.hpRu, state.hpUs, state.ko);
-  useCommentary(lang, events, state, muted, referee);
+  useCommentary(lang, events, state, muted, referee, round);
   const banner = useTopBanner({
     lang,
     matchId,
