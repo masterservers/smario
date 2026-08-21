@@ -495,6 +495,20 @@ function AdminPage() {
         />
       </section>
 
+      {/* Match reset ------------------------------------------------------ */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Reset · score &amp; rounds
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          Closes the running fight, clears its gifts and opens a fresh match at round 1. Every open
+          arena tab picks the new match up on its own. The full wipe also removes past matches and
+          the whole gift history.
+        </p>
+        <MatchReset onAudit={(action, details) => record("match", action, details)} />
+      </section>
+
+
       {/* Commentator control --------------------------------------------- */}
       <section className="panel mt-4 rounded-2xl p-4">
         <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
