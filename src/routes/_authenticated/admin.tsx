@@ -16,6 +16,16 @@ import {
   type GiftConfig,
   type GiftTarget,
 } from "@/lib/giftConfig";
+import {
+  HIT_KINDS,
+  defaultHitConfig,
+  getHitConfig,
+  saveHitConfig,
+  type GiftHitRule,
+  type HitConfig,
+  type RefereeRules,
+} from "@/lib/hitConfig";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
