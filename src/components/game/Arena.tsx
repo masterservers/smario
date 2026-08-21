@@ -512,6 +512,8 @@ export function Arena({
   >(null);
   /** Hit kind that scored the knockout — drives how long the KO reaction holds. */
   const koKind = useRef<HitKind>("throw");
+  /** Base framing of the current spot; impact and mat-work move relative to it. */
+  const baseFrame = useRef<Frame>({ x: 0, y: 0, scale: 1, rotate: 0 });
 
   const [damages, setDamages] = useState<DamageItem[]>([]);
 
@@ -737,7 +739,9 @@ export function Arena({
 
       logRef.current?.("move", `${event.side.toUpperCase()} · ${move.label}`);
       // Move the wide shot to this block's corner of the ring.
-      setFrame(frameFor(move));
+      const shot = frameFor(move);
+      baseFrame.current = shot;
+      setFrame(clampFrame(shot));
       switchScene(move.start, move.rate * cfgRef.current.speed, true);
 
     }, cfg.tickMs);
@@ -773,6 +777,16 @@ export function Arena({
         profile.stun,
       );
       cheer(profile.cheer * (move.tier >= 4 ? 1.15 : 1));
+      // Dynamic camera: a light push-in on contact, drifting towards the hit.
+      const shot = baseFrame.current;
+      setFrame(
+        clampFrame({
+          x: shot.x + (defender === "ru" ? -1.2 : 1.2) * profile.force,
+          y: shot.y + profile.impactZoom * 8,
+          scale: shot.scale + profile.impactZoom,
+          rotate: shot.rotate + (defender === "ru" ? -0.3 : 0.3),
+        }),
+      );
       setDamages((previous) => [
         ...previous.slice(-1),
         { id: event.id, side: defender, amount: gift?.damage ?? 4 },
@@ -797,6 +811,16 @@ export function Arena({
           settling.current = true;
           stopAt.current = limit;
           lockUntil.current = performance.now() + ((limit - video.currentTime) / settleRate) * 1000;
+          // Camera follows the slam down to the mat: tilt down, a touch nearer.
+          const shot = baseFrame.current;
+          setFrame(
+            clampFrame({
+              x: shot.x * 0.6,
+              y: shot.y + profile.matY,
+              scale: shot.scale + profile.matZoom,
+              rotate: shot.rotate * 0.4,
+            }),
+          );
           // Slightly slower so the landing and the struggle read clearly.
           video.playbackRate = settleRate;
           void video.play();
@@ -814,12 +838,14 @@ export function Arena({
       if (pendingKo.current) setCompletedSequences((value) => value + 1);
       idleScene.current = pick(IDLE_SCENES);
       // Between spots the fighters keep circling: drift the framing back.
-      setFrame({
+      const rest = clampFrame({
         x: (Math.random() - 0.5) * 5,
         y: (Math.random() - 0.5) * 1.5,
         scale: 1 + (Math.random() - 0.5) * 0.03,
         rotate: (Math.random() - 0.5) * 0.8,
       });
+      baseFrame.current = rest;
+      setFrame(rest);
       switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed, true);
 
       window.setTimeout(
