@@ -144,7 +144,7 @@ describe("commentary / impact synchronisation", () => {
       expect(actionLinesFor(move.label)).toContain(lastLine().text);
 
       await settle();
-      const text = captured[linesBefore].text;
+      const text = captured[linesBefore]!.text;
       const call = spoken.slice(before).find((s) => s.text === text);
       expect(call, `no voice for ${move.label}`).toBeTruthy();
       expect(call!.at - impactAt).toBeGreaterThanOrEqual(0);
@@ -182,7 +182,7 @@ describe("commentary / impact synchronisation", () => {
     expect(actionLinesFor("LEFT JAB")).toContain(lastLine().text);
 
     await settle();
-    const text = captured[linesBefore].text;
+    const text = captured[linesBefore]!.text;
     const call = spoken.slice(spokenBefore).find((s) => s.text === text);
     expect(call, "the gift hit was never voiced").toBeTruthy();
     expect(call!.at - impactAt).toBeGreaterThanOrEqual(0);
