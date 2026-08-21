@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.enforce_gift_limits() FROM PUBLIC, anon, authenticated;

@@ -10,12 +10,6 @@ type LeaderRow = { sender: string; total: number; side: Side };
 /** Keep the defeated fighter visible on the mat for a full twenty seconds. */
 const KO_HOLD_MS = 20000;
 
-// Client-side guard mirroring the database limits: a small token bucket keeps
-// honest users from ever hitting the server rejection.
-const BUCKET_SIZE = 6;
-const REFILL_MS = 1500;
-const MIN_GAP_MS = 700;
-
 function readNickname(): string {
   if (typeof window === "undefined") return "guest";
   const stored = window.localStorage.getItem("pvt-nick");
@@ -40,9 +34,6 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
   const [nickname, setNickname] = useState("guest");
   const [ready, setReady] = useState(false);
   const finishing = useRef(false);
-  const tokens = useRef(BUCKET_SIZE);
-  const lastRefill = useRef(Date.now());
-  const lastSend = useRef(0);
 
   useEffect(() => {
     setNickname(readNickname());
@@ -161,31 +152,8 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
     async (side: Side, gift: GiftId, message?: string) => {
       if (!matchId || state.ko) return;
       const t = UI_TEXT[lang];
-      const now = Date.now();
 
-      // refill the bucket, then spend a token
-      const refilled = Math.floor((now - lastRefill.current) / REFILL_MS);
-      if (refilled > 0) {
-        tokens.current = Math.min(BUCKET_SIZE, tokens.current + refilled);
-        lastRefill.current = now;
-      }
-      if (now - lastSend.current < MIN_GAP_MS) {
-        log(`blocked · ${gift} → ${side.toUpperCase()} · min gap ${MIN_GAP_MS}ms (client)`);
-        toast.warning(t.tooFast);
-        return;
-      }
-      if (tokens.current <= 0) {
-        log(
-          `blocked · ${gift} → ${side.toUpperCase()} · bucket empty (${BUCKET_SIZE}/${REFILL_MS}ms, client)`,
-        );
-        toast.warning(t.tooFast);
-        return;
-      }
-      tokens.current -= 1;
-      lastSend.current = now;
-
-      // Insert and take the row straight back, so the sender sees the strike
-      // land immediately instead of waiting for the realtime round trip.
+      // No throttling: a viewer may tap a gift as often as they want.
       const { data, error } = await supabase
         .from("gift_events")
         .insert({
@@ -199,33 +167,12 @@ export function useLiveMatch(lang: Lang = "en", onLog?: LogFn) {
         .single();
 
       if (error) {
-        const reason = error.message ?? "";
-        const label = reason.includes("sender_cap")
-          ? "sender cap 1200 dmg/match"
-          : reason.includes("too_fast")
-            ? "duplicate gift < 700ms"
-            : reason.includes("match_flood")
-              ? "match flood 120/5s"
-              : reason.includes("rate_limited")
-                ? "rate limit 8/10s or 40/min"
-                : reason || "unknown server rejection";
-        log(`rejected · ${gift} → ${side.toUpperCase()} · ${label} (server)`);
-        if (reason.includes("sender_cap")) toast.warning(t.capReached);
-        else if (
-          reason.includes("rate_limited") ||
-          reason.includes("too_fast") ||
-          reason.includes("match_flood")
-        )
-          toast.warning(t.tooFast);
-        else toast.error(t.tooFast);
+        log(`rejected · ${gift} → ${side.toUpperCase()} · ${error.message ?? "unknown"} (server)`);
+        toast.error(t.tooFast);
         return;
       }
 
-      if (data?.flagged) {
-        log(`fraud · ${gift} → ${side.toUpperCase()} · both sides within 5s, excluded from score`);
-        toast.warning(t.fraudFlagged);
-        return;
-      }
+
       if (data) {
         setEvents((prev) =>
           prev.some((e) => e.id === data.id) ? prev : [...prev, data as GiftEvent],
