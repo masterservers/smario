@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MAX_HP, type Side } from "@/lib/battle";
 import { UI_TEXT, type Lang } from "@/lib/i18n";
-import { sideNames, useAdminConfig } from "@/lib/adminConfig";
+import { sideNames, useAdminConfig, useMatchTitle } from "@/lib/adminConfig";
 
 type Props = {
   lang: Lang;
@@ -86,6 +86,16 @@ export function Scoreboard({
   const t = UI_TEXT[lang];
   useAdminConfig();
   const names = sideNames(lang);
+  // The approved title is split around "vs" so both camps keep their colour.
+  const title = useMatchTitle();
+  const titleParts = (() => {
+    const m = title.match(/^(.*?)\s+vs\.?\s+(.*)$/i);
+    if (!m) return { lead: "", left: title, right: "" };
+    const head = m[1] ?? "";
+    const words = head.split(" ");
+    const left = words.pop() ?? head;
+    return { lead: words.join(" "), left, right: m[2] ?? "" };
+  })();
   const { time, elapsed } = useRoundClock(matchId, round, ko);
 
   // Referee calls and gift ticker — driven by useTopBanner, which speaks the
