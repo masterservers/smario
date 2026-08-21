@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import beanImg from "@/assets/mr-bean-ref-cutout.png";
 import type { Lang } from "@/lib/i18n";
+import { useDebugView } from "@/lib/debugView";
 
 /** The gags the referee runs between exchanges. */
 type Gag = "break" | "hit" | "count" | "comic" | "separate" | "stray";
