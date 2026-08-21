@@ -5,6 +5,8 @@ import fightVideo from "@/assets/arena-heights2.webm.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { ruleFor, type HitKind } from "@/lib/hitConfig";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
+import { getGiftConfig } from "@/lib/giftConfig";
+import { giftName } from "@/lib/giftCatalog";
 import {
   CHAMPION_POSE,
   FOLLOW_UPS,
@@ -274,7 +276,16 @@ function entryOf(move: Move, jitter = 1): number {
 }
 
 
-type FloatItem = { id: string; emoji: string; side: Side; left: number };
+type FloatItem = {
+  id: string;
+  emoji: string;
+  side: Side;
+  left: number;
+  /** Localized gift name shown next to the symbol. */
+  name: string;
+  /** Point value of the gift, so heavy gifts read bigger on the ring. */
+  value: number;
+};
 type DamageItem = { id: string; side: Side; amount: number };
 
 type Props = {
@@ -793,6 +804,7 @@ export function Arena({
       }
 
       const gift = GIFT_BY_ID[event.gift];
+      const giftSetting = getGiftConfig()[event.gift];
 
       currentEvent.current = event;
       currentMove.current = move;
@@ -812,9 +824,11 @@ export function Arena({
         ...previous.slice(-3),
         {
           id: event.id,
-          emoji: gift?.emoji ?? "🌹",
+          emoji: giftSetting?.emoji ?? gift?.emoji ?? "🌹",
           side: event.side,
           left: event.side === "ru" ? 8 + Math.random() * 22 : 70 + Math.random() * 20,
+          name: giftSetting?.phrases[lang] ?? giftName(event.gift, lang),
+          value: gift?.value ?? 1,
         },
       ]);
 
@@ -1113,6 +1127,31 @@ export function Arena({
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Gift effects live on the ring itself: symbol, name and value rise out
+          of the fighter's corner. No widgets, no chat, nothing under the mat. */}
+      <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+        {floats.map((item) => (
+          <div
+            key={item.id}
+            className="gift-float absolute bottom-[26%] flex flex-col items-center"
+            style={{
+              left: `${item.left}%`,
+              ["--gift-scale" as string]: String(Math.min(1.9, 0.85 + item.value / 24)),
+            }}
+          >
+            <span className="text-3xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)] sm:text-5xl">
+              {item.emoji}
+            </span>
+            <span
+              className="display text-[10px] tracking-widest text-outline sm:text-xs"
+              style={{ color: item.side === "ru" ? "var(--ru)" : "var(--us)" }}
+            >
+              {item.name} +{item.value}
+            </span>
+          </div>
+        ))}
       </div>
 
 

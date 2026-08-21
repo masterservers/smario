@@ -18,7 +18,12 @@ import { useReferee } from "@/hooks/useReferee";
 import { useTopBanner } from "@/hooks/useTopBanner";
 import type { Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
+import { useBroadcastLang, useControlBus, type ControlMessage } from "@/lib/control";
+import { setActiveRound } from "@/lib/hitConfig";
+import { publishSubtitle } from "@/lib/subtitles";
 
+
+const VOICE_LOCALE: Record<Lang, string> = {'en': 'en-US', 'de': 'de-DE', 'sr': 'sr-RS', 'ro': 'ro-RO', 'ru': 'ru-RU'};
 
 type Search = { lang: Lang };
 
@@ -59,7 +64,8 @@ function BattleRoute() {
 }
 
 function BattlePage() {
-  const { lang } = Route.useSearch();
+  const { lang: linkLang } = Route.useSearch();
+  const lang = useBroadcastLang(linkLang);
   const [muted, setMuted] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
 
@@ -120,6 +126,26 @@ function BattlePage() {
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
+
+  // The gift → hit mapping may differ from round to round.
+  useEffect(() => {
+    setActiveRound(round);
+  }, [round]);
+
+  // Spoken commands pushed live from the admin console.
+  useControlBus(
+    useCallback(
+      (message: ControlMessage) => {
+        if (message.type !== "say") return;
+        publishSubtitle(message.text, "ref", 4000);
+        if (muted || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+        const utterance = new SpeechSynthesisUtterance(message.text);
+        utterance.lang = VOICE_LOCALE[message.lang];
+        window.speechSynthesis.speak(utterance);
+      },
+      [muted],
+    ),
+  );
 
 
 
