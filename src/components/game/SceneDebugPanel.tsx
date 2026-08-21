@@ -68,7 +68,28 @@ export function SceneDebugPanel() {
         </div>
         <div className="truncate">recent: {stats.recent.join(" › ") || "—"}</div>
       </div>
-
+      <div className="mt-1 border-t border-border/60 pt-1 text-muted-foreground">
+        <div className="uppercase tracking-widest">true variety</div>
+        <div>
+          names {variety.totalSceneNames} · windows {variety.uniqueVisualSequences} · clusters{" "}
+          <span className="text-foreground">{variety.uniqueVisualClusters}</span>
+        </div>
+        <div>
+          exact dup {variety.exactDuplicateMappings} · strong {variety.strongOverlapPairs} · near{" "}
+          {variety.nearDuplicatePairs} · susp {variety.suspiciousPairs}
+        </div>
+        <div>
+          perceived: {variety.clusterPerNameRatio}% of names · {variety.clusterPerSequenceRatio}% of
+          windows · largest {variety.largestClusterSize} seq
+        </div>
+        {variety.topClusters.slice(0, 4).map((cluster) => (
+          <div key={cluster.id} className="truncate">
+            {cluster.id} {cluster.span} · {cluster.sequences}seq/{cluster.names}n ·{" "}
+            {cluster.labels.slice(0, 3).join(", ")}
+          </div>
+        ))}
+        <div className="truncate">clusters seen: {clusterTrace.join(" › ") || "—"}</div>
+      </div>
     </div>
   );
 }
