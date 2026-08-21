@@ -750,32 +750,43 @@ export function Arena({
           className={`absolute inset-0 ${reactionClass}`}
           style={{ ["--hit-dir" as string]: String(reaction?.dir ?? 1) }}
         >
-          <video
-            ref={videoRef}
-            src={FIGHT_VIDEO}
-            muted
-            autoPlay
-            loop
-            playsInline
-            preload="auto"
-            aria-label={`${names.ru} versus ${names.us}`}
-            onLoadedData={(event) => {
-              event.currentTarget.currentTime = IDLE_SCENES[0]!.start;
-              void event.currentTarget.play();
-            }}
-            onTimeUpdate={handleTimeUpdate}
-            disablePictureInPicture
-            style={{
-              // Crowd/lighting: the arena lifts in brightness and contrast on every
-              // landed hit so the audience in the stands stays clearly readable.
-              filter: lite
-                ? "brightness(1.1) contrast(1.12) saturate(1.08)"
-                : `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
-              contain: "paint",
-              willChange: lite ? undefined : "filter",
-            }}
-            className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter] duration-200"
-          />
+          {[0, 1].map((layer) => (
+            <video
+              key={layer}
+              ref={(element) => {
+                videoRefs.current[layer] = element;
+                if (layer === 0 && element && !activeVideoRef.current) {
+                  activeVideoRef.current = element;
+                }
+              }}
+              src={FIGHT_VIDEO}
+              muted
+              autoPlay={layer === 0}
+              loop
+              playsInline
+              preload="auto"
+              aria-label={layer === activeLayer ? `${names.ru} versus ${names.us}` : undefined}
+              aria-hidden={layer !== activeLayer}
+              onLoadedData={(event) => {
+                if (layer !== 0) return;
+                event.currentTarget.currentTime = IDLE_SCENES[0]!.start;
+                event.currentTarget.playbackRate = IDLE_SCENES[0]!.rate * cfgRef.current.speed;
+                void event.currentTarget.play();
+              }}
+              onTimeUpdate={(event) => handleTimeUpdate(event.currentTarget)}
+              disablePictureInPicture
+              style={{
+                filter: lite
+                  ? "brightness(1.1) contrast(1.12) saturate(1.08)"
+                  : `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
+                contain: "paint",
+                willChange: lite ? undefined : "filter, opacity",
+                opacity: layer === activeLayer ? 1 : 0,
+                zIndex: layer === activeLayer ? 1 : 0,
+              }}
+              className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter,opacity] duration-200"
+            />
+          ))}
         </div>
       </div>
 
