@@ -1037,8 +1037,30 @@ export function Arena({
       const defender: Side = event.side === "ru" ? "us" : "ru";
       const gift = GIFT_BY_ID[event.gift];
       const kind = kindOf(move);
-      const profile = HIT_PROFILE[kind];
+      const base = HIT_PROFILE[kind];
+      // Admin tuning: the gift decides how hard this blow reads and how long
+      // the defender stays shaken.
+      const rule = ruleFor(event.gift);
+      const profile = {
+        ...base,
+        force: base.force * rule.force,
+        stun: base.stun * rule.stun,
+      };
       koKind.current = kind;
+      // Exactly-once confirmation: one gift id, one landed hit, one voice line.
+      const rootId = event.id.split("-fu")[0]!;
+      if (!delivered.current.has(rootId)) {
+        delivered.current.add(rootId);
+        queuedAt.current.delete(rootId);
+        hitRef.current?.({
+          eventId: rootId,
+          side: event.side,
+          gift: event.gift,
+          kind,
+          label: move.label,
+          force: profile.force,
+        });
+      }
       setImpact({ id: event.id, side: defender, label: move.label });
       // Distinct physical read per hit type: jitter for punches, a step back for
       // kicks, loss of balance for throws and aerials, then a recovery.
