@@ -1103,11 +1103,8 @@ export function Arena({
       lockUntil.current = pendingKo.current ? 0 : performance.now() + 350;
       // Wake the deferred-KO effect only after the complete landing/recovery.
       if (pendingKo.current) setCompletedSequences((value) => value + 1);
-      idleScene.current = pick(
-        IDLE_SCENES,
-        [`${idleScene.current.start}`],
-        (scene) => `${scene.start}`,
-      );
+      idleScene.current = drawIdle(idleUsage.current, recentIdle.current, idleScene.current);
+
       // Between spots the fighters keep circling: drift the framing back.
       // Recovery: the camera eases out of the mat framing first, then drifts on
       // into the next resting shot — no snap between the two.
