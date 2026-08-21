@@ -642,6 +642,19 @@ export function Arena({
     if (!ko) {
       handledKo.current = null;
       pendingKo.current = null;
+      setShowReplayPanel(false);
+      koReplayRef.current = null;
+      // Smooth return to live speed after the slow-motion finish.
+      const video = activeVideoRef.current;
+      if (video && video.playbackRate < 0.95) {
+        const ramp = window.setInterval(() => {
+          const target = activeVideoRef.current;
+          if (!target) return window.clearInterval(ramp);
+          const next = Math.min(1, target.playbackRate + 0.08);
+          target.playbackRate = next;
+          if (next >= 1) window.clearInterval(ramp);
+        }, 70);
+      }
       return;
     }
     if (handledKo.current === ko) return;
@@ -683,7 +696,23 @@ export function Arena({
     video.playbackRate = 0.45;
     switchScene(Math.max(0, finisher.impact - 1.2), 0.45, true);
 
+    // Instant replay of the finish, re-runnable from the panel below.
+    const runReplay = () => {
+      setShowReplayPanel(false);
+      setReplay(true);
+      logRef.current?.("replay", "instant replay");
+      switchScene(Math.max(0, finisher.impact - 1.2), 0.4, true);
+      window.setTimeout(() => {
+        setReplay(false);
+        // Return to the champion shot in the very same camera framing.
+        switchScene(CHAMPION_POSE.start, CHAMPION_POSE.rate, true);
+        setShowReplayPanel(true);
+      }, 3400);
+    };
+    koReplayRef.current = runReplay;
+
     let pose = 0;
+    let panel = 0;
     const settle = window.setTimeout(() => {
       setReplay(false);
       switchScene(finisher.impact, 0.35, true);
@@ -695,12 +724,15 @@ export function Arena({
         switchScene(CHAMPION_POSE.start, CHAMPION_POSE.rate, true);
         cheer(2);
         logRef.current?.("ko", `champion pose — ${ko === "ru" ? names.ru : names.us}`);
+        panel = window.setTimeout(() => setShowReplayPanel(true), 900);
       }, 2600);
     }, 2500);
     return () => {
       window.clearTimeout(settle);
       window.clearTimeout(pose);
+      window.clearTimeout(panel);
       setChampion(false);
+      setShowReplayPanel(false);
     };
   }, [ko, completedSequences, names.ru, names.us]);
 
@@ -1008,6 +1040,31 @@ export function Arena({
               className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter,opacity]"
             />
           ))}
+
+          {/* Impact sparks — density and spread follow the force of the hit. */}
+          {sparks.map((burst) => (
+            <div
+              key={burst.id}
+              className="spark-burst"
+              style={{
+                left: burst.side === "ru" ? "38%" : "62%",
+                ["--spark-life" as string]: `${burst.life}ms`,
+              }}
+            >
+              {Array.from({ length: burst.count }).map((_, index) => (
+                <span
+                  key={index}
+                  className="spark"
+                  style={{
+                    ["--a" as string]: `${(index / burst.count) * 360 + Math.random() * 24}deg`,
+                    ["--d" as string]: `${(24 + Math.random() * 46) * burst.force}px`,
+                    ["--s" as string]: `${(2 + Math.random() * 2.4) * burst.force}px`,
+                    animationDelay: `${Math.random() * 90}ms`,
+                  }}
+                />
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -1034,6 +1091,30 @@ export function Arena({
               🏆 {ko === "ru" ? names.ru : names.us}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Instant replay controls — same camera, no cut away from the ring. */}
+      {ko && koConfirmed && showReplayPanel && (
+        <div className="absolute inset-x-0 bottom-[12%] z-30 flex animate-fade-in justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => koReplayRef.current?.()}
+            className="display rounded-full bg-foreground/10 px-5 py-2 text-sm tracking-widest text-outline backdrop-blur transition hover:bg-foreground/20 sm:text-base"
+          >
+            ⟲ REPLAY
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowReplayPanel(false);
+              setReplay(false);
+              switchScene(CHAMPION_POSE.start, CHAMPION_POSE.rate, true);
+            }}
+            className="display rounded-full bg-gold/20 px-5 py-2 text-sm tracking-widest text-gold text-outline backdrop-blur transition hover:bg-gold/30 sm:text-base"
+          >
+            ▶ LIVE
+          </button>
         </div>
       )}
     </div>
