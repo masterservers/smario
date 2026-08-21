@@ -15,6 +15,7 @@ import { loadVariety, saveVariety, VARIETY_DEFAULT, type VarietyConfig } from "@
 import { loadSubtitlesOn, saveSubtitlesOn } from "@/lib/subtitles";
 import { getGiftConfig } from "@/lib/giftConfig";
 import { MatchSummary } from "@/components/game/MatchSummary";
+import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Leaderboard } from "@/components/game/Leaderboard";
 import { Scoreboard } from "@/components/game/Scoreboard";
@@ -182,6 +183,7 @@ function BattlePage() {
           onHit={announceHit}
         />
         <RefereeCount lang={lang} referee={referee} />
+        <SceneDebugPanel />
       </div>
 
       {/* Slim HUD strip on top — scoreboard only */}
