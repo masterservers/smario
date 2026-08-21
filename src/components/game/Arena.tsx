@@ -265,6 +265,23 @@ const MOVES: Move[] = [
   { id: "rope-spin", start: 20.6, end: 22.8, impact: 22.0, label: "ROPE SPIN OUT", rate: 0.94, tier: 3 },
   { id: "rope-vault", start: 23.2, end: 25.6, impact: 24.8, label: "ROPE VAULT", rate: 0.9, tier: 4 },
 
+  // Restored strike/jump vocabulary — windows that had dropped out of rotation
+  // over the last revisions, spread across all four blocks of the reel.
+  { id: "overhand", start: 4.2, end: 5.4, impact: 5.0, label: "OVERHAND RIGHT", rate: 1.1, tier: 1 },
+  { id: "shoulder-bump", start: 9.0, end: 10.2, impact: 9.8, label: "SHOULDER BUMP", rate: 1.06, tier: 1 },
+  { id: "knee-strike", start: 17.0, end: 18.4, impact: 18.0, label: "FLYING KNEE", rate: 1.0, tier: 2 },
+  { id: "jump-kick", start: 15.6, end: 17.4, impact: 16.8, label: "JUMP KICK", rate: 1.0, tier: 2 },
+  { id: "headbutt", start: 6.2, end: 7.8, impact: 7.3, label: "HEADBUTT", rate: 1.0, tier: 2 },
+  { id: "corner-splash", start: 19.0, end: 21.0, impact: 20.4, label: "CORNER SPLASH", rate: 0.96, tier: 3 },
+  { id: "suplex", start: 28.2, end: 30.4, impact: 29.7, label: "SUPLEX", rate: 0.92, tier: 3 },
+  { id: "clothesline", start: 11.0, end: 12.8, impact: 12.3, label: "CLOTHESLINE", rate: 0.98, tier: 3 },
+  { id: "gut-wrench", start: 33.0, end: 35.2, impact: 34.5, label: "GUT WRENCH", rate: 0.92, tier: 3 },
+  { id: "fireman-carry", start: 29.6, end: 32.4, impact: 31.7, label: "CARRY ACROSS THE RING", rate: 0.88, tier: 4 },
+  { id: "top-rope-splash", start: 21.0, end: 24.0, impact: 23.3, label: "TOP-ROPE SPLASH", rate: 0.88, tier: 4 },
+  { id: "moonsault", start: 24.0, end: 26.8, impact: 26.0, label: "MOONSAULT", rate: 0.86, tier: 4 },
+  { id: "double-toss", start: 35.0, end: 38.2, impact: 37.2, label: "DOUBLE TOSS", rate: 0.86, tier: 5 },
+  { id: "mat-finisher", start: 25.4, end: 29.2, impact: 28.3, label: "MAT FINISHER", rate: 0.84, tier: 5 },
+
   // Tier 5 — finishers.
 
   {
@@ -413,9 +430,46 @@ function pick<T>(items: T[], avoid: string[] = [], key?: (item: T) => string): T
   return list[Math.floor(Math.random() * list.length)]!;
 }
 
+/**
+ * Pool for a gift tier: the exact tier plus the neighbouring ones, so a stream
+ * of small gifts still produces punches, kicks, rope work and takedowns instead
+ * of cycling the same handful of jabs.
+ */
 function movesForTier(tier: number): Move[] {
+  const near = MOVES.filter((move) => Math.abs(move.tier - tier) <= 1);
   const exact = MOVES.filter((move) => move.tier === tier);
-  return exact.length > 0 ? exact : MOVES;
+  // Weight the exact tier twice so the gift still reads at the right power.
+  const pool = [...exact, ...exact, ...near];
+  return pool.length > 0 ? pool : MOVES;
+}
+
+/**
+ * Least-recently-used draw: every move in the pool is played before any of them
+ * comes back. Recently used ids are skipped outright, and among the rest the
+ * ones seen the fewest times win — that is what keeps both the moves and their
+ * openings from repeating.
+ */
+function drawMove(pool: Move[], recent: string[], usage: Map<string, number>): Move {
+  const unique = Array.from(new Map(pool.map((move) => [move.id, move])).values());
+  // Never block more than half the pool, otherwise the filter empties out.
+  const blocked = new Set(recent.slice(-Math.floor(unique.length / 2)));
+  const open = unique.filter((move) => !blocked.has(move.id));
+  const list = open.length > 0 ? open : unique;
+  let best = Infinity;
+  for (const move of list) best = Math.min(best, usage.get(move.id) ?? 0);
+  const fresh = list.filter((move) => (usage.get(move.id) ?? 0) === best);
+  const chosen = fresh[Math.floor(Math.random() * fresh.length)]!;
+  usage.set(chosen.id, (usage.get(chosen.id) ?? 0) + 1);
+  return chosen;
+}
+
+/**
+ * Varied entry: start a touch before the scripted window when there is room, so
+ * the same move does not always open on the identical frame.
+ */
+function entryOf(move: Move): number {
+  const room = Math.min(0.32, Math.max(0, move.start - 0.15));
+  return move.start - Math.random() * room;
 }
 
 type FloatItem = { id: string; emoji: string; side: Side; left: number };
@@ -477,6 +531,9 @@ export function Arena({
   const currentMove = useRef<Move | null>(null);
   const recentMoves = useRef<string[]>([]);
   const recentFollows = useRef<string[]>([]);
+  /** How often each move/follow-up has been played — drives the LRU rotation. */
+  const moveUsage = useRef<Map<string, number>>(new Map());
+  const followUsage = useRef<Map<string, number>>(new Map());
   const idleScene = useRef(IDLE_SCENES[0]!);
   const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
   const primed = useRef(false);
@@ -752,7 +809,11 @@ export function Arena({
       const scene = idleScene.current;
       if (video.paused || video.currentTime < scene.start || video.currentTime > scene.end) {
         if (video.currentTime < scene.start || video.currentTime > scene.end) {
-          idleScene.current = pick(IDLE_SCENES);
+          idleScene.current = pick(
+            IDLE_SCENES,
+            [`${idleScene.current.start}`],
+            (scene) => `${scene.start}`,
+          );
           switchScene(idleScene.current.start, idleScene.current.rate * cfgRef.current.speed);
           return;
         }
@@ -772,7 +833,7 @@ export function Arena({
       const tier = GIFT_TIER[event.gift] ?? 1;
       const move = pendingFollow
         ? pendingFollow.move
-        : pick(movesForTier(tier), recentMoves.current, (m) => m.id);
+        : drawMove(movesForTier(tier), recentMoves.current, moveUsage.current);
       recentMoves.current = [...recentMoves.current, move.id].slice(-cfgRef.current.moveMemory);
 
       // Chance of a follow-up: high after a big spot, still possible after a
@@ -780,7 +841,7 @@ export function Arena({
       const base = pendingFollow ? 0.4 : tier >= 4 ? 0.85 : tier === 3 ? 0.55 : 0.15;
       const chance = Math.min(0.95, base * cfgRef.current.followChance);
       if (Math.random() < chance) {
-        const next = pick(FOLLOW_UPS, recentFollows.current, (m) => m.id);
+        const next = drawMove(FOLLOW_UPS, recentFollows.current, followUsage.current);
         recentFollows.current = [...recentFollows.current, next.id].slice(
           -cfgRef.current.followMemory,
         );
@@ -798,9 +859,11 @@ export function Arena({
       impacted.current = false;
       settling.current = false;
       stopAt.current = move.end;
-      // Hold the lock for at least the length of this move at its playback rate.
+      const entry = entryOf(move);
+      // Hold the lock for at least the length of this move at its playback rate,
+      // so nothing can cut the scene before it has played out.
       lockUntil.current =
-        performance.now() + ((move.end - move.start) / (move.rate * cfgRef.current.speed)) * 1000;
+        performance.now() + ((move.end - entry) / (move.rate * cfgRef.current.speed)) * 1000;
 
       impactAt.current = move.impact;
       setAttacker(event.side);
@@ -820,7 +883,7 @@ export function Arena({
       baseFrame.current = shot;
       setPhase("windup");
       setFrame(clampFrame(shot));
-      switchScene(move.start, move.rate * cfgRef.current.speed, true);
+      switchScene(entry, move.rate * cfgRef.current.speed, true);
 
     }, cfg.tickMs);
     return () => window.clearInterval(timer);
@@ -938,7 +1001,11 @@ export function Arena({
       lockUntil.current = pendingKo.current ? 0 : performance.now() + 350;
       // Wake the deferred-KO effect only after the complete landing/recovery.
       if (pendingKo.current) setCompletedSequences((value) => value + 1);
-      idleScene.current = pick(IDLE_SCENES);
+      idleScene.current = pick(
+        IDLE_SCENES,
+        [`${idleScene.current.start}`],
+        (scene) => `${scene.start}`,
+      );
       // Between spots the fighters keep circling: drift the framing back.
       // Recovery: the camera eases out of the mat framing first, then drifts on
       // into the next resting shot — no snap between the two.
