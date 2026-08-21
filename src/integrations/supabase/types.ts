@@ -44,6 +44,72 @@ export type Database = {
         }
         Relationships: []
       }
+      combat_asset_production: {
+        Row: {
+          actual_src: string | null
+          approved_at: string | null
+          asset_id: string
+          duration: number | null
+          file_size: number | null
+          fps: number | null
+          height: number | null
+          impact_seconds: number | null
+          mime_type: string | null
+          registered_at: string | null
+          rejection_reasons: Json
+          review_checklist: Json
+          reviewed_at: string | null
+          status: string
+          technical_warnings: Json
+          updated_at: string
+          updated_by: string | null
+          visual_warnings: Json
+          width: number | null
+        }
+        Insert: {
+          actual_src?: string | null
+          approved_at?: string | null
+          asset_id: string
+          duration?: number | null
+          file_size?: number | null
+          fps?: number | null
+          height?: number | null
+          impact_seconds?: number | null
+          mime_type?: string | null
+          registered_at?: string | null
+          rejection_reasons?: Json
+          review_checklist?: Json
+          reviewed_at?: string | null
+          status?: string
+          technical_warnings?: Json
+          updated_at?: string
+          updated_by?: string | null
+          visual_warnings?: Json
+          width?: number | null
+        }
+        Update: {
+          actual_src?: string | null
+          approved_at?: string | null
+          asset_id?: string
+          duration?: number | null
+          file_size?: number | null
+          fps?: number | null
+          height?: number | null
+          impact_seconds?: number | null
+          mime_type?: string | null
+          registered_at?: string | null
+          rejection_reasons?: Json
+          review_checklist?: Json
+          reviewed_at?: string | null
+          status?: string
+          technical_warnings?: Json
+          updated_at?: string
+          updated_by?: string | null
+          visual_warnings?: Json
+          width?: number | null
+        }
+        Relationships: []
+      }
       config_versions: {
         Row: {
           bundle: Json
