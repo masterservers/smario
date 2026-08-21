@@ -746,6 +746,20 @@
   100% { transform: rotate(-4deg) scale(1); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .bean-ref, .bean-ref-hit, .bean-ref-comic { animation-duration: 1ms; animation-iteration-count: 1; }
+/* He pushes the fighters apart, arms out, leaning left then right. */
+.bean-ref-separate { animation: bean-separate 1400ms 300ms ease-in-out 2 both; }
+@keyframes bean-separate {
+  0%   { transform: translateX(0) rotate(0deg); }
+  25%  { transform: translateX(-8%) rotate(-7deg); }
+  50%  { transform: translateX(0) rotate(0deg) scale(1.03); }
+  75%  { transform: translateX(8%) rotate(7deg); }
+  100% { transform: translateX(0) rotate(0deg); }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .bean-ref, .bean-ref-hit, .bean-ref-comic, .bean-ref-separate {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+  }
+}
+
