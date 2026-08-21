@@ -23,6 +23,13 @@ import {
 } from "@/lib/scenes";
 import { moveKind } from "@/lib/moveKind";
 import {
+  isVisualSequenceRecent,
+  lastVisualSequence,
+  noteVisualSequence,
+  visualSequenceIdOf,
+} from "@/lib/visualSequences";
+
+import {
   completionEndOf,
   contactPointOf,
   followThroughOf,
