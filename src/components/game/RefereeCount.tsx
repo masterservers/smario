@@ -23,8 +23,8 @@ export function RefereeCount({ lang, referee }: Props) {
         onRight ? "right-[3%] items-end text-right" : "left-[3%] items-start text-left"
       }`}
     >
-      <div className="display text-[9px] tracking-[0.3em] text-outline opacity-80 sm:text-xs">
       <div className="flex items-center gap-1.5">
+
         <img
           src={refereeAvatar.url}
           alt=""
