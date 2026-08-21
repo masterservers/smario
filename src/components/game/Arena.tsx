@@ -14,6 +14,7 @@ import {
   MOVES,
   inRoundTheme,
   advanceSceneBeat,
+  beatInfo,
   setSceneRound,
   familyOf,
   familyBlocked,
@@ -24,7 +25,8 @@ import {
 import { moveKind } from "@/lib/moveKind";
 import { commitPendingConfig } from "@/lib/pendingConfig";
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
-import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
+import { sceneBlocked, sceneStarted, sceneTelemetry } from "@/lib/sceneDebug";
+import { decideSpar } from "@/lib/sparRules";
 
 const FIGHT_VIDEO = fightVideo.url;
 
@@ -268,8 +270,6 @@ const SPAR_MOVES: Move[] = [
   ...MOVES.filter((move) => move.tier >= 4),
 ];
 
-/** How often a feeling-out window is replaced by a real sparring spot. */
-const SPAR_CHANCE = 0.72;
 
 
 
@@ -410,6 +410,9 @@ export function Arena({
   const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
   /** True while the ring is showing a sparring spot: action only, no score. */
   const sparring = useRef(false);
+  /** When the last gift arrived, and the rolling window used for momentum. */
+  const lastGiftAt = useRef(0);
+  const giftTimes = useRef<number[]>([]);
   const primed = useRef(false);
 
   /** A KO may be scored during a move, but its replay must never cut that move. */
@@ -577,7 +580,10 @@ export function Arena({
     for (const event of events) {
       if (seen.current.has(event.id)) continue;
       seen.current.add(event.id);
-      queuedAt.current.set(event.id, performance.now());
+      const at = performance.now();
+      queuedAt.current.set(event.id, at);
+      lastGiftAt.current = at;
+      giftTimes.current = [...giftTimes.current, at].slice(-40);
       queue.current.push(event);
     }
     // Burst protection: keep the queue bounded, always dropping the oldest.
@@ -762,7 +768,28 @@ export function Arena({
 
           // Sparring: with no gift waiting the two keep fighting on their own —
           // punches, kicks, rope spots, throws — instead of only circling.
-          if (!giftWaiting && !paused && Math.random() < SPAR_CHANCE) {
+          const decision = decideSpar({
+            giftWaiting,
+            paused,
+            lastGiftAt: lastGiftAt.current,
+            giftTimes: giftTimes.current,
+            now: performance.now(),
+          });
+          const beats = beatInfo();
+          sceneTelemetry({
+            beat: beats.current,
+            nextBeat: beats.next,
+            beatIndex: beats.index,
+            beatCount: beats.length,
+            newSetNext: beats.newSetNext,
+            mode: giftWaiting ? "gift action" : decision.spar ? "sparring" : "feeling out",
+            modeReason: decision.reason,
+            momentum: decision.momentum,
+            sparChance: decision.chance,
+            quietMs: Number.isFinite(decision.quietMs) ? decision.quietMs : 0,
+          });
+
+          if (decision.spar) {
             const move = drawMove(
               SPAR_MOVES,
               recentMoves.current,
@@ -807,7 +834,7 @@ export function Arena({
               label: move.label,
               group: "move",
               plannedMs: lockUntil.current - performance.now(),
-              reason: "sparring — no gift waiting",
+              reason: `sparring — ${decision.reason}`,
             });
             return;
           }
@@ -845,6 +872,10 @@ export function Arena({
       const pendingFollow = follow.current;
       const event = pendingFollow ? pendingFollow.event : queue.current.shift();
       if (!event) return;
+      sceneTelemetry({
+        mode: "gift action",
+        modeReason: pendingFollow ? "follow-up spot" : "gift taken from the queue",
+      });
       follow.current = null;
 
 
