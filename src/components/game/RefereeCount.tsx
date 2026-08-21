@@ -1,5 +1,6 @@
 import type { RefereeState } from "@/hooks/useReferee";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
+import refereeAvatar from "@/assets/referee-bean.png.asset.json";
 
 type Props = { lang: Lang; referee: RefereeState };
 
@@ -22,8 +23,16 @@ export function RefereeCount({ lang, referee }: Props) {
         onRight ? "right-[3%] items-end text-right" : "left-[3%] items-start text-left"
       }`}
     >
-      <div className="display text-[9px] tracking-[0.3em] text-outline opacity-80 sm:text-xs">
-        🧑‍⚖️ {t.referee} · {t.count}
+      <div className="flex items-center gap-1.5">
+
+        <img
+          src={refereeAvatar.url}
+          alt=""
+          className="h-7 w-7 rounded-full border border-gold/70 object-cover object-top sm:h-9 sm:w-9"
+        />
+        <span className="display text-[9px] tracking-[0.3em] text-outline opacity-80 sm:text-xs">
+          {t.referee} · {t.count}
+        </span>
       </div>
       <div
         key={referee.count}
