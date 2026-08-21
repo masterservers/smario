@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import {
   applyBundle,
   diffBundle,
+  diffSnapshots,
   exportBundle,
   resetBundle,
   validateBundle,
@@ -11,8 +12,10 @@ import {
   type ConfigBundle,
   type FieldError,
 } from "@/lib/configBundle";
+import { clearPendingConfig, getPendingConfig, stagePendingConfig } from "@/lib/pendingConfig";
 import {
   activateConfigVersion,
+  getActiveConfigVersion,
   deleteConfigVersion,
   listConfigVersions,
   saveConfigVersion,
@@ -40,6 +43,12 @@ export function ConfigManager({ onApplied, record }: Props) {
   const [versions, setVersions] = useState<ConfigVersion[]>([]);
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
+  /** When an import goes live: immediately, at the next scene end or next round. */
+  const [timing, setTiming] = useState<"now" | "scene" | "round">("scene");
+  const [staged, setStaged] = useState(() => getPendingConfig());
+  /** Version comparison screen. */
+  const [compare, setCompare] = useState<{ a: string; b: string }>({ a: "", b: "" });
+  const [live, setLive] = useState<ConfigVersion | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const loadVersions = useCallback(async () => {
@@ -52,7 +61,16 @@ export function ConfigManager({ onApplied, record }: Props) {
 
   useEffect(() => {
     void loadVersions();
+    void getActiveConfigVersion()
+      .then((version) => setLive((version as ConfigVersion | null) ?? null))
+      .catch(() => setLive(null));
   }, [loadVersions]);
+
+  /** Poll the staged import so the badge disappears once the arena applied it. */
+  useEffect(() => {
+    const timer = window.setInterval(() => setStaged(getPendingConfig()), 1500);
+    return () => window.clearInterval(timer);
+  }, []);
 
   /** Step 1: validate the JSON field by field and build the diff preview. */
   const check = (text: string) => {
@@ -66,15 +84,31 @@ export function ConfigManager({ onApplied, record }: Props) {
     }
     setErrors([]);
     setWarnings(result.warnings);
-    setPreview({ diff: diffBundle(result.bundle), bundle: result.bundle });
+    const diff = diffBundle(result.bundle);
+    setPreview({ diff, bundle: result.bundle });
+    record("config", "validated & previewed", { changes: diff.total, warnings: result.warnings.length });
   };
 
   /** Step 2: apply the previewed bundle and publish it as a new version. */
   const apply = async () => {
     if (!preview) return;
+    if (timing !== "now") {
+      const pending = stagePendingConfig(preview.bundle, timing, label || "import");
+      setStaged(pending);
+      record("config", "import staged", { changes: preview.diff.total, when: timing });
+      setStatus({
+        ok: true,
+        text:
+          timing === "scene"
+            ? "Staged — goes live as soon as the current scene ends."
+            : "Staged — goes live at the start of the next round.",
+      });
+      setPreview(null);
+      return;
+    }
     applyBundle(preview.bundle);
     onApplied();
-    record("config", "import applied", { changes: preview.diff.total });
+    record("config", "import applied", { changes: preview.diff.total, when: "now" });
     setStatus({ ok: true, text: `Applied — ${preview.diff.total} changes.` });
     setPreview(null);
     setJson(exportBundle());
@@ -105,7 +139,8 @@ export function ConfigManager({ onApplied, record }: Props) {
       setJson(exportBundle());
       await loadVersions();
       setStatus({ ok: true, text: `Restored "${version.label}".` });
-      record("config", "version restored", { label: version.label });
+      record("config", "version restored", { label: version.label, id: version.id });
+      setLive(version);
     } catch {
       setStatus({ ok: false, text: "Could not restore this version." });
     } finally {
