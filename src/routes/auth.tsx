@@ -1,8 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  clearFailures,
+  formatWait,
+  getLockState,
+  MAX_ATTEMPTS,
+  registerFailure,
+  type LockState,
+} from "@/lib/loginThrottle";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -30,6 +38,18 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [lock, setLock] = useState<LockState>({
+    locked: false,
+    secondsLeft: 0,
+    attemptsLeft: MAX_ATTEMPTS,
+  });
+
+  // Keep the lock state in step with the typed address and count the wait down.
+  useEffect(() => {
+    setLock(getLockState(email));
+    const timer = window.setInterval(() => setLock(getLockState(email)), 1000);
+    return () => window.clearInterval(timer);
+  }, [email]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,9 +63,29 @@ function AuthPage() {
       if (resetError) setError(resetError.message);
       else setNotice("Reset link sent. Check the inbox and open the link to set a new password.");
     } else if (mode === "in") {
+      const current = getLockState(email);
+      if (current.locked) {
+        setLock(current);
+        setError(`Too many failed attempts. Try again in ${formatWait(current.secondsLeft)}.`);
+        setBusy(false);
+        return;
+      }
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) setError(signInError.message);
-      else void navigate({ to: "/admin", search: { lang: "en" as const } });
+      if (signInError) {
+        const next = registerFailure(email);
+        setLock(next);
+        setError(
+          next.locked
+            ? `Too many failed attempts. Sign in is blocked for ${formatWait(next.secondsLeft)}.`
+            : `${signInError.message} — ${next.attemptsLeft} ${
+                next.attemptsLeft === 1 ? "attempt" : "attempts"
+              } left before a temporary block.`,
+        );
+      } else {
+        clearFailures(email);
+        setPassword("");
+        void navigate({ to: "/admin", search: { lang: "en" as const } });
+      }
     } else {
       const { error: signUpError } = await supabase.auth.signUp({
         email,
@@ -88,10 +128,26 @@ function AuthPage() {
           />
         </label>
         )}
+        {mode === "in" && lock.locked ? (
+          <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
+            Sign in temporarily blocked. Unlocks in {formatWait(lock.secondsLeft)}. You can still use
+            “Forgot password?”.
+          </p>
+        ) : null}
         {error && <p className="text-sm text-destructive">{error}</p>}
         {notice && <p className="text-sm text-gold">{notice}</p>}
-        <Button type="submit" disabled={busy} className="w-full">
-          {mode === "in" ? "Sign in" : mode === "up" ? "Create account" : "Send reset link"}
+        <Button
+          type="submit"
+          disabled={busy || (mode === "in" && lock.locked)}
+          className="w-full"
+        >
+          {mode === "in" && lock.locked
+            ? `Locked — ${formatWait(lock.secondsLeft)}`
+            : mode === "in"
+              ? "Sign in"
+              : mode === "up"
+                ? "Create account"
+                : "Send reset link"}
         </Button>
         <div className="flex flex-col gap-1">
           <button
