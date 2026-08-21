@@ -28,6 +28,7 @@ import {
 
 import { ConfigManager } from "@/components/admin/ConfigManager";
 import { BroadcastControl } from "@/components/admin/BroadcastControl";
+import { MixControl } from "@/components/admin/MixControl";
 import { OutfitControl } from "@/components/admin/OutfitControl";
 import { SessionLinks } from "@/components/admin/SessionLinks";
 import { GuestChat } from "@/components/admin/GuestChat";
@@ -548,6 +549,21 @@ function AdminPage() {
           the commentator reads out in that language.
         </p>
         <BroadcastControl initial={lang} />
+      </section>
+
+      {/* Audio mix + session language ------------------------------------- */}
+      <section className="panel mt-4 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Audio · announcer, crowd &amp; session language
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          Balances the commentator against the arena ambience and sets the language used for this
+          match session. Changes apply live in the arena and for every spectator.
+        </p>
+        <MixControl
+          lang={onAirLang}
+          onLang={(next) => publishControl({ type: "lang", lang: next })}
+        />
       </section>
 
       {/* Guests: chat + gifts (arena stays clean) ------------------------- */}
