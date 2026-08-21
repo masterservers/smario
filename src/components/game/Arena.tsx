@@ -449,17 +449,29 @@ function movesForTier(tier: number): Move[] {
  * ones seen the fewest times win — that is what keeps both the moves and their
  * openings from repeating.
  */
-function drawMove(pool: Move[], recent: string[], usage: Map<string, number>): Move {
+function drawMove(
+  pool: Move[],
+  recent: string[],
+  usage: Map<string, number>,
+  cooldowns?: Map<string, number>,
+  cooldownMs = 0,
+): Move {
   const unique = Array.from(new Map(pool.map((move) => [move.id, move])).values());
   // Never block more than half the pool, otherwise the filter empties out.
   const blocked = new Set(recent.slice(-Math.floor(unique.length / 2)));
-  const open = unique.filter((move) => !blocked.has(move.id));
+  const now = performance.now();
+  let open = unique.filter((move) => !blocked.has(move.id));
+  if (cooldowns && cooldownMs > 0) {
+    const cool = open.filter((move) => now - (cooldowns.get(move.id) ?? -Infinity) >= cooldownMs);
+    if (cool.length > 0) open = cool;
+  }
   const list = open.length > 0 ? open : unique;
   let best = Infinity;
   for (const move of list) best = Math.min(best, usage.get(move.id) ?? 0);
   const fresh = list.filter((move) => (usage.get(move.id) ?? 0) === best);
   const chosen = fresh[Math.floor(Math.random() * fresh.length)]!;
   usage.set(chosen.id, (usage.get(chosen.id) ?? 0) + 1);
+  cooldowns?.set(chosen.id, now);
   return chosen;
 }
 
@@ -467,10 +479,11 @@ function drawMove(pool: Move[], recent: string[], usage: Map<string, number>): M
  * Varied entry: start a touch before the scripted window when there is room, so
  * the same move does not always open on the identical frame.
  */
-function entryOf(move: Move): number {
-  const room = Math.min(0.32, Math.max(0, move.start - 0.15));
+function entryOf(move: Move, jitter = 1): number {
+  const room = Math.min(0.32, Math.max(0, move.start - 0.15)) * Math.max(0, Math.min(1, jitter));
   return move.start - Math.random() * room;
 }
+
 
 type FloatItem = { id: string; emoji: string; side: Side; left: number };
 type DamageItem = { id: string; side: Side; amount: number };
