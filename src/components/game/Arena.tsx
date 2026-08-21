@@ -1,8 +1,10 @@
 import { DIFFICULTY_CONFIG, type Difficulty } from "@/lib/difficulty";
 import { useEffect, useRef, useState } from "react";
-const FIGHT_VIDEO = "/media/arena-mega.webm";
+import fightVideo from "@/assets/arena-moves.webm.asset.json";
 import { GIFT_BY_ID, type GiftEvent, type Side } from "@/lib/battle";
 import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
+
+const FIGHT_VIDEO = fightVideo.url;
 
 type Move = {
   id: string;
@@ -16,289 +18,258 @@ type Move = {
 };
 
 /**
- * Every move is cut exclusively from the fixed wide camera in the first ten
- * seconds of the reel. The later vertical footage is intentionally excluded:
- * its foreground ropes, blur and close crop obscure the fighters.
+ * The reel is one continuous wide camera, 40s long, built from four blocks:
+ *   A  0.0 – 10.0  stand-up exchange: circling, punches, lock-up
+ *   B 10.1 – 20.0  kickboxing: ring rush, rope run, spin/high kicks, corner clinch
+ *   C 20.2 – 30.1  ground: opponent down, corner climb, top-rope dive, arms raised
+ *   D 30.3 – 40.3  power: lift, carry across the ring, slam, throw over the ropes
+ * Every window below is a real, distinct piece of action — no two moves reuse
+ * the same seconds, so the fight never looks like the same loop.
  */
 const MOVES: Move[] = [
-  // Tier 1 — kickboxing strikes, short and snappy.
+  // Tier 1 — boxing strikes from block A.
   { id: "jab-a", start: 0.2, end: 1.3, impact: 1.0, label: "JAB", rate: 1.16, tier: 1 },
-  { id: "jab-b", start: 1.0, end: 2.15, impact: 1.8, label: "DOUBLE JAB", rate: 1.06, tier: 1 },
-  {
-    id: "cross",
-    start: 1.6,
-    end: 2.75,
-    impact: 2.35,
-    label: "STRAIGHT RIGHT",
-    rate: 1.14,
-    tier: 1,
-  },
-  { id: "hook-a", start: 2.15, end: 3.3, impact: 3.0, label: "LEFT HOOK", rate: 1.12, tier: 1 },
-  { id: "body-shot", start: 3.2, end: 4.4, impact: 4.05, label: "BODY SHOT", rate: 1.08, tier: 1 },
-  { id: "low-kick", start: 4.3, end: 5.5, impact: 5.1, label: "LOW KICK", rate: 1.1, tier: 1 },
-  { id: "teep", start: 5.0, end: 6.1, impact: 5.7, label: "PUSH KICK", rate: 1.18, tier: 1 },
-  {
-    id: "counter-jab",
-    start: 5.45,
-    end: 6.65,
-    impact: 6.25,
-    label: "COUNTER",
-    rate: 1.08,
-    tier: 1,
-  },
-  { id: "uppercut", start: 6.6, end: 7.8, impact: 7.3, label: "UPPERCUT", rate: 1.12, tier: 1 },
-  { id: "short-hook", start: 7.7, end: 8.9, impact: 8.5, label: "SHORT HOOK", rate: 1.08, tier: 1 },
-  { id: "elbow-jab", start: 8.6, end: 9.8, impact: 9.2, label: "ELBOW", rate: 1.1, tier: 1 },
+  { id: "jab-b", start: 1.3, end: 2.4, impact: 2.05, label: "DOUBLE JAB", rate: 1.06, tier: 1 },
+  { id: "cross", start: 2.4, end: 3.5, impact: 3.1, label: "STRAIGHT RIGHT", rate: 1.14, tier: 1 },
+  { id: "hook-a", start: 3.5, end: 4.6, impact: 4.25, label: "LEFT HOOK", rate: 1.12, tier: 1 },
+  { id: "body-shot", start: 4.6, end: 5.7, impact: 5.35, label: "BODY SHOT", rate: 1.08, tier: 1 },
+  { id: "uppercut", start: 5.7, end: 6.8, impact: 6.45, label: "UPPERCUT", rate: 1.12, tier: 1 },
+  { id: "short-hook", start: 6.8, end: 7.9, impact: 7.5, label: "SHORT HOOK", rate: 1.08, tier: 1 },
+  { id: "elbow-jab", start: 7.9, end: 9.0, impact: 8.6, label: "ELBOW", rate: 1.1, tier: 1 },
+  { id: "low-kick", start: 10.2, end: 11.4, impact: 11.0, label: "LOW KICK", rate: 1.1, tier: 1 },
+  { id: "teep", start: 11.4, end: 12.5, impact: 12.1, label: "PUSH KICK", rate: 1.18, tier: 1 },
+  { id: "counter-jab", start: 30.4, end: 31.5, impact: 31.1, label: "COUNTER", rate: 1.08, tier: 1 },
 
-  // Tier 2 — combinations and kicks that travel across the ring.
-  { id: "combo-a", start: 0.45, end: 2.35, impact: 1.75, label: "COMBINATION", rate: 1.0, tier: 2 },
-  { id: "combo-b", start: 1.7, end: 3.6, impact: 3.0, label: "1-2-3 COMBO", rate: 1.02, tier: 2 },
-  { id: "high-kick", start: 2.5, end: 4.3, impact: 3.6, label: "HIGH KICK", rate: 1.06, tier: 2 },
-  {
-    id: "clothesline",
-    start: 2.9,
-    end: 4.8,
-    impact: 4.1,
-    label: "CLOTHESLINE",
-    rate: 0.98,
-    tier: 2,
-  },
+  // Tier 2 — kickboxing and travel across the ring (block B).
+  { id: "combo-a", start: 0.4, end: 2.3, impact: 1.7, label: "COMBINATION", rate: 1.0, tier: 2 },
+  { id: "combo-b", start: 5.4, end: 7.4, impact: 6.7, label: "1-2-3 COMBO", rate: 1.02, tier: 2 },
+  { id: "ring-rush", start: 10.1, end: 12.2, impact: 11.6, label: "RING RUSH", rate: 1.0, tier: 2 },
+  { id: "rope-run", start: 12.2, end: 14.3, impact: 13.7, label: "ROPE RUN", rate: 1.0, tier: 2 },
   {
     id: "spinning-kick",
-    start: 3.9,
-    end: 5.8,
-    impact: 5.0,
+    start: 14.3,
+    end: 16.4,
+    impact: 15.7,
     label: "SPINNING KICK",
     rate: 1.02,
     tier: 2,
   },
-  { id: "counter", start: 4.6, end: 6.5, impact: 5.85, label: "COUNTER KICK", rate: 1.0, tier: 2 },
-  {
-    id: "running-knee",
-    start: 5.75,
-    end: 7.7,
-    impact: 7.05,
-    label: "FLYING KNEE",
-    rate: 1.02,
-    tier: 2,
-  },
-  { id: "ring-rush", start: 7.15, end: 9.2, impact: 8.55, label: "RING RUSH", rate: 1.0, tier: 2 },
+  { id: "high-kick", start: 16.4, end: 18.3, impact: 17.6, label: "HIGH KICK", rate: 1.04, tier: 2 },
   {
     id: "corner-combo",
-    start: 8.0,
-    end: 9.9,
-    impact: 9.15,
+    start: 18.3,
+    end: 20.0,
+    impact: 19.4,
     label: "CORNER COMBO",
     rate: 1.0,
     tier: 2,
   },
+  {
+    id: "counter",
+    start: 31.5,
+    end: 33.4,
+    impact: 32.8,
+    label: "COUNTER KICK",
+    rate: 1.0,
+    tier: 2,
+  },
 
-  // Tier 3 — clinch work, takedowns, mat exchanges.
+  // Tier 3 — clinch, knees, mat work.
   {
     id: "grapple-a",
-    start: 0.8,
-    end: 3.0,
-    impact: 2.55,
+    start: 2.3,
+    end: 4.5,
+    impact: 3.9,
     label: "CLINCH KNEES",
     rate: 0.94,
     tier: 3,
   },
-  { id: "grapple-b", start: 2.2, end: 4.5, impact: 3.9, label: "TAKEDOWN", rate: 0.92, tier: 3 },
-  { id: "suplex-a", start: 3.5, end: 5.9, impact: 5.25, label: "SUPLEX", rate: 0.92, tier: 3 },
-  { id: "dropkick", start: 5.0, end: 7.4, impact: 6.85, label: "DROPKICK", rate: 0.96, tier: 3 },
+  { id: "grapple-b", start: 7.6, end: 9.9, impact: 9.2, label: "TAKEDOWN", rate: 0.92, tier: 3 },
   {
     id: "corner-drive",
-    start: 6.0,
-    end: 8.3,
-    impact: 7.4,
+    start: 17.6,
+    end: 20.0,
+    impact: 19.2,
     label: "CORNER DRIVE",
     rate: 0.94,
     tier: 3,
   },
   {
-    id: "mat-work",
-    start: 6.45,
-    end: 8.95,
-    impact: 8.35,
-    label: "MAT TAKEDOWN",
-    rate: 0.92,
-    tier: 3,
-  },
-  {
     id: "turnbuckle",
-    start: 7.4,
-    end: 9.8,
-    impact: 9.1,
+    start: 20.3,
+    end: 22.6,
+    impact: 21.9,
     label: "TURNBUCKLE SMASH",
     rate: 0.94,
     tier: 3,
   },
-
-  // Tier 4 — big throws, rope attacks, out-of-the-ring spots.
-  { id: "slam-a", start: 1.25, end: 4.1, impact: 3.45, label: "BODY SLAM", rate: 0.88, tier: 4 },
-  { id: "slam-b", start: 2.65, end: 5.55, impact: 4.9, label: "POWERSLAM", rate: 0.88, tier: 4 },
   {
-    id: "rope-run",
-    start: 4.15,
-    end: 7.15,
-    impact: 6.45,
+    id: "mat-work",
+    start: 26.0,
+    end: 28.4,
+    impact: 27.6,
+    label: "MAT TAKEDOWN",
+    rate: 0.92,
+    tier: 3,
+  },
+  { id: "dropkick", start: 33.4, end: 35.6, impact: 34.9, label: "DROPKICK", rate: 0.96, tier: 3 },
+
+  // Tier 4 — rope attacks, throws, out-of-the-ring spots.
+  {
+    id: "rope-climb",
+    start: 20.4,
+    end: 23.4,
+    impact: 22.7,
+    label: "CORNER CLIMB",
+    rate: 0.9,
+    tier: 4,
+  },
+  { id: "rope-jump", start: 22.4, end: 25.4, impact: 24.6, label: "ROPE JUMP", rate: 0.88, tier: 4 },
+  {
+    id: "rope-attack",
+    start: 24.6,
+    end: 27.6,
+    impact: 26.4,
     label: "ROPE ATTACK",
     rate: 0.9,
     tier: 4,
   },
-  { id: "rope-jump", start: 3.3, end: 6.3, impact: 5.5, label: "ROPE JUMP", rate: 0.88, tier: 4 },
+  { id: "slam-a", start: 30.4, end: 33.3, impact: 32.6, label: "BODY SLAM", rate: 0.9, tier: 4 },
+  { id: "slam-b", start: 32.6, end: 35.6, impact: 34.8, label: "POWERSLAM", rate: 0.88, tier: 4 },
   {
     id: "corner-run",
-    start: 5.55,
-    end: 8.65,
-    impact: 7.9,
+    start: 12.4,
+    end: 15.5,
+    impact: 14.7,
     label: "CORNER RUSH",
     rate: 0.9,
     tier: 4,
   },
   {
     id: "ring-throw",
-    start: 6.7,
-    end: 9.8,
-    impact: 8.8,
+    start: 36.4,
+    end: 39.4,
+    impact: 38.4,
     label: "THROWN OUT OF THE RING",
     rate: 0.88,
-    tier: 4,
-  },
-  {
-    id: "outside-brawl",
-    start: 0.5,
-    end: 3.7,
-    impact: 2.9,
-    label: "BRAWL OUTSIDE",
-    rate: 0.9,
     tier: 4,
   },
 
   // Tier 5 — finishers.
   {
     id: "powerbomb-a",
-    start: 1.1,
-    end: 4.65,
-    impact: 3.85,
+    start: 34.2,
+    end: 37.8,
+    impact: 36.8,
     label: "POWERBOMB",
-    rate: 0.84,
+    rate: 0.86,
     tier: 5,
   },
   {
     id: "finisher-a",
-    start: 2.35,
-    end: 5.95,
-    impact: 5.15,
+    start: 14.0,
+    end: 17.6,
+    impact: 16.6,
     label: "SPINNING FINISHER",
-    rate: 0.84,
+    rate: 0.86,
     tier: 5,
   },
   {
     id: "rope-finisher",
-    start: 4.25,
-    end: 7.95,
-    impact: 7.1,
+    start: 21.4,
+    end: 25.2,
+    impact: 24.3,
     label: "TOP-ROPE FINISHER",
     rate: 0.84,
     tier: 5,
   },
   {
     id: "throw-finisher",
-    start: 5.1,
-    end: 8.9,
-    impact: 7.95,
+    start: 31.6,
+    end: 35.4,
+    impact: 34.4,
     label: "THROW FINISHER",
-    rate: 0.82,
+    rate: 0.84,
     tier: 5,
   },
-  { id: "finisher", start: 6.05, end: 9.9, impact: 8.8, label: "FINISHER", rate: 0.82, tier: 5 },
+  { id: "finisher", start: 35.6, end: 39.6, impact: 38.2, label: "FINISHER", rate: 0.84, tier: 5 },
 ];
 
 /**
  * Follow-up spots played while the opponent is already down: corner climbs,
- * dives from the ropes and throws. Windows start slightly before the launch so
- * the climb/run-up is visible and the trajectory reads naturally.
+ * dives from the ropes and throws — all taken from the ground/power blocks.
  */
 const FOLLOW_UPS: Move[] = [
   {
     id: "fu-splash-a",
-    start: 0.7,
-    end: 3.9,
-    impact: 3.35,
+    start: 22.8,
+    end: 25.8,
+    impact: 25.0,
     label: "SPLASH ON THE MAT",
     rate: 0.88,
     tier: 4,
   },
-  { id: "fu-stomp", start: 1.2, end: 3.6, impact: 2.9, label: "SOCCER KICK", rate: 0.92, tier: 3 },
+  { id: "fu-stomp", start: 25.8, end: 28.0, impact: 27.3, label: "SOCCER KICK", rate: 0.92, tier: 3 },
   {
     id: "fu-elbow-a",
-    start: 1.85,
-    end: 5.05,
-    impact: 4.45,
+    start: 26.4,
+    end: 29.4,
+    impact: 28.6,
     label: "ELBOW DROP",
     rate: 0.88,
     tier: 4,
   },
   {
     id: "fu-corner-a",
-    start: 3.0,
-    end: 6.3,
-    impact: 5.65,
+    start: 20.3,
+    end: 23.3,
+    impact: 22.5,
     label: "CORNER CLIMB",
     rate: 0.86,
     tier: 4,
   },
-  {
-    id: "fu-rope-a",
-    start: 4.15,
-    end: 7.55,
-    impact: 6.85,
-    label: "ROPE DIVE",
-    rate: 0.86,
-    tier: 4,
-  },
-  { id: "fu-legdrop", start: 4.9, end: 7.9, impact: 7.2, label: "LEG DROP", rate: 0.9, tier: 3 },
+  { id: "fu-rope-a", start: 21.8, end: 24.9, impact: 24.1, label: "ROPE DIVE", rate: 0.86, tier: 4 },
+  { id: "fu-legdrop", start: 27.0, end: 29.8, impact: 29.0, label: "LEG DROP", rate: 0.9, tier: 3 },
   {
     id: "fu-ground-a",
-    start: 5.35,
-    end: 8.7,
-    impact: 8.0,
+    start: 24.2,
+    end: 27.2,
+    impact: 26.3,
     label: "GROUND AND POUND",
     rate: 0.88,
     tier: 3,
   },
   {
     id: "fu-toss",
-    start: 5.9,
-    end: 9.2,
-    impact: 8.4,
+    start: 36.2,
+    end: 39.6,
+    impact: 38.6,
     label: "TOSS OVER THE ROPES",
     rate: 0.86,
     tier: 4,
   },
   {
     id: "fu-moonsault",
-    start: 2.4,
-    end: 5.8,
-    impact: 5.0,
+    start: 21.2,
+    end: 24.6,
+    impact: 23.8,
     label: "MOONSAULT",
     rate: 0.84,
     tier: 4,
   },
   {
     id: "fu-finisher-a",
-    start: 6.35,
-    end: 9.85,
-    impact: 8.8,
+    start: 33.8,
+    end: 37.4,
+    impact: 36.4,
     label: "FOLLOW-UP FINISHER",
     rate: 0.84,
     tier: 5,
   },
 ];
 
-/** Victory pose: the winner walks the ring with both hands raised. */
-const CHAMPION_POSE = { start: 7.2, end: 9.9, rate: 0.7 };
+/** Victory pose: the winner stands over the ring with both hands raised. */
+const CHAMPION_POSE = { start: 28.6, end: 30.1, rate: 0.7 };
 
 const GIFT_TIER: Record<string, number> = {
   rose: 1,
@@ -310,19 +281,20 @@ const GIFT_TIER: Record<string, number> = {
 
 /** Feeling-out scenarios played when nobody is sending gifts. */
 const IDLE_SCENES: Array<{ start: number; end: number; rate: number }> = [
-  { start: 0.2, end: 2.2, rate: 0.8 },
-  { start: 2.0, end: 4.4, rate: 0.75 },
-  { start: 4.2, end: 6.4, rate: 0.8 },
-  { start: 6.0, end: 8.2, rate: 0.75 },
-  { start: 7.8, end: 10.0, rate: 0.85 },
-  { start: 1.1, end: 3.6, rate: 0.72 },
-  { start: 2.8, end: 5.4, rate: 0.76 },
-  { start: 4.8, end: 7.5, rate: 0.78 },
-  { start: 6.8, end: 9.8, rate: 0.8 },
-  { start: 0.6, end: 3.2, rate: 0.7 },
-  { start: 3.4, end: 6.1, rate: 0.74 },
-  { start: 5.6, end: 8.6, rate: 0.82 },
+  { start: 0.2, end: 2.4, rate: 0.8 },
+  { start: 2.2, end: 4.6, rate: 0.75 },
+  { start: 4.4, end: 6.8, rate: 0.8 },
+  { start: 6.6, end: 9.0, rate: 0.75 },
+  { start: 10.2, end: 12.6, rate: 0.82 },
+  { start: 12.4, end: 14.8, rate: 0.78 },
+  { start: 15.0, end: 17.4, rate: 0.8 },
+  { start: 17.2, end: 19.8, rate: 0.76 },
+  { start: 20.4, end: 22.6, rate: 0.74 },
+  { start: 26.6, end: 29.4, rate: 0.78 },
+  { start: 30.5, end: 32.8, rate: 0.8 },
+  { start: 32.6, end: 35.0, rate: 0.76 },
 ];
+
 
 function pick<T>(items: T[], avoid: string[] = [], key?: (item: T) => string): T {
   const pool = key ? items.filter((item) => !avoid.includes(key(item))) : items;
