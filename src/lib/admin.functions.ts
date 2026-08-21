@@ -84,3 +84,96 @@ export const listAuditLog = createServerFn({ method: "POST" })
       };
     });
   });
+
+/**
+ * One-time bootstrap: the first signed-in account can claim the admin role
+ * while no administrator exists yet. Once one exists this always refuses.
+ */
+export const claimFirstAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { count, error } = await supabaseAdmin
+      .from("user_roles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin");
+    if (error) throw new Error("Unable to verify existing administrators");
+    if ((count ?? 0) > 0) return { granted: false as const };
+    const { error: insertError } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: context.userId, role: "admin" });
+    if (insertError) throw new Error("Unable to grant the admin role");
+    const email = (context.claims as { email?: string } | null)?.email ?? null;
+    await supabaseAdmin.from("admin_audit_log").insert({
+      actor_id: context.userId,
+      actor_email: email,
+      section: "roles",
+      action: "bootstrap admin",
+      details: { text: "First administrator claimed the console" },
+    });
+    return { granted: true as const };
+  });
+
+export type SourceProbe = {
+  ok: boolean;
+  status: number | null;
+  latencyMs: number;
+  message: string;
+};
+
+/**
+ * Read-only probe of a TikTok live/relay URL. It never touches the running
+ * match — it only performs an outbound GET and reports what came back.
+ */
+export const probeTikTokSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { url: string }) => {
+    let parsed: URL;
+    try {
+      parsed = new URL(input?.url ?? "");
+    } catch {
+      throw new Error("Enter a full URL, including https://");
+    }
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      throw new Error("Only http(s) URLs can be tested");
+    }
+    return { url: parsed.toString() };
+  })
+  .handler(async ({ data, context }): Promise<SourceProbe> => {
+    const { data: isStaff } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    const { data: isModerator } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "moderator",
+    });
+    if (!isStaff && !isModerator) throw new Error("Forbidden");
+
+    const started = Date.now();
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(data.url, {
+        method: "GET",
+        redirect: "follow",
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      return {
+        ok: response.ok,
+        status: response.status,
+        latencyMs: Date.now() - started,
+        message: response.ok
+          ? "Source reachable"
+          : `Source answered ${response.status} ${response.statusText}`,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        status: null,
+        latencyMs: Date.now() - started,
+        message: error instanceof Error ? error.message : "Request failed",
+      };
+    }
+  });
