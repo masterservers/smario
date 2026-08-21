@@ -25,7 +25,8 @@ import {
 import { moveKind } from "@/lib/moveKind";
 import { commitPendingConfig } from "@/lib/pendingConfig";
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
-import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
+import { sceneBlocked, sceneStarted, sceneTelemetry } from "@/lib/sceneDebug";
+import { decideSpar } from "@/lib/sparRules";
 
 const FIGHT_VIDEO = fightVideo.url;
 
@@ -270,7 +271,8 @@ const SPAR_MOVES: Move[] = [
 ];
 
 /** Legacy constant kept for reference; the live value comes from decideSpar(). */
-const SPAR_CHANCE = 0.72;
+const SPAR_CHANCE_LEGACY = 0.72;
+void SPAR_CHANCE_LEGACY;
 
 
 
