@@ -44,6 +44,36 @@ export type Database = {
         }
         Relationships: []
       }
+      config_versions: {
+        Row: {
+          bundle: Json
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          id: string
+          is_active: boolean
+          label: string
+        }
+        Insert: {
+          bundle: Json
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+        }
+        Update: {
+          bundle?: Json
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+        }
+        Relationships: []
+      }
       gift_events: {
         Row: {
           created_at: string
