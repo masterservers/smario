@@ -161,10 +161,12 @@ export function Scoreboard({
       </div>
 
       <div
-        className="display mt-0.5 text-center text-xs uppercase tracking-[0.2em] text-gold sm:text-sm"
+        className="display mx-auto mt-0.5 flex w-full max-w-full items-center justify-center gap-1 whitespace-nowrap text-center uppercase leading-tight text-gold [font-size:clamp(0.6rem,2.6vw,1.05rem)] [letter-spacing:clamp(0.04em,0.5vw,0.2em)]"
         aria-hidden="true"
       >
-        {names.ru} vs {names.us}
+        <span className="truncate">{names.ru}</span>
+        <span className="shrink-0 opacity-80">vs</span>
+        <span className="truncate">{names.us}</span>
       </div>
     </div>
   );
