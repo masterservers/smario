@@ -71,6 +71,7 @@ function BattlePage() {
   const lang = useBroadcastLang(linkLang);
   const [muted, setMuted] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
+  const debugView = useDebugView();
 
   const [variety, setVariety] = useState<VarietyConfig>(VARIETY_DEFAULT);
   const [captions, setCaptions] = useState(true);
