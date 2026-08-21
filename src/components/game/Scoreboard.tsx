@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { MAX_HP, type Side } from "@/lib/battle";
 import { UI_TEXT, type Lang } from "@/lib/i18n";
 import { sideNames, useAdminConfig, useMatchTitle, useTitleScale } from "@/lib/adminConfig";
