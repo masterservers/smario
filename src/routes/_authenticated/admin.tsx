@@ -69,7 +69,52 @@ function AdminPage() {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [role, setRole] = useState<StaffRole | "loading">("loading");
+  const [actor, setActor] = useState<string | null>(null);
+  const [audit, setAudit] = useState<AuditEntry[]>([]);
   const names = sideNames(lang);
+  const pending = useRef<Map<string, number>>(new Map());
+
+  const loadAudit = useCallback(async () => {
+    try {
+      setAudit(await listAuditLog());
+    } catch {
+      setAudit([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const me = await getMyStaffRole();
+        setRole(me.role);
+        setActor(me.email);
+        if (me.role) void loadAudit();
+      } catch {
+        setRole(null);
+      }
+    })();
+  }, [loadAudit]);
+
+  /**
+   * Writes an audit entry. Field edits fire on every keystroke, so identical
+   * actions are coalesced into one entry per one and a half seconds.
+   */
+  const record = useCallback(
+    (section: string, action: string, details: Record<string, unknown>) => {
+      const key = `${section}:${action}`;
+      const previous = pending.current.get(key);
+      if (previous) window.clearTimeout(previous);
+      const timer = window.setTimeout(() => {
+        pending.current.delete(key);
+        void logAdminChange({ data: { section, action, details } })
+          .then(() => loadAudit())
+          .catch(() => undefined);
+      }, 1500);
+      pending.current.set(key, timer);
+    },
+    [loadAudit],
+  );
 
   const update = (id: GiftId, patch: Partial<GiftConfig[GiftId]>) => {
     setConfig((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
