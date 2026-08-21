@@ -24,7 +24,7 @@ import { RoundSummaryCard } from "@/components/game/RoundSummaryCard";
 import { SpectatorChat } from "@/components/game/SpectatorChat";
 import type { GiftId, Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
-import { useBroadcastLang, useControlBus, type ControlMessage } from "@/lib/control";
+import { useBroadcastLang, useBroadcastMix, useControlBus, type ControlMessage } from "@/lib/control";
 import { ACCESS_TEXT, useViewerAccess } from "@/lib/liveSession";
 import { setActiveRound } from "@/lib/hitConfig";
 import { publishSubtitle } from "@/lib/subtitles";
@@ -75,6 +75,7 @@ function LivePage() {
   const lang = useBroadcastLang(access.lang ?? linkLang);
   const navigate = useNavigate({ from: Route.fullPath });
   const hud = useHudHeight();
+  useBroadcastMix(); // keeps announcer/crowd levels in sync with the admin faders
   const [muted, setMuted] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
 

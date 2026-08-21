@@ -1,3 +1,4 @@
+import { getMix } from "@/lib/mix";
 import type { Lang } from "@/lib/i18n";
 
 /**
@@ -76,7 +77,7 @@ let current: HTMLAudioElement | null = null;
 export function playVoiceClip(url: string, onEnded: () => void): HTMLAudioElement {
   const audio = new Audio(url);
   audio.preload = "auto";
-  audio.volume = 1;
+  audio.volume = getMix().voice;
   const finish = () => {
     if (current === audio) current = null;
     onEnded();

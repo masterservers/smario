@@ -1,3 +1,4 @@
+import { getMix } from "@/lib/mix";
 import { useEffect, useRef, useState } from "react";
 import { GIFT_BY_ID, type BattleState, type GiftEvent, type Side } from "@/lib/battle";
 import { COMMENTARY, LANG_META, REFEREE_LINES, UI_TEXT, type Lang } from "@/lib/i18n";
@@ -130,7 +131,7 @@ function speakFallback(next: Spoken, done: () => void) {
   if (voice) utterance.voice = voice;
   utterance.rate = next.priority >= 3 ? 1.14 : 1.08;
   utterance.pitch = 0.78;
-  utterance.volume = 1;
+  utterance.volume = getMix().voice;
   utterance.onend = done;
   utterance.onerror = done;
   synth.speak(utterance);

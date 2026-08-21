@@ -1,6 +1,7 @@
 import loopAsset from "@/assets/crowd-loop.webm.asset.json";
 import cheerAsset from "@/assets/crowd-cheer.webm.asset.json";
 import ohAsset from "@/assets/crowd-oh.webm.asset.json";
+import { getMix, subscribeMix } from "@/lib/mix";
 
 /**
  * Arena ambience: a continuous crowd bed under the broadcast plus short
@@ -10,8 +11,24 @@ import ohAsset from "@/assets/crowd-oh.webm.asset.json";
 
 let bed: HTMLAudioElement | null = null;
 let enabled = false;
+let ducked = false;
 
-const BED_VOLUME = 0.32;
+const BED_BASE = 0.32;
+
+/** Crowd level asked for by the admin faders (0..1). */
+function crowdLevel() {
+  return getMix().crowd;
+}
+
+function bedTarget() {
+  return BED_BASE * crowdLevel() * (ducked ? 0.45 : 1);
+}
+
+if (typeof window !== "undefined") {
+  subscribeMix(() => {
+    if (enabled) ramp(bedTarget());
+  });
+}
 
 function ensureBed() {
   if (bed || typeof window === "undefined") return bed;
@@ -44,7 +61,7 @@ export function setCrowdEnabled(on: boolean) {
   if (!audio) return;
   if (on) {
     void audio.play().catch(() => {});
-    ramp(BED_VOLUME);
+    ramp(bedTarget());
   } else {
     ramp(0);
   }
@@ -52,8 +69,9 @@ export function setCrowdEnabled(on: boolean) {
 
 /** Duck the crowd while the announcer is speaking so the voice stays clear. */
 export function duckCrowd(down: boolean) {
+  ducked = down;
   if (!enabled || !bed) return;
-  ramp(down ? BED_VOLUME * 0.45 : BED_VOLUME);
+  ramp(bedTarget());
 }
 
 const REACTION_COOLDOWN_MS = 900;
@@ -68,6 +86,7 @@ export function crowdReact(kind: CrowdReaction) {
   lastReactionAt = now;
   const src = kind === "hit" ? ohAsset.url : cheerAsset.url;
   const audio = new Audio(src);
-  audio.volume = kind === "ko" ? 0.85 : kind === "big" ? 0.6 : 0.4;
+  const base = kind === "ko" ? 0.85 : kind === "big" ? 0.6 : 0.4;
+  audio.volume = Math.min(1, base * crowdLevel());
   void audio.play().catch(() => {});
 }

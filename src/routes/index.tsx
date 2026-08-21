@@ -19,7 +19,7 @@ import { useReferee } from "@/hooks/useReferee";
 import { useTopBanner } from "@/hooks/useTopBanner";
 import type { Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
-import { useBroadcastLang, useControlBus, type ControlMessage } from "@/lib/control";
+import { useBroadcastLang, useBroadcastMix, useControlBus, type ControlMessage } from "@/lib/control";
 import { setActiveRound } from "@/lib/hitConfig";
 import { publishSubtitle } from "@/lib/subtitles";
 
@@ -66,6 +66,7 @@ function BattleRoute() {
 function BattlePage() {
   const { lang: linkLang } = Route.useSearch();
   const lang = useBroadcastLang(linkLang);
+  useBroadcastMix(); // keeps announcer/crowd levels in sync with the admin faders
   const [muted, setMuted] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
 
