@@ -56,7 +56,7 @@ export function Scoreboard({
               className="display truncate text-xs leading-none sm:text-sm"
               style={{ color: "var(--ru-glow)" }}
             >
-              {names.ruTeam}
+              {names.ruTeam} · {names.ru}
             </span>
             {leader === "ru" && <span className="text-xs">👑</span>}
             <span className="display ml-auto text-base leading-none sm:text-xl" style={{ color: "var(--ru-glow)" }}>
@@ -85,7 +85,7 @@ export function Scoreboard({
               className="display truncate text-xs leading-none sm:text-sm"
               style={{ color: "var(--us-glow)" }}
             >
-              {names.usTeam}
+              {names.us} · {names.usTeam}
             </span>
             <span className="text-base leading-none sm:text-lg">🇺🇸</span>
           </div>
