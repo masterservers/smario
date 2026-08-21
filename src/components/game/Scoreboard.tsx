@@ -48,23 +48,7 @@ export function Scoreboard({
 
   return (
     <div className="relative border-b border-border bg-background/80 px-2 py-1 sm:px-4">
-      <div className="flex items-center justify-between gap-2 text-[9px] uppercase text-muted-foreground sm:text-[10px]">
-        <span className="inline-flex items-center gap-1 bg-destructive px-1.5 py-0.5 font-semibold text-destructive-foreground">
-          <span
-            className="size-1.5 rounded-full bg-current"
-            style={{ animation: "live-pulse 1.2s infinite" }}
-          />
-          {t.live}
-        </span>
-        <span className="display text-xs text-gold sm:text-sm">
-          {t.round} {round}
-        </span>
-        <span>
-          👁 {viewers} {t.viewers}
-        </span>
-      </div>
-
-      <div className="mt-0.5 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-base leading-none sm:text-lg">🇷🇺</span>
@@ -84,7 +68,12 @@ export function Scoreboard({
           </div>
         </div>
 
-        <div className="display px-1 text-base text-gold sm:text-xl">VS</div>
+        <div className="flex flex-col items-center px-1 leading-none">
+          <span className="display text-base text-gold sm:text-xl">VS</span>
+          <span className="mt-1 text-[8px] uppercase text-muted-foreground sm:text-[9px]">
+            {t.round} {round} · {viewers}
+          </span>
+        </div>
 
         <div className="min-w-0 text-right">
           <div className="flex items-center justify-end gap-1.5">
