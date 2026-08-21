@@ -412,8 +412,13 @@ export function useCommentary(
     const defender = last.side === "ru" ? names.us : names.ru;
     const gift = GIFT_BY_ID[last.gift];
 
+    const big = (gift?.damage ?? 0) >= 20;
+    // Pick the generic call now and warm its neural clip, so when the blow
+    // lands the voice starts on the same frame instead of after a fetch.
+    const plainLine = big ? pick(c.bigHit)(attacker, defender) : pick(c.hit)(attacker, defender);
+    if (!mutedRef.current) prefetchVoice(plainLine, lang, big ? "big" : "normal");
+
     const call = (label?: string) => {
-      const big = (gift?.damage ?? 0) >= 20;
       if (state.combo >= 4 && state.comboSide === last.side) {
         push(pick(c.combo)(attacker, defender, String(state.combo)), "big");
         return;
@@ -428,8 +433,9 @@ export function useCommentary(
           return;
         }
       }
-      push(big ? pick(c.bigHit)(attacker, defender) : pick(c.hit)(attacker, defender), big ? "big" : "hit");
+      push(plainLine, big ? "big" : "hit");
     };
+
     // Fallback well after the usual impact delay, in case no confirmation comes.
     const timer = window.setTimeout(() => flushCall(last.id), IMPACT_DELAY_MS + 3200);
     pendingCalls.current.set(last.id, { run: call, timer });
