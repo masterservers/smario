@@ -120,7 +120,7 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [run?.id]);
 
   if (!run || counting) return null;
   const line = LINES[lang][run.gag];
