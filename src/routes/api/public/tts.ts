@@ -19,15 +19,29 @@ export const Route = createFileRoute("/api/public/tts")({
         const tone = body.tone === "ko" || body.tone === "big" ? body.tone : "normal";
         if (!text) return new Response("Bad request", { status: 400 });
 
+        const LANGS = {
+          en: { name: "English", accent: "native American English, ringside broadcast accent" },
+          de: { name: "German", accent: "native German (Hochdeutsch), no English accent" },
+          sr: { name: "Serbian", accent: "native Serbian (Belgrade), no English accent" },
+          ro: { name: "Romanian", accent: "native Romanian (Bucharest), no English accent" },
+          ru: { name: "Russian", accent: "native Russian (Moscow), no English accent" },
+        } as const;
+        const lang = (typeof body.lang === "string" && body.lang in LANGS
+          ? body.lang
+          : "en") as keyof typeof LANGS;
+        const meta = LANGS[lang];
+
         const apiKey = process.env["LOVABLE_API_KEY"];
         if (!apiKey) return new Response("Voice unavailable", { status: 503 });
 
-        const instructions =
+        const delivery =
           tone === "ko"
-            ? "You are a live wrestling ring announcer at the peak of a knockout. Shout with maximum excitement, fast, hoarse, roaring over a packed arena."
+            ? "Peak of a knockout: shout with maximum excitement, fast, hoarse, roaring over a packed arena."
             : tone === "big"
-              ? "You are a live wrestling commentator calling a huge blow. Loud, punchy, urgent, thrilled."
-              : "You are a live wrestling commentator. Energetic, warm, natural broadcast delivery, slightly fast, never robotic.";
+              ? "Calling a huge blow: loud, punchy, urgent, thrilled."
+              : "Energetic, warm, natural broadcast delivery, slightly fast, never robotic.";
+
+        const instructions = `You are a male live wrestling ring commentator. Speak ONLY in ${meta.name}, with a ${meta.accent}. Pronounce every word as a ${meta.name} native speaker would, including fighter names. ${delivery}`;
 
         let response: Response;
         try {
