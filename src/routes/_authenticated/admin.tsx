@@ -613,6 +613,63 @@ function AdminPage() {
           >
             Reset
           </button>
+          <button
+            type="button"
+            className="rounded-md border border-border px-2 py-1"
+            onClick={() => {
+              const text = exportSceneConfig();
+              const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = `scenes-${new Date().toISOString().slice(0, 10)}.json`;
+              link.click();
+              URL.revokeObjectURL(url);
+              setSceneJson(text);
+              setSceneIo({ ok: true, text: "Exported (file downloaded)." });
+              record("scenes", "export", {});
+            }}
+          >
+            Export JSON
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-border px-2 py-1"
+            onClick={async () => {
+              const text = exportSceneConfig();
+              setSceneJson(text);
+              try {
+                await navigator.clipboard.writeText(text);
+                setSceneIo({ ok: true, text: "Copied to clipboard." });
+              } catch {
+                setSceneIo({ ok: true, text: "Loaded in the box below — copy it from there." });
+              }
+            }}
+          >
+            Copy JSON
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-border px-2 py-1"
+            onClick={() => sceneFile.current?.click()}
+          >
+            Import file…
+          </button>
+          <input
+            ref={sceneFile}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            aria-label="import scenes json"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              const text = await file.text();
+              setSceneJson(text);
+              applySceneJson(text);
+            }}
+          />
+
         </div>
 
         {(["move", "follow", "idle"] as const).map((group) => (
