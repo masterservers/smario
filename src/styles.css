@@ -873,8 +873,9 @@
   }
   .hud-panel .match-title {
     margin-top: 0.125rem;
-    font-size: clamp(0.93rem, 2.4vw, 1.35rem);
+    font-size: calc(clamp(0.93rem, 2.4vw, 1.35rem) * var(--title-scale, 3));
   }
+
 }
 
 /* Mr. Bean's face on the in-ring referee: a tiny breathing bob so the swap
