@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { GIFT_BY_ID, type BattleState, type GiftEvent, type Side } from "@/lib/battle";
-import { COMMENTARY, LANG_META, REFEREE_LINES, type Lang } from "@/lib/i18n";
+import { COMMENTARY, LANG_META, REFEREE_LINES, UI_TEXT, type Lang } from "@/lib/i18n";
 import { sideVoiceNames } from "@/lib/adminConfig";
 import { publishSubtitle } from "@/lib/subtitles";
 
