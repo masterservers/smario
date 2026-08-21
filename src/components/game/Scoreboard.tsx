@@ -47,14 +47,7 @@ export function Scoreboard({
   const names = SIDE_NAME[lang];
 
   return (
-    <div
-      className="pointer-events-none mx-auto mt-1 w-full max-w-[44rem] rounded-full border border-border bg-background/55 px-3 py-1 backdrop-blur-md"
-      style={{
-        marginInlineStart: "max(env(safe-area-inset-left), 0.5rem)",
-        marginInlineEnd: "max(env(safe-area-inset-right), 0.5rem)",
-        width: "auto",
-      }}
-    >
+    <div className="pointer-events-none mx-auto mt-1 w-full max-w-[44rem] rounded-full border border-border bg-background/55 px-3 py-1 backdrop-blur-md">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
