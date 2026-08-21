@@ -244,7 +244,7 @@ function LivePage() {
         onLang={(next) => void navigate({ search: { lang: next }, replace: true })}
         muted={muted}
         onMute={() => setMuted((m) => !m)}
-        {...(access.canGift ? { onChat: () => setShowChat((c) => !c) } : {})}
+        onChat={access.canGift ? () => setShowChat((c) => !c) : undefined}
         className="fight-controls absolute right-2 top-14 z-20 hidden flex-col items-center gap-2 [@media(min-width:768px)_and_(min-height:520px)]:flex"
       >
         <DifficultyPicker lang={lang} value={difficulty} onChange={changeDifficulty} />

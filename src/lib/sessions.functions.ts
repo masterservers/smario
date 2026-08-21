@@ -94,9 +94,10 @@ export const updateLiveSession = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertStaff(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, boolean> = {};
-    if (data.isActive !== undefined) patch["is_active"] = data.isActive;
-    if (data.allowGifts !== undefined) patch["allow_gifts"] = data.allowGifts;
+    const patch = {
+      ...(data.isActive !== undefined ? { is_active: data.isActive } : {}),
+      ...(data.allowGifts !== undefined ? { allow_gifts: data.allowGifts } : {}),
+    };
     const { data: row, error } = await supabaseAdmin
       .from("live_sessions")
       .update(patch)
