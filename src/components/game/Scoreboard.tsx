@@ -162,18 +162,27 @@ export function Scoreboard({
 
       <div
         key={`${matchId ?? "match"}-${round}`}
-        className="display mx-auto mt-1 flex w-full max-w-full animate-fade-in items-center justify-center gap-2 overflow-hidden whitespace-nowrap text-center font-bold uppercase leading-tight text-gold [font-size:clamp(1rem,4.2vw,2rem)] [letter-spacing:clamp(0.04em,0.5vw,0.16em)]"
-        style={{
-          textShadow:
-            "0 1px 2px hsl(var(--background) / 0.95), 0 0 10px hsl(var(--background) / 0.8)",
-        }}
-        aria-hidden="true"
+        className="match-title display mx-auto mt-1 flex w-full max-w-full items-center justify-center gap-2 overflow-hidden whitespace-nowrap text-center font-bold uppercase leading-tight text-gold"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        aria-label={`${names.ru} vs ${names.us}`}
       >
-        <span className="min-w-0 truncate" style={{ color: "var(--ru-glow)" }}>
+        <span
+          className="min-w-0 truncate"
+          style={{ color: "var(--ru-glow)" }}
+          aria-hidden="true"
+        >
           {names.ru}
         </span>
-        <span className="shrink-0 opacity-90">vs</span>
-        <span className="min-w-0 truncate" style={{ color: "var(--us-glow)" }}>
+        <span className="shrink-0 opacity-90" aria-hidden="true">
+          vs
+        </span>
+        <span
+          className="min-w-0 truncate"
+          style={{ color: "var(--us-glow)" }}
+          aria-hidden="true"
+        >
           {names.us}
         </span>
       </div>
