@@ -119,3 +119,29 @@ export function useSceneDebug(): SceneDebugState {
   }, []);
   return value;
 }
+
+/**
+ * Impact marker for the end-to-end sync test: every landed frame is recorded
+ * with a high-resolution timestamp so a browser test can compare it with the
+ * moment the commentator actually starts speaking.
+ */
+export type ImpactMark = {
+  at: number;
+  side: string;
+  label: string;
+  kind: string;
+  sparring: boolean;
+};
+
+declare global {
+  interface Window {
+    __fightImpacts?: ImpactMark[];
+  }
+}
+
+export function sceneImpact(mark: Omit<ImpactMark, "at">) {
+  if (typeof window === "undefined") return;
+  const list = (window.__fightImpacts ??= []);
+  list.push({ ...mark, at: performance.now() });
+  if (list.length > 200) list.splice(0, list.length - 200);
+}
