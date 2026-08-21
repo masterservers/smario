@@ -44,6 +44,12 @@ export function RefereePanel({ lang, value, onChange, className }: Props) {
       display: `${Math.round(value.entryJitter * 100)}%`,
       limits: VARIETY_LIMITS.entryJitter,
     },
+    {
+      key: "familyStreak",
+      label: t.family,
+      display: `${value.familyStreak}×`,
+      limits: VARIETY_LIMITS.familyStreak,
+    },
   ];
 
   return (
