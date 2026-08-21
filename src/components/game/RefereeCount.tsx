@@ -14,7 +14,7 @@ export function RefereeCount({ lang, referee }: Props) {
   const downed = referee.side === "ru" ? names.ru : names.us;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[10%] z-20 flex flex-col items-center gap-0.5 text-center">
+    <div className="pointer-events-none absolute inset-x-0 top-[18%] z-20 flex flex-col items-center gap-0.5 text-center sm:top-[12%]">
       <div className="display text-[10px] tracking-[0.3em] text-outline opacity-80 sm:text-xs">
         🧑‍⚖️ {t.referee} · {t.count}
       </div>
