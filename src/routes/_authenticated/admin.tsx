@@ -102,6 +102,8 @@ function AdminPage() {
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [role, setRole] = useState<StaffRole | "loading">("loading");
   const [actor, setActor] = useState<string | null>(null);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const { state: mfa, refresh: refreshMfa } = useMfaState();
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [probes, setProbes] = useState<Record<"liveUrl" | "webhookUrl", SourceProbe | null>>({
     liveUrl: null,
