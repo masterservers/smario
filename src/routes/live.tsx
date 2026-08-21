@@ -1,13 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Arena } from "@/components/game/Arena";
+import { ChatPanel } from "@/components/game/ChatPanel";
+import { GiftDock } from "@/components/game/GiftDock";
 import { LangPicker } from "@/components/game/LangPicker";
 import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
-import type { Side } from "@/lib/battle";
+import type { GiftId, Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
 type Search = { lang: Lang };
@@ -41,8 +43,9 @@ function LivePage() {
   const { lang } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [muted, setMuted] = useState(true);
+  const [showChat, setShowChat] = useState(false);
 
-  const { round, events, state, viewers } = useLiveMatch();
+  const { round, events, state, viewers, nickname, ready, sendGift } = useLiveMatch();
   const referee = useReferee(state.hpRu, state.hpUs, state.ko);
   useCommentary(lang, events, state, muted, referee);
 
@@ -52,6 +55,11 @@ function LivePage() {
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
+
+  const busy = !ready || !!state.ko || (referee.count > 0 && !referee.koConfirmed);
+  const handleSend = (side: Side, gift: GiftId, message?: string) => {
+    void sendGift(side, gift, message);
+  };
 
   const leader: Side | null =
     state.scoreRu === state.scoreUs ? null : state.scoreRu > state.scoreUs ? "ru" : "us";
@@ -88,6 +96,27 @@ function LivePage() {
         />
       </div>
 
+      {/* Spectators can back a fighter from here: every gift fires the matching
+          strike for Russia or the USA in real time. */}
+      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 p-1.5 sm:p-2">
+        {showChat && (
+          <div className="mx-auto flex max-h-[30dvh] w-full max-w-3xl min-h-0 flex-col justify-end overflow-hidden">
+            <ChatPanel
+              lang={lang}
+              events={events}
+              nickname={nickname}
+              overlay
+              disabled={busy}
+              onSend={handleSend}
+            />
+          </div>
+        )}
+        <div className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1.5 opacity-90">
+          <GiftDock lang={lang} side="ru" overlay disabled={busy} onSend={handleSend} />
+          <GiftDock lang={lang} side="us" overlay disabled={busy} onSend={handleSend} />
+        </div>
+      </div>
+
       <div className="absolute bottom-1/2 right-2 z-20 flex translate-y-1/2 flex-col gap-2">
         <LangPicker lang={lang} onChange={(next) => void navigate({ search: { lang: next }, replace: true })} />
         <button
@@ -97,6 +126,14 @@ function LivePage() {
           className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
         >
           {muted ? "🔇" : "🔊"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowChat((c) => !c)}
+          aria-label={t.chatPlaceholder}
+          className="size-10 rounded-full border border-border bg-black/60 text-base backdrop-blur-md transition-colors hover:bg-accent"
+        >
+          💬
         </button>
         <Link
           to="/"
