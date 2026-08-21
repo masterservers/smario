@@ -19,11 +19,12 @@ import { useTopBanner } from "@/hooks/useTopBanner";
 import type { GiftId, Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
-type Search = { lang: Lang };
+type Search = { lang: Lang; s?: string };
 
 export const Route = createFileRoute("/live")({
   validateSearch: (search: Record<string, unknown>): Search => ({
     lang: isLang(search["lang"]) ? search["lang"] : "en",
+    ...(typeof search["s"] === "string" && search["s"] ? { s: search["s"] } : {}),
   }),
   head: () => ({
     meta: [

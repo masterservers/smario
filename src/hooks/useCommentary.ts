@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GIFT_BY_ID, type BattleState, type GiftEvent, type Side } from "@/lib/battle";
-import { COMMENTARY, LANG_META, REFEREE_LINES, SIDE_NAME, type Lang } from "@/lib/i18n";
+import { COMMENTARY, LANG_META, REFEREE_LINES, type Lang } from "@/lib/i18n";
+import { sideVoiceNames } from "@/lib/adminConfig";
 import { publishSubtitle } from "@/lib/subtitles";
 
 export type CommentaryLine = { id: string; text: string; tone: "hit" | "big" | "ko" | "idle" };
@@ -230,7 +231,7 @@ export function useCommentary(
     if (lastEventId.current === last.id) return;
     lastEventId.current = last.id;
 
-    const names = SIDE_NAME[lang];
+    const names = sideVoiceNames(lang);
     const c = COMMENTARY[lang];
     const attacker = last.side === "ru" ? names.ru : names.us;
     const defender = last.side === "ru" ? names.us : names.ru;
@@ -264,7 +265,7 @@ export function useCommentary(
   const countedSide = useRef<Side | null>(null);
   useEffect(() => {
     if (!referee) return;
-    const names = SIDE_NAME[lang];
+    const names = sideVoiceNames(lang);
     const r = REFEREE_LINES[lang];
     const fighter = referee.side === "ru" ? names.ru : names.us;
 
@@ -289,7 +290,7 @@ export function useCommentary(
     const key = `${state.ko}-${events.length}`;
     if (koAnnounced.current === key) return;
     koAnnounced.current = key;
-    const names = SIDE_NAME[lang];
+    const names = sideVoiceNames(lang);
     const winner = state.ko === "ru" ? names.ru : names.us;
     const loser = state.ko === "ru" ? names.us : names.ru;
     push(pick(COMMENTARY[lang].ko)(winner, loser), "ko");
@@ -300,7 +301,7 @@ export function useCommentary(
   useEffect(() => {
     const timer = window.setInterval(() => {
       if (!mutedRef.current && commentaryBusy()) return;
-      const names = SIDE_NAME[langRef.current];
+      const names = sideVoiceNames(langRef.current);
       const c = COMMENTARY[langRef.current];
       push(pick(c.idle)(names.ru, names.us), "idle");
     }, IDLE_MS);
@@ -309,7 +310,7 @@ export function useCommentary(
 
   // Round intro whenever the language changes or the fight resets.
   useEffect(() => {
-    const names = SIDE_NAME[lang];
+    const names = sideVoiceNames(lang);
     push(pick(COMMENTARY[lang].roundStart)(names.ru, names.us), "idle");
   }, [lang]);
 

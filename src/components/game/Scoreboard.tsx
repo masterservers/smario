@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MAX_HP, type Side } from "@/lib/battle";
-import { SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
+import { UI_TEXT, type Lang } from "@/lib/i18n";
+import { sideNames, useAdminConfig } from "@/lib/adminConfig";
 
 type Props = {
   lang: Lang;
@@ -83,7 +84,8 @@ export function Scoreboard({
   banner,
 }: Props) {
   const t = UI_TEXT[lang];
-  const names = SIDE_NAME[lang];
+  useAdminConfig();
+  const names = sideNames(lang);
   const { time, elapsed } = useRoundClock(matchId, round, ko);
 
   // Referee calls and gift ticker — driven by useTopBanner, which speaks the
