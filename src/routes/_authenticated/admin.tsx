@@ -77,7 +77,7 @@ function AdminPage() {
 
   const loadAudit = useCallback(async () => {
     try {
-      setAudit(await listAuditLog());
+      setAudit((await listAuditLog()) as AuditEntry[]);
     } catch {
       setAudit([]);
     }
@@ -102,12 +102,13 @@ function AdminPage() {
    */
   const record = useCallback(
     (section: string, action: string, details: Record<string, unknown>) => {
+      const text = JSON.stringify(details);
       const key = `${section}:${action}`;
       const previous = pending.current.get(key);
       if (previous) window.clearTimeout(previous);
       const timer = window.setTimeout(() => {
         pending.current.delete(key);
-        void logAdminChange({ data: { section, action, details } })
+        void logAdminChange({ data: { section, action, details: text } })
           .then(() => loadAudit())
           .catch(() => undefined);
       }, 1500);
@@ -203,7 +204,7 @@ function AdminPage() {
                   <td className="py-1.5 pr-3">{entry.section}</td>
                   <td className="py-1.5 pr-3">{entry.action}</td>
                   <td className="py-1.5 break-all text-muted-foreground">
-                    {JSON.stringify(entry.details)}
+                    {entry.details}
                   </td>
                 </tr>
               ))}
