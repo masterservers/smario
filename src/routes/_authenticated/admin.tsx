@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { GIFTS, GIFT_BY_ID, type GiftId, type Side } from "@/lib/battle";
 import { LANG_META, LANGS, isLang, type Lang } from "@/lib/i18n";
 import {
