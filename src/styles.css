@@ -623,3 +623,11 @@
   }
 }
 
+
+/* Short (landscape phone) screens: keep the referee readout clear of the
+   scoreboard pill at the top of the screen. */
+@media (max-height: 600px) {
+  .referee-count {
+    top: 4.25rem !important;
+  }
+}
