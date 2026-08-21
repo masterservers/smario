@@ -446,29 +446,58 @@ const ROPE_IDLE: IdleScene[] = [
 ];
 
 /**
- * Round themes: each round leans on a different family of scenes, so a long
- * match never plays the same rhythm twice. The preference is soft — the strict
- * LRU rotation still guarantees no close repetition.
+ * Round plans: a round is no longer a single family on repeat. Each round is a
+ * *sequence* of families (its "beats"), so inside one round the picture keeps
+ * changing — a strike, then a rope spot, then a throw, then mat work — while
+ * every round still has its own colour. The preference stays soft: the strict
+ * LRU rotation is what guarantees no close repetition.
  */
-const ROUND_THEMES: RegExp[] = [
-  /JAB|HOOK|CROSS|UPPERCUT|SHOT|COMBO|COMBINATION|ELBOW|SLAP|BACKFIST/, // round 1: striking
-  /KICK|KNEE|TEEP|SPIN|CLOTHESLINE|SHOULDER/, // round 2: kicks and charges
-  /ROPE|TURNBUCKLE|CLIMB|VAULT|SPRINGBOARD|LEAP|JUMP|DIVE|SOMERSAULT|MOONSAULT|SPLASH/, // round 3: rope work
-  /SLAM|THROW|TOSS|SUPLEX|POWERBOMB|CARRY|SPINEBUSTER|TAKEDOWN|BOMB/, // round 4: throws
-  /MAT|GROUND|STOMP|DROP|MOUNT|PIN|CORNER/, // round 5: mat and corner work
+const FAMILY_PATTERNS: Record<Exclude<SceneFamily, "other">, RegExp> = {
+  punch: /JAB|HOOK|CROSS|UPPERCUT|SHOT|COMBO|COMBINATION|ELBOW|SLAP|BACKFIST|PUNCH|COUNTER/,
+  kick: /KICK|TEEP|SPIN|CLOTHESLINE|SHOULDER|CHARGE|RUSH/,
+  rope: /ROPE|TURNBUCKLE|CLIMB|VAULT|SPRINGBOARD|LEAP|JUMP|DIVE|SOMERSAULT|MOONSAULT|SPLASH/,
+  throw: /SLAM|THROW|TOSS|SUPLEX|POWERBOMB|CARRY|SPINEBUSTER|TAKEDOWN|BOMB|WHIP|DRAG/,
+  mat: /MAT|GROUND|STOMP|DROP|MOUNT|PIN|DOWN|CRAWL|RISE/,
+  clinch: /CLINCH|GRAPPLE|KNEE|LOCK|HOLD|COLLAR|PUSH|SHOVE|CORNER/,
+  taunt: /LOOK|STARE|CIRCL|BREATH|POSE|TAUNT|WAIT|GUARD|FEEL|WALK|PACE/,
+};
+
+type Beat = Exclude<SceneFamily, "other">;
+
+/** Each round: its own rotation of beats, so no two rounds feel alike. */
+const ROUND_PLANS: Beat[][] = [
+  ["punch", "kick", "clinch", "punch", "throw", "mat"],
+  ["kick", "rope", "punch", "clinch", "kick", "throw"],
+  ["rope", "throw", "kick", "mat", "rope", "punch"],
+  ["throw", "mat", "punch", "rope", "clinch", "kick"],
+  ["clinch", "punch", "mat", "kick", "throw", "rope"],
+  ["mat", "rope", "throw", "punch", "kick", "clinch"],
 ];
 
 let activeRound = 0;
+let beat = 0;
 
 /** Called by the arena when a new round begins. */
 export function setSceneRound(round: number) {
   activeRound = Math.max(0, Math.floor(round));
+  beat = 0;
 }
 
-/** True when the scene belongs to the family favoured by the current round. */
+/** Called once per scheduler draw: moves the round on to its next beat. */
+export function advanceSceneBeat() {
+  beat += 1;
+}
+
+/** The family the round wants right now. */
+function currentBeat(): Beat {
+  const plan = ROUND_PLANS[activeRound % ROUND_PLANS.length]!;
+  return plan[beat % plan.length]!;
+}
+
+/** True when the scene matches the beat the round is currently asking for. */
 export function inRoundTheme(item: { label?: string }): boolean {
-  const theme = ROUND_THEMES[activeRound % ROUND_THEMES.length]!;
-  return typeof item.label === "string" && theme.test(item.label);
+  const rule = FAMILY_PATTERNS[currentBeat()];
+  return typeof item.label === "string" && rule.test(item.label);
 }
 
 /* ------------------------------------------------------------------ *
@@ -539,10 +568,61 @@ export function familyBlocked(
 }
 
 
-export const MOVES: Move[] = [...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES];
 
-export const FOLLOW_UPS: Move[] = [...BASE_FOLLOW_UPS, ...EXTRA_FOLLOW_UPS, ...ROPE_FOLLOW_UPS];
-export const IDLE_SCENES: IdleScene[] = [...BASE_IDLE, ...EXTRA_IDLE, ...ROPE_IDLE];
+/**
+ * Extra vocabulary so a round never repeats the same picture: new corners,
+ * new angles, new postures — mid-ring exchanges, corner beatdowns, ground and
+ * pound, staggering, and recoveries. Each window is a distinct slice of the
+ * reel, so they read as genuinely different action.
+ */
+const VARIETY_MOVES: Move[] = [
+  { id: "v-overhand", start: 3.0, end: 4.2, impact: 3.9, label: "OVERHAND RIGHT", rate: 1.12, tier: 1 },
+  { id: "v-shovel-hook", start: 4.2, end: 5.4, impact: 5.0, label: "SHOVEL HOOK", rate: 1.1, tier: 1 },
+  { id: "v-pivot-jab", start: 6.4, end: 7.6, impact: 7.3, label: "PIVOT JAB", rate: 1.14, tier: 1 },
+  { id: "v-forearm", start: 8.8, end: 10.0, impact: 9.6, label: "FOREARM SMASH", rate: 1.08, tier: 1 },
+  { id: "v-calf-kick", start: 10.8, end: 12.0, impact: 11.7, label: "CALF KICK", rate: 1.1, tier: 1 },
+  { id: "v-front-kick", start: 12.4, end: 13.8, impact: 13.4, label: "FRONT KICK TO THE CHEST", rate: 1.06, tier: 2 },
+  { id: "v-question-kick", start: 15.2, end: 17.0, impact: 16.5, label: "QUESTION MARK KICK", rate: 1.0, tier: 2 },
+  { id: "v-flying-knee", start: 17.2, end: 19.0, impact: 18.5, label: "FLYING KNEE", rate: 1.0, tier: 3 },
+  { id: "v-corner-se-kicks", start: 18.6, end: 20.4, impact: 19.9, label: "CORNER KICK STORM", rate: 0.98, tier: 2 },
+  { id: "v-corner-sw-body", start: 13.0, end: 14.8, impact: 14.3, label: "CORNER BODY WORK", rate: 1.0, tier: 2 },
+  { id: "v-rope-lean-punches", start: 19.0, end: 20.8, impact: 20.3, label: "PUNCHES ON THE ROPES", rate: 1.0, tier: 2 },
+  { id: "v-headlock-walk", start: 8.0, end: 10.2, impact: 9.8, label: "HEADLOCK WALK", rate: 1.0, tier: 2 },
+  { id: "v-double-leg", start: 22.6, end: 24.6, impact: 24.0, label: "DOUBLE LEG TAKEDOWN", rate: 0.96, tier: 3 },
+  { id: "v-fireman", start: 30.2, end: 32.6, impact: 32.0, label: "FIREMAN CARRY DROP", rate: 0.9, tier: 4 },
+  { id: "v-german-suplex", start: 32.6, end: 35.0, impact: 34.4, label: "GERMAN SUPLEX", rate: 0.9, tier: 4 },
+  { id: "v-corner-powerbomb", start: 35.0, end: 37.6, impact: 37.0, label: "CORNER POWERBOMB", rate: 0.88, tier: 5 },
+  { id: "v-mat-elbows", start: 26.0, end: 28.2, impact: 27.6, label: "ELBOWS ON THE GROUND", rate: 0.9, tier: 3 },
+  { id: "v-ground-pound", start: 27.6, end: 29.8, impact: 29.2, label: "GROUND AND POUND", rate: 0.9, tier: 3 },
+  { id: "v-stagger-back", start: 29.6, end: 31.2, impact: 30.8, label: "STAGGERS BACKWARDS", rate: 0.98, tier: 2 },
+  { id: "v-rope-rebound-clothesline", start: 11.0, end: 13.2, impact: 12.7, label: "REBOUND CLOTHESLINE", rate: 1.0, tier: 3 },
+];
+
+const VARIETY_FOLLOW_UPS: Move[] = [
+  { id: "vfu-soccer-kick", start: 24.2, end: 26.2, impact: 25.7, label: "KICK ON THE MAT", rate: 0.92, tier: 3 },
+  { id: "vfu-crawl-ropes", start: 26.8, end: 29.0, impact: 28.4, label: "CRAWLS TO THE ROPES", rate: 0.9, tier: 2 },
+  { id: "vfu-pin-attempt", start: 27.0, end: 29.2, impact: 28.7, label: "PIN ATTEMPT", rate: 0.9, tier: 3 },
+  { id: "vfu-back-up", start: 31.0, end: 33.0, impact: 32.4, label: "RISES ON ONE KNEE", rate: 0.92, tier: 2 },
+];
+
+const VARIETY_IDLE: IdleScene[] = [
+  { id: "i-v1", start: 4.8, end: 7.0, rate: 0.78, label: "SHOULDER FEINTS" },
+  { id: "i-v2", start: 11.6, end: 13.8, rate: 0.77, label: "CUTTING THE RING" },
+  { id: "i-v3", start: 16.6, end: 18.9, rate: 0.76, label: "BACKED TO THE CORNER" },
+  { id: "i-v4", start: 24.0, end: 26.2, rate: 0.77, label: "WALKING IT OFF" },
+  { id: "i-v5", start: 31.8, end: 34.0, rate: 0.79, label: "PACING THE RING" },
+  { id: "i-v6", start: 36.8, end: 39.0, rate: 0.78, label: "STARE DOWN AT THE ROPES" },
+];
+
+export const MOVES: Move[] = [...BASE_MOVES, ...EXTRA_MOVES, ...ROPE_MOVES, ...VARIETY_MOVES];
+
+export const FOLLOW_UPS: Move[] = [
+  ...BASE_FOLLOW_UPS,
+  ...EXTRA_FOLLOW_UPS,
+  ...ROPE_FOLLOW_UPS,
+  ...VARIETY_FOLLOW_UPS,
+];
+export const IDLE_SCENES: IdleScene[] = [...BASE_IDLE, ...EXTRA_IDLE, ...ROPE_IDLE, ...VARIETY_IDLE];
 
 /** Every scene the scheduler can pick, for the admin list and the debug panel. */
 export const ALL_SCENES = [
