@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import { isLang, type Lang } from "@/lib/i18n";
+import { applyMix, getMix, normalizeMix, subscribeMix, type AudioMix } from "@/lib/mix";
 
 /**
  * Live control bus between the admin console and every open arena tab.
- * The admin switches the commentator language or pushes a spoken command and
- * the arena reacts instantly, without a reload.
+ * The admin switches the commentator language, the audio mix or pushes a
+ * spoken command and the arena reacts instantly, without a reload.
  */
 export type ControlMessage =
   | { type: "lang"; lang: Lang }
-  | { type: "say"; lang: Lang; text: string };
+  | { type: "say"; lang: Lang; text: string }
+  | { type: "mix"; mix: AudioMix };
 
 const CHANNEL = "pvt.control";
 const LANG_KEY = "pvt.controlLang";
+
 
 function channel(): BroadcastChannel | null {
   if (typeof window === "undefined" || !("BroadcastChannel" in window)) return null;
