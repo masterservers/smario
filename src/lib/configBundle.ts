@@ -162,6 +162,13 @@ export type BundleDiff = {
   total: number;
 };
 
+/** Drops keys explicitly set to undefined so a partial patch stays typed. */
+function defined<T extends object>(value: T | undefined): Partial<T> {
+  const out: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value ?? {})) if (item !== undefined) out[key] = item;
+  return out as Partial<T>;
+}
+
 function label(id: string) {
   return ALL_SCENES.find((scene) => scene.id === id)?.label ?? id;
 }
@@ -194,19 +201,19 @@ export function resolveBundle(bundle: ConfigBundle): { scenes: SceneConfig; hits
     ...defaultSceneConfig(),
     disabled: Array.from(disabled),
     weights,
-    transitions: { ...currentScenes.transitions, ...(bundle.transitions ?? {}) },
+    transitions: { ...currentScenes.transitions, ...defined(bundle.transitions) },
   };
 
   const hits: HitConfig = {
     gifts: { ...currentHits.gifts },
-    referee: { ...currentHits.referee, ...(bundle.hits?.referee ?? {}) },
+    referee: { ...currentHits.referee, ...defined(bundle.hits?.referee) },
   };
   for (const gift of GIFTS) {
     const patch = bundle.hits?.gifts?.[gift.id];
     if (!patch) continue;
     hits.gifts[gift.id] = {
       ...currentHits.gifts[gift.id],
-      ...patch,
+      ...defined(patch),
       kinds: (patch.kinds as HitConfig["gifts"][GiftId]["kinds"] | undefined) ??
         currentHits.gifts[gift.id].kinds,
     };

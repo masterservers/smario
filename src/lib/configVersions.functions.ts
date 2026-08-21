@@ -7,7 +7,7 @@ export type ConfigVersion = {
   is_active: boolean;
   created_by_email: string | null;
   created_at: string;
-  bundle: unknown;
+  bundle: Record<string, unknown>;
 };
 
 /** The configuration everyone (players and spectators) should be running. */

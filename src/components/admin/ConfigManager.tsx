@@ -44,7 +44,7 @@ export function ConfigManager({ onApplied, record }: Props) {
 
   const loadVersions = useCallback(async () => {
     try {
-      setVersions(await listConfigVersions());
+      setVersions((await listConfigVersions()) as ConfigVersion[]);
     } catch {
       setVersions([]);
     }
