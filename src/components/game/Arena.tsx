@@ -517,6 +517,26 @@ export function Arena({
 
   const [damages, setDamages] = useState<DamageItem[]>([]);
 
+  // Slow "breathing" of the wide shot between spots: the camera keeps living
+  // without ever cutting in close. Only the video layer moves — the scoreboard
+  // and the top bar sit outside this transform, so the HUD never shifts.
+  useEffect(() => {
+    if (ko) return;
+    const timer = window.setInterval(() => {
+      if (playing.current || settling.current) return;
+      const shot = baseFrame.current;
+      const drift = clampFrame({
+        x: shot.x + (Math.random() - 0.5) * 1.6,
+        y: shot.y + (Math.random() - 0.5) * 0.6,
+        scale: shot.scale + (Math.random() - 0.5) * 0.012,
+        rotate: shot.rotate + (Math.random() - 0.5) * 0.25,
+      });
+      baseFrame.current = drift;
+      setFrame(drift);
+    }, 3800);
+    return () => window.clearInterval(timer);
+  }, [ko]);
+
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
 
