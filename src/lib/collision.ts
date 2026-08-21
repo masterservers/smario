@@ -11,7 +11,7 @@
  */
 
 import type { Move } from "@/lib/scenes";
-import type { HitKind } from "@/lib/moveKind";
+import type { HitKind } from "@/lib/hitConfig";
 import type { Side } from "@/lib/battle";
 
 /** Seconds of picture that must still play AFTER contact, per kind of blow. */
@@ -33,7 +33,7 @@ const WIND_UP: Record<HitKind, number> = {
 };
 
 export function followThroughOf(kind: HitKind): number {
-  return FOLLOW_THROUGH[kind];
+  return FOLLOW_THROUGH[kind]!;
 }
 
 /**
@@ -44,8 +44,8 @@ export function followThroughOf(kind: HitKind): number {
  */
 export function impactTimeOf(move: Move, kind: HitKind): number {
   const span = Math.max(0.12, move.end - move.start);
-  let lead = WIND_UP[kind];
-  let tail = FOLLOW_THROUGH[kind];
+  let lead = WIND_UP[kind]!;
+  let tail = FOLLOW_THROUGH[kind]!;
   const needed = lead + tail;
   if (needed > span * 0.9) {
     const factor = (span * 0.9) / needed;
@@ -65,7 +65,7 @@ export function impactTimeOf(move: Move, kind: HitKind): number {
  */
 export function completionEndOf(move: Move, kind: HitKind, reelEnd = 39.8): number {
   const impact = impactTimeOf(move, kind);
-  return Math.min(reelEnd, Math.max(move.end, impact + FOLLOW_THROUGH[kind]));
+  return Math.min(reelEnd, Math.max(move.end, impact + FOLLOW_THROUGH[kind]!));
 }
 
 /** Stable 0..1 value out of a scene id, so a scene always hits in the same spot. */
@@ -110,6 +110,6 @@ export function contactPointOf(
   // on the defender's half.
   const bias = attacker === "ru" ? 6 : -6;
   const left = Math.max(18, Math.min(82, 50 + bias + drift));
-  const top = onMat ? 72 : CONTACT_Y[kind] + (hash01(`${move.id}-y`) - 0.5) * 6;
+  const top = onMat ? 72 : CONTACT_Y[kind]! + (hash01(`${move.id}-y`) - 0.5) * 6;
   return { left, top: Math.max(30, Math.min(78, top)) };
 }
