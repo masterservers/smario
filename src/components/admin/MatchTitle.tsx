@@ -2,7 +2,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAdminConfig, saveAdminConfig, useMatchTitle } from "@/lib/adminConfig";
+import {
+  clampScale,
+  getAdminConfig,
+  saveAdminConfig,
+  useMatchTitle,
+  useTitleScale,
+} from "@/lib/adminConfig";
 import { TITLE_PRESETS, validateTitle } from "@/lib/matchTitle";
 
 type Props = {
