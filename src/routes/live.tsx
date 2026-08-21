@@ -14,7 +14,8 @@ import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Subtitles } from "@/components/game/Subtitles";
 import { Button } from "@/components/ui/button";
-import { announceHit, announceScene, announceSpar, useCommentary } from "@/hooks/useCommentary";
+import { announce, announceHit, announceScene, announceSpar, useCommentary } from "@/hooks/useCommentary";
+import { setCrowdEnabled } from "@/lib/crowd";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
 import { useTopBanner } from "@/hooks/useTopBanner";
@@ -28,7 +29,6 @@ import { ACCESS_TEXT, useViewerAccess } from "@/lib/liveSession";
 import { setActiveRound } from "@/lib/hitConfig";
 import { publishSubtitle } from "@/lib/subtitles";
 
-const VOICE_LOCALE: Record<Lang, string> = {'en': 'en-US', 'de': 'de-DE', 'sr': 'sr-RS', 'ro': 'ro-RO', 'ru': 'ru-RU'};
 
 type Search = { lang: Lang; s?: string };
 
@@ -115,16 +115,20 @@ function LivePage() {
     setActiveRound(round);
   }, [round]);
 
+  // Arena ambience follows the same sound switch as the announcer.
+  useEffect(() => {
+    setCrowdEnabled(!muted);
+    return () => setCrowdEnabled(false);
+  }, [muted]);
+
   // Spoken commands pushed live from the admin console.
   useControlBus(
     useCallback(
       (message: ControlMessage) => {
         if (message.type !== "say") return;
         publishSubtitle(message.text, "ref", 4000);
-        if (muted || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-        const utterance = new SpeechSynthesisUtterance(message.text);
-        utterance.lang = VOICE_LOCALE[message.lang];
-        window.speechSynthesis.speak(utterance);
+        if (muted) return;
+        announce(message.text, message.lang, 3);
       },
       [muted],
     ),
