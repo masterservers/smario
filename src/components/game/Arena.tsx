@@ -64,13 +64,24 @@ const MOVES: Move[] = [
   { id: "senton", start: 37.6, end: 41.0, impact: 39.8, label: "SENTON BOMB", rate: 0.85, tier: 5 },
 ];
 
-/** Follow-up spots: a dive from the ropes onto the opponent already on the mat. */
+/**
+ * Follow-up spots played while the opponent is already down: corner climbs,
+ * dives from the ropes and throws. Windows start slightly before the launch so
+ * the climb/run-up is visible and the trajectory reads naturally.
+ */
 const FOLLOW_UPS: Move[] = [
-  { id: "fu-splash", start: 4.0, end: 7.0, impact: 6.4, label: "SPLASH ON THE DOWNED MAN", rate: 0.9, tier: 4 },
-  { id: "fu-elbow", start: 20.4, end: 23.2, impact: 22.5, label: "ELBOW DROP ON THE MAT", rate: 0.9, tier: 4 },
-  { id: "fu-moonsault", start: 27.2, end: 29.6, impact: 28.9, label: "MOONSAULT ON THE MAT", rate: 0.9, tier: 4 },
-  { id: "fu-senton", start: 37.6, end: 40.6, impact: 39.6, label: "SENTON ON THE DOWNED MAN", rate: 0.9, tier: 4 },
+  { id: "fu-splash", start: 3.6, end: 7.0, impact: 6.4, label: "SPLASH ON THE DOWNED MAN", rate: 0.9, tier: 4 },
+  { id: "fu-elbow", start: 20.0, end: 23.2, impact: 22.5, label: "ELBOW DROP ON THE MAT", rate: 0.9, tier: 4 },
+  { id: "fu-moonsault", start: 26.8, end: 29.6, impact: 28.9, label: "MOONSAULT ON THE MAT", rate: 0.88, tier: 4 },
+  { id: "fu-senton", start: 37.2, end: 40.6, impact: 39.6, label: "SENTON ON THE DOWNED MAN", rate: 0.9, tier: 4 },
+  { id: "fu-corner-climb", start: 12.6, end: 15.6, impact: 14.9, label: "CORNER CLIMB SPLASH", rate: 0.9, tier: 4 },
+  { id: "fu-rope-dive", start: 5.2, end: 8.0, impact: 7.2, label: "DIVE FROM THE TOP ROPE", rate: 0.9, tier: 4 },
+  { id: "fu-throw-out", start: 6.6, end: 9.6, impact: 8.6, label: "THROWN OVER THE ROPES", rate: 0.88, tier: 4 },
+  { id: "fu-ground-pound", start: 25.2, end: 27.6, impact: 26.8, label: "GROUND & POUND", rate: 0.95, tier: 3 },
+  { id: "fu-powerbomb", start: 2.4, end: 6.2, impact: 5.2, label: "POWERBOMB OFF THE CORNER", rate: 0.85, tier: 5 },
+  { id: "fu-german", start: 30.6, end: 33.2, impact: 32.4, label: "GERMAN SUPLEX THROW", rate: 0.92, tier: 4 },
 ];
+
 
 const GIFT_TIER: Record<string, number> = {
   rose: 1,
@@ -130,16 +141,43 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
   const currentEvent = useRef<GiftEvent | null>(null);
   const currentMove = useRef<Move | null>(null);
   const recentMoves = useRef<string[]>([]);
+  const recentFollows = useRef<string[]>([]);
   const idleScene = useRef(IDLE_SCENES[0]!);
   const follow = useRef<{ event: GiftEvent; move: Move } | null>(null);
   const primed = useRef(false);
+  const cutTimer = useRef<number | null>(null);
 
   const [attacker, setAttacker] = useState<Side>("us");
+  const [cut, setCut] = useState(false);
+  const [crowd, setCrowd] = useState(0);
+  const [replay, setReplay] = useState(false);
   const [impact, setImpact] = useState<{ id: string; side: Side; label: string } | null>(null);
   const [floats, setFloats] = useState<FloatItem[]>([]);
+
   const [damages, setDamages] = useState<DamageItem[]>([]);
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
+
+  /**
+   * Seeks the reel. When the jump crosses between the wide angle (0-10s) and
+   * the ringside angle (10s+) we blend the picture for a moment so the camera
+   * change reads as a smooth switch instead of a hard cut.
+   */
+  const seek = (video: HTMLVideoElement, time: number) => {
+    const angleChanged = video.currentTime < 10 !== time < 10;
+    video.currentTime = time;
+    if (!angleChanged) return;
+    setCut(true);
+    if (cutTimer.current) window.clearTimeout(cutTimer.current);
+    cutTimer.current = window.setTimeout(() => setCut(false), 260);
+  };
+
+  /** Crowd reaction pulse, synced to hits and knockouts. */
+  const cheer = (strength: number) => {
+    setCrowd(strength);
+    window.setTimeout(() => setCrowd(0), strength > 1 ? 2200 : 700);
+  };
+
 
   useEffect(() => {
     if (!primed.current) {
@@ -157,7 +195,8 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     queue.current.push(...fresh.slice(-5));
   }, [events]);
 
-  // Freeze the fight on the downed frame when someone gets knocked out.
+  // Knockout: instant slow-motion replay of the finish (~2.5s), then the loser
+  // stays down on the mat. Nothing covers the ring.
   useEffect(() => {
     if (!ko) return;
     const video = videoRef.current;
@@ -165,12 +204,23 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     playing.current = false;
     currentEvent.current = null;
     currentMove.current = null;
-    video.playbackRate = 0.5;
     const finisher = MOVES.find((move) => move.id === "finisher")!;
-    video.currentTime = finisher.impact;
+    cheer(2);
+    setReplay(true);
+
+    // Replay: rewind slightly before the finish and play it back in slow motion.
+    video.playbackRate = 0.45;
+    seek(video, Math.max(0, finisher.impact - 1.2));
     void video.play();
-    const timer = window.setTimeout(() => video.pause(), 1200);
-    return () => window.clearTimeout(timer);
+
+    const settle = window.setTimeout(() => {
+      setReplay(false);
+      video.playbackRate = 0.35;
+      seek(video, finisher.impact);
+      void video.play();
+      window.setTimeout(() => video.pause(), 900);
+    }, 2500);
+    return () => window.clearTimeout(settle);
   }, [ko]);
 
   useEffect(() => {
@@ -184,14 +234,15 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
       if (video.paused || video.currentTime < scene.start || video.currentTime > scene.end) {
         if (video.currentTime < scene.start || video.currentTime > scene.end) {
           idleScene.current = pick(IDLE_SCENES);
-          video.currentTime = idleScene.current.start;
+          seek(video, idleScene.current.start);
         }
+
         video.playbackRate = idleScene.current.rate;
         void video.play();
       }
 
-      // A big spot leaves the opponent flat on the mat — follow it up with a
-      // dive from the top rope onto the downed fighter before taking new gifts.
+      // A big spot leaves the opponent flat on the mat — chain corner climbs and
+      // dives onto the downed fighter before taking new gifts.
       const pendingFollow = follow.current;
       const event = pendingFollow ? pendingFollow.event : queue.current.shift();
       if (!event) return;
@@ -202,9 +253,16 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         ? pendingFollow.move
         : pick(movesForTier(tier), recentMoves.current, (m) => m.id);
       recentMoves.current = [...recentMoves.current, move.id].slice(-6);
-      if (!pendingFollow && tier >= 4 && Math.random() < 0.7) {
-        follow.current = { event: { ...event, id: `${event.id}-fu` }, move: pick(FOLLOW_UPS) };
+
+      // Chance of a follow-up: high after a big spot, still possible after a
+      // chained one so we get 2-3 spot sequences without visible repetition.
+      const chance = pendingFollow ? 0.4 : tier >= 4 ? 0.85 : tier === 3 ? 0.55 : 0.15;
+      if (Math.random() < chance) {
+        const next = pick(FOLLOW_UPS, recentFollows.current, (m) => m.id);
+        recentFollows.current = [...recentFollows.current, next.id].slice(-5);
+        follow.current = { event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` }, move: next };
       }
+
 
       const gift = GIFT_BY_ID[event.gift];
 
@@ -225,9 +283,10 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
         },
       ]);
 
-      video.currentTime = move.start;
+      seek(video, move.start);
       video.playbackRate = move.rate;
       void video.play();
+
     }, 80);
     return () => window.clearInterval(timer);
   }, [ko]);
@@ -243,6 +302,7 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
       const defender: Side = event.side === "ru" ? "us" : "ru";
       const gift = GIFT_BY_ID[event.gift];
       setImpact({ id: event.id, side: defender, label: move.label });
+      cheer(move.tier >= 4 ? 1.5 : 1);
       setDamages((previous) => [
         ...previous.slice(-3),
         { id: event.id, side: defender, amount: gift?.damage ?? 4 },
@@ -259,9 +319,10 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
       currentEvent.current = null;
       currentMove.current = null;
       idleScene.current = pick(IDLE_SCENES);
-      video.currentTime = idleScene.current.start;
+      seek(video, idleScene.current.start);
       video.playbackRate = idleScene.current.rate;
       void video.play();
+
       window.setTimeout(
         () => setFloats((previous) => previous.filter((item) => item.id !== event.id)),
         900,
@@ -285,8 +346,27 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
           void event.currentTarget.play();
         }}
         onTimeUpdate={handleTimeUpdate}
-        className="absolute inset-0 size-full animate-arena-drift object-contain"
+        style={{
+          // Crowd/lighting: the arena lifts in brightness and contrast on every
+          // landed hit so the audience in the stands stays clearly readable.
+          filter: `brightness(${1.08 + crowd * 0.07}) contrast(${1.1 + crowd * 0.06}) saturate(${1.05 + crowd * 0.08})`,
+          opacity: cut ? 0.25 : 1,
+        }}
+        className="absolute inset-0 size-full animate-arena-drift object-contain transition-[opacity,filter] duration-200"
       />
+
+      {/* Arena lights sweeping the stands, pulsing with the crowd reaction */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[38%] transition-opacity duration-300"
+        style={{
+          opacity: 0.12 + crowd * 0.18,
+          background:
+            "radial-gradient(60% 120% at 20% 0%, color-mix(in oklch, var(--gold) 55%, transparent), transparent 70%), radial-gradient(60% 120% at 80% 0%, color-mix(in oklch, var(--gold) 55%, transparent), transparent 70%)",
+          mixBlendMode: "screen",
+        }}
+      />
+
 
       {impact && !ko && (
         <div className="pointer-events-none absolute inset-0 animate-arena-impact">
@@ -332,6 +412,11 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
           mat and only a headline sits at the top-centre of the screen. */}
       {ko && (
         <div className="pointer-events-none absolute inset-x-0 top-[8%] z-20 flex flex-col items-center gap-1 text-center">
+          {replay && (
+            <div className="display animate-fade-in text-xs tracking-widest text-outline opacity-80 sm:text-sm">
+              ● REPLAY
+            </div>
+          )}
           <div className="display text-5xl text-gold text-outline sm:text-7xl">{t.knockout}</div>
           <div className="display text-xl text-outline sm:text-3xl">
             {ko === "ru" ? names.us : names.ru} — {t.knockedDown}
