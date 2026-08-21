@@ -29,14 +29,19 @@ export const getActiveConfigVersion = createServerFn({ method: "GET" }).handler(
         },
       },
     });
+    // Public read: only the active bundle, and never the publisher's identity.
     const { data } = await client
       .from("config_versions")
-      .select("id, label, is_active, created_by_email, created_at, bundle")
+      .select("id, label, is_active, created_at, bundle")
       .eq("is_active", true)
       .limit(1)
       .maybeSingle();
     if (!data) return null;
-    return { ...(data as Omit<ConfigVersion, "bundle">), bundle: JSON.stringify((data as { bundle: unknown }).bundle ?? {}) };
+    return {
+      ...(data as Omit<ConfigVersion, "bundle" | "created_by_email">),
+      created_by_email: null,
+      bundle: JSON.stringify((data as { bundle: unknown }).bundle ?? {}),
+    };
   },
 );
 
@@ -44,7 +49,9 @@ export const getActiveConfigVersion = createServerFn({ method: "GET" }).handler(
 export const listConfigVersions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<ConfigVersion[]> => {
-    const { data, error } = await context.supabase
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
       .from("config_versions")
       .select("id, label, is_active, created_by_email, created_at, bundle")
       .order("created_at", { ascending: false })
