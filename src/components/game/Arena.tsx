@@ -255,6 +255,24 @@ function movesForGift(giftId: string, tier: number): Move[] {
   return pool.length > 0 ? pool : MOVES;
 }
 
+/**
+ * Sparring pool: what the fighters do on their own while no gift is waiting.
+ * Light strikes and kicks carry the rhythm, but the big spots — rope dives,
+ * turnbuckle climbs, suplexes and throws over the ropes — stay in the mix so
+ * the ring keeps showing real action between gifts.
+ */
+const SPAR_MOVES: Move[] = [
+  ...MOVES.filter((move) => move.tier <= 2),
+  ...MOVES.filter((move) => move.tier <= 2),
+  ...MOVES.filter((move) => move.tier === 3),
+  ...MOVES.filter((move) => move.tier >= 4),
+];
+
+/** How often a feeling-out window is replaced by a real sparring spot. */
+const SPAR_CHANCE = 0.72;
+
+
+
 
 /** Moves use the same strict LRU cycle, with the arguments kept in the old order. */
 function drawMove(
