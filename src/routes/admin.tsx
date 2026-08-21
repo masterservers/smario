@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/admin")({
   validateSearch: (search: Record<string, unknown>) => ({
-    lang: isLang(search.lang) ? search.lang : ("en" as Lang),
+    lang: isLang(search['lang']) ? (search['lang'] as Lang) : ("en" as Lang),
   }),
   head: () => ({
     meta: [
