@@ -26,6 +26,9 @@ export function SceneDebugPanel() {
   const progress =
     debug.plannedMs > 0 ? Math.min(100, Math.round((elapsed / debug.plannedMs) * 100)) : 0;
   const blockedAgo = debug.blockedAt > 0 ? Math.round(now - debug.blockedAt) : null;
+  // Development diagnostic: how much of the catalog is actually distinct footage.
+  const stats = visualSequenceStats();
+
 
   return (
     <div className="pointer-events-none absolute bottom-2 left-2 z-30 w-[16.5rem] rounded-xl border border-border/70 bg-background/85 p-2 font-mono text-[10px] leading-tight text-foreground backdrop-blur">
