@@ -132,7 +132,9 @@ export async function judgeRing(matchId: string): Promise<RingVerdict> {
     .select("id, round, ended_at")
     .eq("id", matchId)
     .maybeSingle();
-  if (!matchRow) throw new Error("Unknown match");
+  // A match that was reset, ended or is not on air yet is not an error: the
+  // referee simply has nothing to judge, so it answers with a neutral ring.
+  if (!matchRow) return emptyVerdict(matchId, 1, await loadActiveHitConfig());
 
   const { data: rows, error } = await supabase
     .from("gift_events")
@@ -141,9 +143,9 @@ export async function judgeRing(matchId: string): Promise<RingVerdict> {
     .eq("flagged", false)
     .order("created_at", { ascending: true })
     .limit(1000);
-  if (error) throw new Error("Unable to read the gift feed");
 
-  const events = (rows ?? []) as GiftEvent[];
+  const events = (error ? [] : (rows ?? [])) as GiftEvent[];
+
   const state = reduceEvents(events);
   const config = await loadActiveHitConfig();
   const round = (matchRow.round as number) ?? 1;
