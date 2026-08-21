@@ -75,7 +75,6 @@ export function Scoreboard({
               {names.ruTeam}
             </span>
             {leader === "ru" && <span className="text-xs">👑</span>}
-          </div>
             <span className="display ml-auto text-lg leading-none sm:text-2xl" style={{ color: "var(--ru-glow)" }}>
               {scoreRu}
             </span>
