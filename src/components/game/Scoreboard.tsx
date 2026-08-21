@@ -96,6 +96,7 @@ export function Scoreboard({
     const left = words.pop() ?? head;
     return { lead: words.join(" "), left, right: m[2] ?? "" };
   })();
+  const titleScale = useTitleScale();
   const { time, elapsed } = useRoundClock(matchId, round, ko);
 
   // Referee calls and gift ticker — driven by useTopBanner, which speaks the
