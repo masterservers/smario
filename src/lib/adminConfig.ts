@@ -145,3 +145,15 @@ export function matchTitle(): string {
 export function useMatchTitle(): string {
   return normalizeTitle(useAdminConfig().matchTitle);
 }
+
+/** Keeps the title scale inside a readable range (50% – 500%). */
+export function clampScale(raw: unknown): number {
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(n)) return 3;
+  return Math.min(5, Math.max(0.5, Math.round(n * 20) / 20));
+}
+
+/** Reactive font scale of the match title. */
+export function useTitleScale(): number {
+  return clampScale(useAdminConfig().titleScale);
+}
