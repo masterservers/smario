@@ -30,13 +30,19 @@ export type RefereeRules = {
   resumeDelayMs: number;
 };
 
+/** Which fighter a gift always hits for, or "auto" (the sender decides). */
+export type GiftTargetRule = "ru" | "us" | "auto";
+
 export type HitConfig = {
   /** Base mapping, used by every round that has no override. */
   gifts: Record<GiftId, GiftHitRule>;
   /** Per-round overrides: rounds["3"].rocket replaces the base rule in round 3. */
   rounds: Record<string, Partial<Record<GiftId, GiftHitRule>>>;
+  /** Routing rules: a gift can be locked to Putin (ru) or Trump (us). */
+  routing: Record<GiftId, GiftTargetRule>;
   referee: RefereeRules;
 };
+
 
 const DEFAULT_RULES: Record<GiftId, GiftHitRule> = {
   rose: { kinds: ["punch"], tier: 1, force: 1, stun: 1 },
