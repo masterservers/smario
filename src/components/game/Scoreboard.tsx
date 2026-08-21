@@ -166,30 +166,37 @@ export function Scoreboard({
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        aria-label={`Fight ${names.ru} vs ${names.us}`}
+        aria-label={title}
       >
-        <span className="shrink-0 opacity-90" aria-hidden="true">
-          Fight
-        </span>
+        {titleParts.lead && (
+          <span className="shrink-0 opacity-90" aria-hidden="true">
+            {titleParts.lead}
+          </span>
+        )}
         <span
           className="min-w-0 truncate"
           style={{ color: "var(--ru-glow)" }}
           aria-hidden="true"
         >
-          {names.ru}
+          {titleParts.left}
         </span>
 
-        <span className="shrink-0 opacity-90" aria-hidden="true">
-          vs
-        </span>
-        <span
-          className="min-w-0 truncate"
-          style={{ color: "var(--us-glow)" }}
-          aria-hidden="true"
-        >
-          {names.us}
-        </span>
+        {titleParts.right && (
+          <>
+            <span className="shrink-0 opacity-90" aria-hidden="true">
+              vs
+            </span>
+            <span
+              className="min-w-0 truncate"
+              style={{ color: "var(--us-glow)" }}
+              aria-hidden="true"
+            >
+              {titleParts.right}
+            </span>
+          </>
+        )}
       </div>
+
     </div>
   );
 }
