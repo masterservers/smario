@@ -1234,23 +1234,41 @@ export function Arena({
             />
           ))}
 
-          {/* Outfit layer: when a fighter is sent out without his jacket, his
-              side of the ring gets the stripped-down wrestling-gear look. It is
-              painted over the running footage, so playback, audio and the
+          {/* Outfit layer: a fighter sent out without his jacket gets the
+              stripped-down ring-gear treatment on his half of the ring — warmer
+              skin tones, more contrast, and his corner colour under the lights.
+              It is painted over the running footage, so playback, audio and the
               commentary timing are never touched. */}
           {(["ru", "us"] as const).map((side) =>
             outfits[side] === "gear" ? (
-              <div
-                key={`gear-${side}`}
-                aria-hidden
-                className="pointer-events-none absolute inset-0 transition-opacity duration-500"
-                style={{
-                  background: `radial-gradient(38% 30% at ${side === "ru" ? "38%" : "62%"} 52%, ${
-                    side === "ru" ? "rgba(220,60,60,0.42)" : "rgba(60,110,230,0.42)"
-                  } 0%, rgba(0,0,0,0) 72%)`,
-                  mixBlendMode: "multiply",
-                }}
-              />
+              <div key={`gear-${side}`} aria-hidden className="pointer-events-none absolute inset-0">
+                <div
+                  className="absolute inset-y-0 transition-opacity duration-500"
+                  style={{
+                    left: side === "ru" ? 0 : "50%",
+                    width: "50%",
+                    backdropFilter: "saturate(1.4) contrast(1.14) sepia(0.16) brightness(1.07)",
+                    WebkitBackdropFilter: "saturate(1.4) contrast(1.14) sepia(0.16) brightness(1.07)",
+                    maskImage: `linear-gradient(to ${side === "ru" ? "right" : "left"}, rgb(0 0 0) 55%, transparent 100%)`,
+                    WebkitMaskImage: `linear-gradient(to ${side === "ru" ? "right" : "left"}, rgb(0 0 0) 55%, transparent 100%)`,
+                  }}
+                />
+                <div
+                  className="absolute inset-0 transition-opacity duration-500"
+                  style={{
+                    background: `radial-gradient(34% 28% at ${side === "ru" ? "34%" : "66%"} 54%, ${
+                      side === "ru" ? "rgba(220,60,60,0.34)" : "rgba(60,110,230,0.34)"
+                    } 0%, rgba(0,0,0,0) 74%)`,
+                    mixBlendMode: "soft-light",
+                  }}
+                />
+                <span
+                  className="display absolute top-2 rounded-full bg-background/70 px-2 py-0.5 text-[10px] uppercase tracking-widest backdrop-blur-sm"
+                  style={side === "ru" ? { left: "2%" } : { right: "2%" }}
+                >
+                  {side === "ru" ? "RU" : "US"} · ring gear
+                </span>
+              </div>
             ) : null,
           )}
 
