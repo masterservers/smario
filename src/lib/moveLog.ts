@@ -29,6 +29,43 @@ export type MoveLogEntry = {
 };
 
 const MAX = 2000;
+const CHANNEL = "pvt.moveLog";
+
+/**
+ * The arena and the admin console usually live in two different tabs, so every
+ * entry is mirrored over a broadcast channel: the log fills up wherever the
+ * fight runs and can be exported from the console.
+ */
+function bus(): BroadcastChannel | null {
+  if (typeof window === "undefined" || !("BroadcastChannel" in window)) return null;
+  return new BroadcastChannel(CHANNEL);
+}
+
+let mirror: BroadcastChannel | null = null;
+type Wire = { kind: "entry"; row: MoveLogEntry } | { kind: "line"; row: MoveLogEntry } | { kind: "clear" };
+
+function publish(message: Wire) {
+  const channel = bus();
+  channel?.postMessage(message);
+  channel?.close();
+}
+
+function listen() {
+  if (mirror || typeof window === "undefined") return;
+  mirror = bus();
+  mirror?.addEventListener("message", (event: MessageEvent<Wire>) => {
+    const message = event.data;
+    if (message.kind === "clear") {
+      entries = [];
+      emit();
+      return;
+    }
+    const row = message.row;
+    const index = entries.findIndex((item) => item.seq === row.seq && item.at === row.at);
+    entries = index === -1 ? [...entries, row].slice(-MAX) : entries.map((item, i) => (i === index ? row : item));
+    emit();
+  });
+}
 
 let seq = 0;
 let started = performance.now();
@@ -52,14 +89,17 @@ export function logMove(entry: Omit<MoveLogEntry, "seq" | "at" | "ms" | "lang" |
   };
   entries = [...entries, row].slice(-MAX);
   emit();
+  publish({ kind: "entry", row });
 }
 
 /** Attaches the announcer line to the move that is currently on screen. */
 export function logLine(text: string, lang: string) {
   const last = entries[entries.length - 1];
   if (!last || last.line) return;
-  entries = [...entries.slice(0, -1), { ...last, line: text, lang }];
+  const updated = { ...last, line: text, lang };
+  entries = [...entries.slice(0, -1), updated];
   emit();
+  publish({ kind: "line", row: updated });
 }
 
 export function getMoveLog(): MoveLogEntry[] {
@@ -71,11 +111,13 @@ export function clearMoveLog() {
   seq = 0;
   started = performance.now();
   emit();
+  publish({ kind: "clear" });
 }
 
 export function useMoveLog(): MoveLogEntry[] {
   const [value, setValue] = useState<MoveLogEntry[]>(entries);
   useEffect(() => {
+    listen();
     setValue(entries);
     listeners.add(setValue);
     return () => {
