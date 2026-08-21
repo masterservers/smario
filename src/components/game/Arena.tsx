@@ -959,14 +959,18 @@ export function Arena({
       window.setTimeout(() => {
         if (playing.current) setFrame(clampFrame(baseFrame.current));
       }, 190);
-      // Sparks live exactly as long as the stun plus the landing/recovery beat.
+      // Sparks live exactly as long as the stun plus the landing/recovery beat,
+      // and they are drawn on the real contact point between the two bodies.
       const sparkLife = Math.round(profile.stun + profile.recovery * 520);
+      const point = contactPointOf(move, kind, event.side, kind === "throw" || kind === "aerial");
       const burst = {
         id: event.id,
         side: defender,
         force: profile.force,
         life: sparkLife,
         count: Math.round(8 + profile.force * 10 + move.tier * 2),
+        left: point.left,
+        top: point.top,
       };
       if (!lite) {
         setSparks((previous) => [...previous.slice(-2), burst]);
