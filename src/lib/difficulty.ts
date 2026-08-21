@@ -39,6 +39,25 @@ export const DIFFICULTY_LABEL: Record<Lang, Record<Difficulty, string>> & {
   },
 };
 
+/** Short UI labels for the three tuned values, per language. */
+export const DIFFICULTY_TERMS: Record<Lang, { speed: string; rate: string; variety: string }> = {
+  en: { speed: "Speed", rate: "Move rate", variety: "Anti-repeat" },
+  de: { speed: "Tempo", rate: "Aktionsrate", variety: "Anti-Wiederholung" },
+  sr: { speed: "Brzina", rate: "Učestalost", variety: "Bez ponavljanja" },
+  ro: { speed: "Viteză", rate: "Frecvență", variety: "Anti-repetiție" },
+  ru: { speed: "Скорость", rate: "Частота", variety: "Без повторов" },
+};
+
+/** Human-readable values shown in the picker before the match starts. */
+export function difficultyStats(value: Difficulty) {
+  const cfg = DIFFICULTY_CONFIG[value];
+  return {
+    speed: `${cfg.speed.toFixed(2)}×`,
+    rate: `${Math.round(1000 / cfg.tickMs)}/s`,
+    variety: `${cfg.moveMemory} + ${cfg.followMemory}`,
+  };
+}
+
 export const DIFFICULTY_ICON: Record<Difficulty, string> = {
   calm: "🐢",
   normal: "⚔️",

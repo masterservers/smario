@@ -2,6 +2,8 @@ import {
   DIFFICULTIES,
   DIFFICULTY_ICON,
   DIFFICULTY_LABEL,
+  DIFFICULTY_TERMS,
+  difficultyStats,
   type Difficulty,
 } from "@/lib/difficulty";
 import type { Lang } from "@/lib/i18n";
@@ -34,17 +36,47 @@ export function DifficultyPicker({ lang, value, onChange }: Props) {
           {DIFFICULTY_ICON[value]}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-40">
-        {DIFFICULTIES.map((item) => (
-          <DropdownMenuItem
-            key={item}
-            onSelect={() => onChange(item)}
-            className={item === value ? "font-semibold text-primary" : undefined}
-          >
-            <span className="mr-2">{DIFFICULTY_ICON[item]}</span>
-            {DIFFICULTY_LABEL[lang][item]}
-          </DropdownMenuItem>
-        ))}
+      <DropdownMenuContent align="end" className="w-64">
+        <div className="px-2 py-1.5 text-xs uppercase tracking-widest text-muted-foreground">
+          {DIFFICULTY_LABEL.title[lang]}
+        </div>
+        {DIFFICULTIES.map((item) => {
+          const stats = difficultyStats(item);
+          const terms = DIFFICULTY_TERMS[lang];
+          return (
+            <DropdownMenuItem
+              key={item}
+              onSelect={() => onChange(item)}
+              className="flex-col items-start gap-1 py-2"
+            >
+              <span
+                className={
+                  item === value ? "font-semibold text-primary" : "font-medium text-foreground"
+                }
+              >
+                {DIFFICULTY_ICON[item]} {DIFFICULTY_LABEL[lang][item]}
+                {item === value ? " ✓" : ""}
+              </span>
+              <span className="grid w-full grid-cols-3 gap-1 text-[10px] leading-tight text-muted-foreground">
+                <span>
+                  {terms.speed}
+                  <br />
+                  <span className="text-foreground">{stats.speed}</span>
+                </span>
+                <span>
+                  {terms.rate}
+                  <br />
+                  <span className="text-foreground">{stats.rate}</span>
+                </span>
+                <span>
+                  {terms.variety}
+                  <br />
+                  <span className="text-foreground">{stats.variety}</span>
+                </span>
+              </span>
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
