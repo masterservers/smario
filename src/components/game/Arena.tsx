@@ -591,7 +591,9 @@ export function Arena({
       currentMove.current = move;
       playing.current = true;
       impacted.current = false;
+      settling.current = false;
       stopAt.current = move.end;
+
       impactAt.current = move.impact;
       setAttacker(event.side);
       setFloats((previous) => [
