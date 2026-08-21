@@ -132,16 +132,20 @@ function BattlePage() {
     setActiveRound(round);
   }, [round]);
 
+  // Arena ambience follows the same sound switch as the announcer.
+  useEffect(() => {
+    setCrowdEnabled(!muted);
+    return () => setCrowdEnabled(false);
+  }, [muted]);
+
   // Spoken commands pushed live from the admin console.
   useControlBus(
     useCallback(
       (message: ControlMessage) => {
         if (message.type !== "say") return;
         publishSubtitle(message.text, "ref", 4000);
-        if (muted || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-        const utterance = new SpeechSynthesisUtterance(message.text);
-        utterance.lang = VOICE_LOCALE[message.lang];
-        window.speechSynthesis.speak(utterance);
+        if (muted) return;
+        announce(message.text, message.lang, 3);
       },
       [muted],
     ),
