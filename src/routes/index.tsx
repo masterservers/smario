@@ -14,6 +14,7 @@ import { RefereeCount } from "@/components/game/RefereeCount";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Button } from "@/components/ui/button";
 import { MixButton } from "@/components/game/MixButton";
+import { OutfitButton } from "@/components/game/OutfitButton";
 import { announce, announceHit, announceScene, announceSpar, useCommentary } from "@/hooks/useCommentary";
 import { setCrowdEnabled } from "@/lib/crowd";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
@@ -228,6 +229,7 @@ function BattlePage() {
           {muted ? "🔇" : "🔊"}
         </Button>
         <MixButton lang={lang} />
+        <OutfitButton />
         <Link
           to="/admin"
           search={{ lang }}
