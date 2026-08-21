@@ -58,6 +58,7 @@ const STATE: BattleState = {
 };
 
 /** All lines ever emitted (the hook itself keeps only the last few). */
+let clockBase = Date.now();
 let captured: CommentaryLine[] = [];
 const seenIds = new Set<string>();
 
@@ -95,7 +96,10 @@ beforeEach(() => {
   spoken.length = 0;
   captured = [];
   seenIds.clear();
-  vi.useFakeTimers();
+  // The voice lane is module state keyed on wall-clock time; each test starts
+  // well after the previous one so no stale spacing blocks the queue.
+  clockBase += 600_000;
+  vi.useFakeTimers({ now: clockBase });
   installSpeechMock();
   stopCommentary(); // reset the shared voice lane between tests
 });
@@ -180,7 +184,6 @@ describe("commentary / impact synchronisation", () => {
     await settle();
     const text = captured[linesBefore].text;
     const call = spoken.slice(spokenBefore).find((s) => s.text === text);
-    if (!call) console.log("LINES", captured.map(l=>l.text), "SPOKEN", spoken.map(s=>s.text));
     expect(call, "the gift hit was never voiced").toBeTruthy();
     expect(call!.at - impactAt).toBeGreaterThanOrEqual(0);
     expect(call!.at - impactAt).toBeLessThanOrEqual(MAX_LAG_MS);
