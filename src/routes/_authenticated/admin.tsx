@@ -26,6 +26,7 @@ import {
   type RefereeRules,
 } from "@/lib/hitConfig";
 
+import { ConfigManager } from "@/components/admin/ConfigManager";
 import { ALL_SCENES } from "@/lib/scenes";
 import {
   exportSceneConfig,
@@ -726,6 +727,15 @@ function AdminPage() {
             ) : null}
           </div>
         </details>
+
+        <ConfigManager
+          onApplied={() => {
+            setScenes(getSceneConfig());
+            setHits(getHitConfig());
+          }}
+          record={record}
+        />
+
 
 
         {(["move", "follow", "idle"] as const).map((group) => (
