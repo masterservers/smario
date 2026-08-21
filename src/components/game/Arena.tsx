@@ -22,6 +22,12 @@ import {
   type Move,
 } from "@/lib/scenes";
 import { moveKind } from "@/lib/moveKind";
+import {
+  completionEndOf,
+  contactPointOf,
+  followThroughOf,
+  impactTimeOf,
+} from "@/lib/collision";
 import { commitPendingConfig } from "@/lib/pendingConfig";
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
 import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
