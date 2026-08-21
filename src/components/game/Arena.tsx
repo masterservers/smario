@@ -194,7 +194,8 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     queue.current.push(...fresh.slice(-5));
   }, [events]);
 
-  // Freeze the fight on the downed frame when someone gets knocked out.
+  // Knockout: instant slow-motion replay of the finish (~2.5s), then the loser
+  // stays down on the mat. Nothing covers the ring.
   useEffect(() => {
     if (!ko) return;
     const video = videoRef.current;
@@ -202,12 +203,21 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
     playing.current = false;
     currentEvent.current = null;
     currentMove.current = null;
-    video.playbackRate = 0.5;
     const finisher = MOVES.find((move) => move.id === "finisher")!;
-    video.currentTime = finisher.impact;
+    cheer(2);
+
+    // Replay: rewind slightly before the finish and play it back in slow motion.
+    video.playbackRate = 0.45;
+    seek(video, Math.max(0, finisher.impact - 1.2));
     void video.play();
-    const timer = window.setTimeout(() => video.pause(), 1200);
-    return () => window.clearTimeout(timer);
+
+    const settle = window.setTimeout(() => {
+      video.playbackRate = 0.35;
+      seek(video, finisher.impact);
+      void video.play();
+      window.setTimeout(() => video.pause(), 900);
+    }, 2500);
+    return () => window.clearTimeout(settle);
   }, [ko]);
 
   useEffect(() => {
@@ -221,8 +231,9 @@ export function Arena({ lang, events, ko, combo, comboSide }: Props) {
       if (video.paused || video.currentTime < scene.start || video.currentTime > scene.end) {
         if (video.currentTime < scene.start || video.currentTime > scene.end) {
           idleScene.current = pick(IDLE_SCENES);
-          video.currentTime = idleScene.current.start;
+          seek(video, idleScene.current.start);
         }
+
         video.playbackRate = idleScene.current.rate;
         void video.play();
       }
