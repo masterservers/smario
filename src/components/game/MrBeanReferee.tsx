@@ -1,7 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import beanImg from "@/assets/mr-bean-ref-cutout.png";
-import type { Lang } from "@/lib/i18n";
+import { LANG_META, type Lang } from "@/lib/i18n";
 import { useDebugView } from "@/lib/debugView";
+import { publishSubtitle } from "@/lib/subtitles";
+import { nextBeanDelay, useBeanConfig } from "@/lib/beanConfig";
 
 /** The gags the referee runs between exchanges. */
 type Gag = "break" | "hit" | "count" | "comic" | "separate" | "stray";
@@ -52,9 +54,17 @@ const LINES: Record<Lang, Record<Gag, string>> = {
 /** Fixed rotation: separation work, a stray blow, then one of his routines. */
 const GAGS: Gag[] = ["separate", "hit", "break", "stray", "comic", "separate", "count", "stray"];
 
-/** He steps in on a steady beat so the fight itself never has to pause. */
-const INTERVAL_MS = 14000;
-const VISIBLE_MS = 4200;
+/** The gag animations only start after the walk-in, so the voice waits too. */
+const GAG_CUE_MS: Record<Gag, number> = {
+  separate: 300,
+  break: 300,
+  hit: 700,
+  stray: 700,
+  comic: 500,
+  count: 400,
+};
+
+type Run = { id: number; gag: Gag; from: "left" | "right" };
 
 type Props = {
   lang: Lang;
@@ -62,39 +72,99 @@ type Props = {
   beat: number;
   /** True while the referee is counting a fighter out. */
   counting: boolean;
+  /** Current combo length; a long chain pulls him in to separate the fighters. */
+  combo?: number;
+  /** Silences his voice line (captions still show). */
+  muted?: boolean;
 };
 
 /**
- * Mr. Bean works the ring. He walks in on a fixed beat between exchanges, tries
- * to pull the fighters apart, catches the odd stray blow and pulls one of his
- * own comic routines — always as an overlay, never blocking the action.
+ * Mr. Bean works the ring. He walks in on a configurable beat between
+ * exchanges, and can also be pulled in by match events (a run of landed hits,
+ * or a long combo). Always an overlay — the fight itself never pauses.
  */
-export function MrBeanReferee({ lang, beat, counting }: Props) {
-  const [run, setRun] = useState<{ id: number; gag: Gag; from: "left" | "right" } | null>(null);
+export function MrBeanReferee({ lang, beat, counting, combo = 0, muted = false }: Props) {
+  const config = useBeanConfig();
+  const [run, setRun] = useState<Run | null>(null);
   const debug = useDebugView();
 
-  // Fixed cadence — one intervention every INTERVAL_MS, in a stable rotation.
+  const stepRef = useRef(0);
+  const lastAtRef = useRef(0);
+  const countingRef = useRef(counting);
+  countingRef.current = counting;
+
+  /** Start a gag, unless one is running, he is counting, or we are cooling down. */
+  const trigger = useCallback(
+    (force = false) => {
+      if (!config.enabled || countingRef.current) return;
+      const now = Date.now();
+      if (!force && now - lastAtRef.current < config.cooldownSec * 1000) return;
+      if (now - lastAtRef.current < config.visibleMs) return; // never cut a gag short
+      lastAtRef.current = now;
+      const step = stepRef.current++;
+      setRun({ id: now, gag: GAGS[step % GAGS.length]!, from: step % 2 === 0 ? "left" : "right" });
+    },
+    [config.enabled, config.cooldownSec, config.visibleMs],
+  );
+
+  // Configurable cadence: a fresh random gap inside [minSec, maxSec] each time.
   useEffect(() => {
-    let step = 0;
-    const tick = () => {
-      const gag = GAGS[step % GAGS.length]!;
-      setRun({ id: Date.now(), gag, from: step % 2 === 0 ? "left" : "right" });
-      step += 1;
+    if (!config.enabled) {
+      setRun(null);
+      return;
+    }
+    let timer = 0;
+    const schedule = (delay: number) => {
+      timer = window.setTimeout(() => {
+        // Skip silently while the tab is hidden — no wasted work, no backlog.
+        if (!document.hidden) trigger();
+        schedule(nextBeanDelay(config));
+      }, delay);
     };
-    const first = window.setTimeout(tick, 4000);
-    const timer = window.setInterval(tick, INTERVAL_MS);
-    return () => {
-      window.clearTimeout(first);
-      window.clearInterval(timer);
-    };
-  }, []);
+    schedule(Math.min(4000, nextBeanDelay(config)));
+    return () => window.clearTimeout(timer);
+  }, [config, trigger]);
+
+  // Match events: every N landed hits, and on a long combo.
+  const lastHitMark = useRef(0);
+  useEffect(() => {
+    if (!config.everyNHits) return;
+    const mark = Math.floor(beat / config.everyNHits);
+    if (mark === lastHitMark.current) return;
+    lastHitMark.current = mark;
+    if (mark > 0) trigger();
+  }, [beat, config.everyNHits, trigger]);
+
+  const lastCombo = useRef(0);
+  useEffect(() => {
+    if (!config.comboTrigger) return;
+    if (combo >= config.comboTrigger && combo > lastCombo.current) trigger();
+    lastCombo.current = combo;
+  }, [combo, config.comboTrigger, trigger]);
 
   // Each appearance lasts a few seconds, then he clears the mat.
   useEffect(() => {
     if (!run) return;
-    const id = window.setTimeout(() => setRun(null), VISIBLE_MS);
+    const id = window.setTimeout(() => setRun(null), config.visibleMs);
     return () => window.clearTimeout(id);
-  }, [run]);
+  }, [run, config.visibleMs]);
+
+  // Caption and voice fire on the same cue as the comic beat of the animation,
+  // so the subtitle, the speech and the gag are frame-aligned in every language.
+  useEffect(() => {
+    if (!run) return;
+    const line = LINES[lang][run.gag];
+    const cue = GAG_CUE_MS[run.gag];
+    const id = window.setTimeout(() => {
+      publishSubtitle(`🧑‍⚖️ ${line}`, "ref", Math.max(1500, config.visibleMs - cue));
+      if (muted || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+      const utterance = new SpeechSynthesisUtterance(line);
+      utterance.lang = LANG_META[lang].speech;
+      utterance.rate = 1.05;
+      window.speechSynthesis.speak(utterance);
+    }, cue);
+    return () => window.clearTimeout(id);
+  }, [run, lang, muted, config.visibleMs]);
 
   // A fresh blow while he is on the mat catches him by mistake.
   const [struck, setStruck] = useState(0);
@@ -117,6 +187,7 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
   useLayoutEffect(() => {
     const el = hostRef.current;
     if (!el) return;
+    let frame = 0;
     const measure = () => {
       const host = el.getBoundingClientRect();
       if (!host.width || !host.height) return;
@@ -137,16 +208,25 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
       const h = w / ar;
       setFit({ w, h, x: (host.width - w) / 2, y: (host.height - h) / 2 });
     };
+    // Coalesce resize bursts into one measurement per frame — no layout thrash
+    // on weaker devices while the overlay is animating.
+    const queue = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        measure();
+      });
+    };
     measure();
-    const ro = new ResizeObserver(measure);
+    const ro = new ResizeObserver(queue);
     ro.observe(el);
-    const onResize = () => measure();
-    window.addEventListener("resize", onResize);
-    window.addEventListener("orientationchange", onResize);
+    window.addEventListener("resize", queue);
+    window.addEventListener("orientationchange", queue);
     return () => {
+      if (frame) window.cancelAnimationFrame(frame);
       ro.disconnect();
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("orientationchange", onResize);
+      window.removeEventListener("resize", queue);
+      window.removeEventListener("orientationchange", queue);
     };
   }, [run?.id]);
 
@@ -158,7 +238,7 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
   return (
     <div
       ref={hostRef}
-      className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-20 overflow-hidden [contain:layout_paint_style]"
     >
       <div
         style={{ width: fit.w, height: fit.h, left: fit.x, top: fit.y }}
@@ -180,8 +260,9 @@ export function MrBeanReferee({ lang, beat, counting }: Props) {
           <img
             src={beanImg}
             alt="Referee Mr. Bean stepping between the fighters"
-            loading="lazy"
-            className={`h-full min-h-0 w-auto object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.65)] ${
+            decoding="async"
+            fetchPriority="low"
+            className={`h-full min-h-0 w-auto object-contain [backface-visibility:hidden] drop-shadow-[0_6px_18px_rgba(0,0,0,0.55)] ${
               debug ? "outline outline-1 outline-rose-400/90" : ""
             } ${
               takesHit
