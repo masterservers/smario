@@ -754,7 +754,61 @@ export function Arena({
           // Safe boundary: the previous scene finished, so a staged
           // configuration import can be applied without cutting the action.
           commitPendingConfig("scene");
+
+          // Sparring: with no gift waiting the two keep fighting on their own —
+          // punches, kicks, rope spots, throws — instead of only circling.
+          if (!giftWaiting && !paused && Math.random() < SPAR_CHANCE) {
+            const move = drawMove(
+              SPAR_MOVES,
+              recentMoves.current,
+              moveUsage.current,
+              moveCooldowns.current,
+              varietyRef.current.cooldownMs,
+            );
+            recentMoves.current = [...recentMoves.current, move.id].slice(
+              -Math.max(cfgRef.current.moveMemory, varietyRef.current.rotation),
+            );
+            const side: Side = Math.random() < 0.5 ? "ru" : "us";
+            currentEvent.current = {
+              id: `spar-${Math.random().toString(36).slice(2, 8)}`,
+              side,
+              gift: "rose",
+              value: 0,
+              sender: "spar",
+              created_at: new Date().toISOString(),
+            };
+            currentMove.current = move;
+            sparring.current = true;
+            playing.current = true;
+            impacted.current = false;
+            settling.current = false;
+            stopAt.current = move.end;
+            impactAt.current = move.impact;
+            const entry = entryOf(move, varietyRef.current.entryJitter);
+            lockUntil.current =
+              performance.now() +
+              ((move.end - entry) / (move.rate * cfgRef.current.speed)) * 1000;
+            setAttacker(side);
+            logRef.current?.("move", `${side.toUpperCase()} · ${move.label}`);
+            const shot = frameFor(move);
+            baseFrame.current = shot;
+            setPhase("windup");
+            setFrame(clampFrame(shot));
+            switchScene(entry, move.rate * cfgRef.current.speed, true);
+            sceneStartedAt.current = performance.now();
+            sceneRef.current?.({ id: move.id, label: move.label });
+            sceneStarted({
+              id: move.id,
+              label: move.label,
+              group: "move",
+              plannedMs: lockUntil.current - performance.now(),
+              reason: "sparring — no gift waiting",
+            });
+            return;
+          }
+
           const next = drawIdle(idleUsage.current, recentIdle.current, video.currentTime);
+
           idleScene.current = next;
           const rate = next.rate * cfgRef.current.speed;
           switchScene(next.start, rate);
