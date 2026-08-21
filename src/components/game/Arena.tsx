@@ -412,16 +412,10 @@ export function Arena({
   const cfgRef = useRef(cfg);
   cfgRef.current = cfg;
 
-  // Low-power phones: skip the per-hit colour grading repaint, which is the
-  // most expensive effect during a fast exchange.
-  const [lite, setLite] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const cores = navigator.hardwareConcurrency ?? 8;
-    const coarse = window.matchMedia("(pointer: coarse)").matches;
-    setLite(reduced || cores <= 4 || (coarse && window.innerWidth < 480));
-  }, []);
+  // Low-power phones: skip the per-hit colour grading repaint and thin out the
+  // particle overlays. Detection is shared (device heuristics + live FPS).
+  const lite = usePerfMode();
+
 
   // Stop decoding frames while the tab is in the background.
   useEffect(() => {
