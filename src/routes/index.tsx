@@ -10,6 +10,7 @@ import { loadSubtitlesOn } from "@/lib/subtitles";
 import { SceneDebugPanel } from "@/components/game/SceneDebugPanel";
 import { useRemoteConfig } from "@/lib/useRemoteConfig";
 import { RefereeCount } from "@/components/game/RefereeCount";
+import { MrBeanReferee } from "@/components/game/MrBeanReferee";
 import { Scoreboard } from "@/components/game/Scoreboard";
 import { Button } from "@/components/ui/button";
 import { announceHit, announceScene, useCommentary } from "@/hooks/useCommentary";
@@ -209,7 +210,7 @@ function BattlePage() {
           Gifts, chat, language and tuning now live only in /admin. */}
 
       {/* Minimal rail at the top-right: sound + admin, never over the mat. */}
-      <div className="absolute right-2 top-14 z-20 flex flex-col items-center gap-2">
+      <div className="absolute right-2 top-16 z-20 flex flex-col items-center gap-2">
         <Button
           type="button"
           onClick={() => setMuted((m) => !m)}
