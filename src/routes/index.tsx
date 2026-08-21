@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
+import { useTopBanner } from "@/hooks/useTopBanner";
 import type { GiftId, Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
@@ -91,6 +92,15 @@ function BattlePage() {
   );
   const referee = useReferee(state.hpRu, state.hpUs, state.ko);
   useCommentary(lang, events, state, muted, referee);
+  const banner = useTopBanner({
+    lang,
+    matchId,
+    round,
+    ko: state.ko,
+    koConfirmed: referee.koConfirmed,
+    events,
+    muted,
+  });
 
   // Gift/chat commands land in the trace as soon as they arrive over the wire.
   const loggedGifts = useRef<Set<string>>(new Set());
@@ -169,6 +179,7 @@ function BattlePage() {
           matchId={matchId}
           ko={state.ko}
           koConfirmed={referee.koConfirmed}
+          banner={banner}
         />
       </div>
 

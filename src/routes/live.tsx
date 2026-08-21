@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useCommentary } from "@/hooks/useCommentary";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
 import { useReferee } from "@/hooks/useReferee";
+import { useTopBanner } from "@/hooks/useTopBanner";
 import type { GiftId, Side } from "@/lib/battle";
 import { isLang, SIDE_NAME, UI_TEXT, type Lang } from "@/lib/i18n";
 
@@ -75,6 +76,15 @@ function LivePage() {
   const { matchId, round, events, state, viewers, nickname, ready, sendGift } = useLiveMatch(lang);
   const referee = useReferee(state.hpRu, state.hpUs, state.ko);
   useCommentary(lang, events, state, muted, referee);
+  const banner = useTopBanner({
+    lang,
+    matchId,
+    round,
+    ko: state.ko,
+    koConfirmed: referee.koConfirmed,
+    events,
+    muted,
+  });
 
   const t = UI_TEXT[lang];
   const names = SIDE_NAME[lang];
@@ -127,6 +137,7 @@ function LivePage() {
           matchId={matchId}
           ko={state.ko}
           koConfirmed={referee.koConfirmed}
+          banner={banner}
         />
       </div>
 
