@@ -62,6 +62,8 @@ const hitRuleSchema = z
 const hitsSchema = z
   .object({
     gifts: z.record(z.enum(giftIds), hitRuleSchema).optional(),
+    routing: z.record(z.enum(giftIds), z.enum(["ru", "us", "auto"])).optional(),
+
     referee: z
       .object({
         knockdownCount: z.number().min(3).max(12),
