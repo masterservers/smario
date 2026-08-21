@@ -15,7 +15,13 @@ export type AuditEntry = {
   created_at: string;
 };
 
-/** Which staff role (if any) the signed-in user holds. */
+/**
+ * Which staff role (if any) the signed-in user holds.
+ *
+ * Two-factor is enforced here as well as in the browser: once an account has a
+ * verified authenticator, a session that is still at assurance level 1 gets no
+ * role back, so every console call fails until the code has been entered.
+ */
 export const getMyStaffRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -24,10 +30,21 @@ export const getMyStaffRole = createServerFn({ method: "POST" })
       supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
       supabase.rpc("has_role", { _user_id: userId, _role: "moderator" }),
     ]);
-    const role: StaffRole = isAdmin ? "admin" : isModerator ? "moderator" : null;
+    let role: StaffRole = isAdmin ? "admin" : isModerator ? "moderator" : null;
     const email = (claims as { email?: string } | null)?.email ?? null;
-    return { role, email, userId };
+    const aal = (claims as { aal?: string } | null)?.aal ?? "aal1";
+
+    let mfaEnrolled = false;
+    if (role) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: factors } = await supabaseAdmin.auth.admin.mfa.listFactors({ userId });
+      mfaEnrolled = (factors?.factors ?? []).some((factor) => factor.status === "verified");
+      if (mfaEnrolled && aal !== "aal2") role = null;
+    }
+
+    return { role, email, userId, aal, mfaEnrolled, mfaRequired: mfaEnrolled && aal !== "aal2" };
   });
+
 
 /** Records one admin-console change: who, when and exactly what changed. */
 export const logAdminChange = createServerFn({ method: "POST" })
