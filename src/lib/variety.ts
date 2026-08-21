@@ -12,23 +12,27 @@ export type VarietyConfig = {
   rotation: number;
   /** 0..1 — how much the entry frame of a move may drift. */
   entryJitter: number;
+  /** Max scenes of the same physical family (punches, kicks, rope…) in a row. */
+  familyStreak: number;
 };
 
 export const VARIETY_DEFAULT: VarietyConfig = {
   cooldownMs: 12000,
   rotation: 12,
   entryJitter: 0.6,
+  familyStreak: 2,
 };
 
 export const VARIETY_LIMITS = {
   cooldownMs: { min: 0, max: 45000, step: 1000 },
   rotation: { min: 2, max: 28, step: 1 },
   entryJitter: { min: 0, max: 1, step: 0.05 },
+  familyStreak: { min: 1, max: 6, step: 1 },
 } as const;
 
 export const VARIETY_TEXT: Record<
   Lang,
-  { title: string; cooldown: string; rotation: string; jitter: string; reset: string; hint: string }
+  { title: string; cooldown: string; rotation: string; jitter: string; family: string; reset: string; hint: string }
 > = {
   en: {
     title: "Referee · anti-repeat",
@@ -84,6 +88,11 @@ export function loadVariety(): VarietyConfig {
       cooldownMs: clamp(parsed.cooldownMs, VARIETY_DEFAULT.cooldownMs, VARIETY_LIMITS.cooldownMs),
       rotation: clamp(parsed.rotation, VARIETY_DEFAULT.rotation, VARIETY_LIMITS.rotation),
       entryJitter: clamp(parsed.entryJitter, VARIETY_DEFAULT.entryJitter, VARIETY_LIMITS.entryJitter),
+      familyStreak: clamp(
+        parsed.familyStreak,
+        VARIETY_DEFAULT.familyStreak,
+        VARIETY_LIMITS.familyStreak,
+      ),
     };
   } catch {
     return VARIETY_DEFAULT;
