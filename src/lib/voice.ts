@@ -66,6 +66,11 @@ export async function getVoiceClip(
   return task;
 }
 
+/** Cached clip for a line, if it is already generated (no network wait). */
+export function peekVoiceClip(text: string, lang: Lang, tone: VoiceTone = "normal"): string | null {
+  return cache.get(key(text, lang, tone)) ?? null;
+}
+
 /** Warm the cache for a line we expect to say soon (round intros, ref counts). */
 export function prefetchVoice(text: string, lang: Lang, tone: VoiceTone = "normal") {
   void getVoiceClip(text, lang, tone);
