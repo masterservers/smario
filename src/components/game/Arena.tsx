@@ -46,14 +46,19 @@ type HitProfile = {
   settleRate: number;
   cheer: number;
   koHold: number;
+  /** Extra push-in at the moment of impact (kept small — never a close-up). */
+  impactZoom: number;
+  /** Camera tilt down + push-in while the action settles on the mat. */
+  matY: number;
+  matZoom: number;
 };
 
 const HIT_PROFILE: Record<HitKind, HitProfile> = {
-  punch:   { stun: 380, force: 0.85, recovery: 0.45, settleRate: 0.95, cheer: 1,   koHold: 1100 },
-  kick:    { stun: 700, force: 1.15, recovery: 0.9,  settleRate: 0.9,  cheer: 1.2, koHold: 1400 },
-  grapple: { stun: 900, force: 0.9,  recovery: 1.6,  settleRate: 0.85, cheer: 1.2, koHold: 1600 },
-  aerial:  { stun: 1200, force: 1.35, recovery: 2.2, settleRate: 0.82, cheer: 1.6, koHold: 1900 },
-  throw:   { stun: 1400, force: 1.6,  recovery: 2.6, settleRate: 0.78, cheer: 1.8, koHold: 2200 },
+  punch:   { stun: 380, force: 0.85, recovery: 0.45, settleRate: 0.95, cheer: 1,   koHold: 1100, impactZoom: 0.01, matY: 0.4, matZoom: 0.01 },
+  kick:    { stun: 700, force: 1.15, recovery: 0.9,  settleRate: 0.9,  cheer: 1.2, koHold: 1400, impactZoom: 0.02, matY: 0.8, matZoom: 0.02 },
+  grapple: { stun: 900, force: 0.9,  recovery: 1.6,  settleRate: 0.85, cheer: 1.2, koHold: 1600, impactZoom: 0.025, matY: 1.6, matZoom: 0.03 },
+  aerial:  { stun: 1200, force: 1.35, recovery: 2.2, settleRate: 0.82, cheer: 1.6, koHold: 1900, impactZoom: 0.035, matY: 2.4, matZoom: 0.045 },
+  throw:   { stun: 1400, force: 1.6,  recovery: 2.6, settleRate: 0.78, cheer: 1.8, koHold: 2200, impactZoom: 0.04, matY: 2.8, matZoom: 0.05 },
 };
 
 /**
@@ -87,6 +92,16 @@ function frameFor(move: Move): Frame {
   };
 }
 
+
+/** Clamp every camera move so the shot stays wide and readable. */
+function clampFrame(frame: Frame): Frame {
+  return {
+    x: Math.max(-7, Math.min(7, frame.x)),
+    y: Math.max(-3.5, Math.min(4, frame.y)),
+    scale: Math.max(0.96, Math.min(1.09, frame.scale)),
+    rotate: Math.max(-1.6, Math.min(1.6, frame.rotate)),
+  };
+}
 
 /**
  * The reel is one continuous wide camera, 40s long, built from four blocks:
