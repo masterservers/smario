@@ -27,6 +27,7 @@ import {
 } from "@/lib/hitConfig";
 
 import { ConfigManager } from "@/components/admin/ConfigManager";
+import { TwoFactorGate, TwoFactorSettings, useMfaState } from "@/components/admin/TwoFactor";
 import { ALL_SCENES } from "@/lib/scenes";
 import {
   exportSceneConfig,
@@ -102,6 +103,8 @@ function AdminPage() {
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [role, setRole] = useState<StaffRole | "loading">("loading");
   const [actor, setActor] = useState<string | null>(null);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const { state: mfa, refresh: refreshMfa } = useMfaState();
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [probes, setProbes] = useState<Record<"liveUrl" | "webhookUrl", SourceProbe | null>>({
     liveUrl: null,
@@ -119,18 +122,21 @@ function AdminPage() {
     }
   }, []);
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const me = await getMyStaffRole();
-        setRole(me.role);
-        setActor(me.email);
-        if (me.role) void loadAudit();
-      } catch {
-        setRole(null);
-      }
-    })();
+  const reloadRole = useCallback(async () => {
+    try {
+      const me = await getMyStaffRole();
+      setRole(me.role);
+      setActor(me.email);
+      setMfaRequired(me.mfaRequired);
+      if (me.role) void loadAudit();
+    } catch {
+      setRole(null);
+    }
   }, [loadAudit]);
+
+  useEffect(() => {
+    void reloadRole();
+  }, [reloadRole]);
 
   /**
    * Writes an audit entry. Field edits fire on every keystroke, so identical
@@ -257,7 +263,21 @@ function AdminPage() {
     window.location.href = "/auth";
   };
 
-  if (role === "loading") {
+  // Two-factor gate: a session that has not passed the authenticator (or an
+  // account with a role but no authenticator yet) never reaches the console.
+  if (mfa !== "loading" && (mfaRequired || (role !== "loading" && role && mfa === "enroll"))) {
+    return (
+      <TwoFactorGate
+        state={mfa === "ready" ? "challenge" : mfa}
+        onPassed={() => {
+          void refreshMfa();
+          void reloadRole();
+        }}
+      />
+    );
+  }
+
+  if (role === "loading" || mfa === "loading") {
     return (
       <main className="mx-auto w-full max-w-4xl px-4 py-16 text-sm text-muted-foreground">
         Checking your access…
@@ -384,6 +404,17 @@ function AdminPage() {
           </Link>
         </div>
       </div>
+
+      {/* Security ------------------------------------------------------- */}
+      <section className="panel mt-6 rounded-2xl p-4">
+        <h2 className="display text-sm uppercase tracking-widest text-muted-foreground">
+          Security · two-factor
+        </h2>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          The console requires a 6-digit code from an authenticator app at every sign-in.
+        </p>
+        <TwoFactorSettings />
+      </section>
 
       {/* Fighters ------------------------------------------------------- */}
       <section className="panel mt-6 rounded-2xl p-4">
