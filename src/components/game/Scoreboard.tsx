@@ -174,7 +174,7 @@ export function Scoreboard({
       <div
         key={`${matchId ?? "match"}-${round}`}
         className="match-title display mx-auto mt-1 flex w-full max-w-full items-center justify-center gap-2 overflow-hidden whitespace-nowrap text-center font-bold uppercase leading-tight text-gold"
-        style={{ "--title-scale": titleScale } as React.CSSProperties}
+        style={{ "--title-scale": titleScale } as CSSProperties}
         role="status"
         aria-live="polite"
         aria-atomic="true"
