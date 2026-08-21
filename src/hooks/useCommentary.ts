@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { GIFT_BY_ID, type BattleState, type GiftEvent, type Side } from "@/lib/battle";
-import { COMMENTARY, LANG_META, SIDE_NAME, type Lang } from "@/lib/i18n";
+import { COMMENTARY, LANG_META, REFEREE_LINES, SIDE_NAME, type Lang } from "@/lib/i18n";
 
 export type CommentaryLine = { id: string; text: string; tone: "hit" | "big" | "ko" | "idle" };
+
+type RefereeInput = { side: "ru" | "us" | null; count: number; final: boolean; koConfirmed: boolean };
 
 const IDLE_MS = 9000;
 const MAX_LINES = 6;
@@ -26,6 +28,7 @@ export function useCommentary(
   events: GiftEvent[],
   state: BattleState,
   muted: boolean,
+  referee?: RefereeInput,
 ) {
   const [lines, setLines] = useState<CommentaryLine[]>([]);
   const lastEventId = useRef<string | null>(null);
@@ -80,6 +83,30 @@ export function useCommentary(
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, lang]);
+
+  // Referee count, spoken in the selected language and synced to each number.
+  const lastCount = useRef(0);
+  const countedSide = useRef<Side | null>(null);
+  useEffect(() => {
+    if (!referee) return;
+    const names = SIDE_NAME[lang];
+    const r = REFEREE_LINES[lang];
+    const fighter = referee.side === "ru" ? names.ru : names.us;
+
+    if (referee.side && referee.count > 0 && referee.count !== lastCount.current) {
+      lastCount.current = referee.count;
+      countedSide.current = referee.side;
+      if (referee.final && referee.count === 10) push(r.ko(fighter), "ko");
+      else push(r.count(referee.count, fighter), referee.final ? "ko" : "big");
+      return;
+    }
+    if (!referee.side && lastCount.current > 0) {
+      const previous = countedSide.current === "ru" ? names.ru : names.us;
+      lastCount.current = 0;
+      if (!state.ko) push(r.up(previous), "hit");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [referee?.side, referee?.count, referee?.final, lang]);
 
   // Knockout call.
   useEffect(() => {

@@ -318,6 +318,7 @@ export function Arena({ lang, events, ko, combo, comboSide, paused = false, koCo
     if (!video || !event || !move || !playing.current) return;
 
     if (!impacted.current && video.currentTime >= impactAt.current) {
+      logRef.current?.("impact", `${move.label} connects`);
       impacted.current = true;
       const defender: Side = event.side === "ru" ? "us" : "ru";
       const gift = GIFT_BY_ID[event.gift];
