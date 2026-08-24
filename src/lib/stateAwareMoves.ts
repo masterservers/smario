@@ -322,17 +322,257 @@ const STRIKES: Array<[sceneId: string, spec: Spec]> = [
   ],
 ];
 
+/* ------------------------------------------------------------------ *
+ * Phase 3 — GRAPPLES + THROWS + SLAMS + SUPLEXES (incl. backbreakers,
+ * neckbreakers and the DDT family).
+ *
+ * Same rule as phase 2: every id below is a scene that already exists in the
+ * catalog, reused with its own reel window. Nothing is invented. Power moves
+ * are never legal from neutral distance — the fight has to pass through a
+ * close-range / clinch beat first, which is exactly what the tie-ups and
+ * control holds produce.
+ * ------------------------------------------------------------------ */
+
+/** Tie-ups / control holds: reachable from close range, they build the clinch. */
+const TIE_UP: Spec["requires"] = {
+  attacker: ["standing"],
+  defender: ["standing"],
+  relation: ["close_range", "clinch"],
+};
+
+/** Behind-the-back control (waist lock, hammerlock, rear chokes). */
+const BEHIND_OR_CLINCH: Spec["requires"] = {
+  attacker: ["standing"],
+  defender: ["standing"],
+  relation: ["close_range", "clinch", "attacker_behind"],
+};
+
+/** Power move setup: strictly from the clinch, never from distance. */
+const FROM_CLINCH: Spec["requires"] = {
+  attacker: ["standing"],
+  defender: ["standing"],
+  relation: ["clinch"],
+};
+
+/** Rear waist-lock setup (German / belly-to-back family). */
+const FROM_BEHIND: Spec["requires"] = {
+  attacker: ["standing"],
+  defender: ["standing"],
+  relation: ["clinch", "attacker_behind"],
+};
+
+/** Control hold: both men stay up, the clinch is established. */
+const CONTROL: Spec["result"] = {
+  attacker: "standing",
+  defender: "standing",
+  relation: "clinch",
+};
+
+/** Classic slam: defender down, attacker on his feet. */
+const DROP_DEFENDER: Spec["result"] = {
+  attacker: "standing",
+  defender: "grounded",
+  relation: "close_range",
+};
+
+/** The impact takes both men to the mat. */
+const BOTH_DOWN: Spec["result"] = {
+  attacker: "grounded",
+  defender: "grounded",
+  relation: "close_range",
+};
+
+/** The attacker lands on a knee over the downed opponent. */
+const ATTACKER_KNEELING: Spec["result"] = {
+  attacker: "kneeling",
+  defender: "grounded",
+  relation: "close_range",
+};
+
+const GRAPPLES: Array<[sceneId: string, spec: Spec]> = [
+  // --- grapple / control: no knockdown, the clinch is the point -------------
+  ["w-collar-and-elbow-tie-up", { family: "clinch", requires: TIE_UP, result: CONTROL, tags: ["tie-up", "setup"] }],
+  ["w-side-headlock", { family: "clinch", requires: TIE_UP, result: CONTROL, tags: ["hold", "setup"] }],
+  ["w-front-facelock", { family: "clinch", requires: TIE_UP, result: CONTROL, tags: ["hold", "setup"] }],
+  ["w-bear-hug", { family: "clinch", requires: TIE_UP, result: CONTROL, tags: ["hold", "power"] }],
+  ["w-wrist-lock", { family: "grapple", requires: TIE_UP, result: CONTROL, tags: ["hold", "setup"] }],
+  ["w-half-nelson", { family: "grapple", requires: BEHIND_OR_CLINCH, result: CONTROL, tags: ["hold"] }],
+  ["w-full-nelson", { family: "grapple", requires: BEHIND_OR_CLINCH, result: CONTROL, tags: ["hold"] }],
+  [
+    "w-waist-lock",
+    {
+      family: "grapple",
+      requires: BEHIND_OR_CLINCH,
+      result: { attacker: "standing", defender: "standing", relation: "attacker_behind" },
+      tags: ["hold", "setup"],
+    },
+  ],
+  [
+    "w-hammerlock",
+    {
+      family: "grapple",
+      requires: BEHIND_OR_CLINCH,
+      result: { attacker: "standing", defender: "standing", relation: "attacker_behind" },
+      tags: ["hold", "setup"],
+    },
+  ],
+  [
+    "w-cobra-clutch",
+    {
+      family: "grapple",
+      requires: BEHIND_OR_CLINCH,
+      result: { attacker: "standing", defender: "standing", relation: "attacker_behind" },
+      tags: ["hold", "choke"],
+    },
+  ],
+
+  // --- takedowns / basic throws --------------------------------------------
+  ["w-arm-drag", { family: "throw", requires: TIE_UP, result: DROP_DEFENDER, tags: ["takedown", "light"] }],
+  ["w-hip-toss", { family: "throw", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["takedown"] }],
+  ["w-snapmare", { family: "throw", requires: FROM_CLINCH, result: { attacker: "standing", defender: "kneeling", relation: "close_range" }, tags: ["takedown", "light"] }],
+  ["w-biel-throw", { family: "throw", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["takedown", "power"] }],
+  ["w-monkey-flip", { family: "throw", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["takedown", "lucha"] }],
+  ["w-headscissors-takedown", { family: "throw", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["takedown", "lucha"] }],
+  ["w-hurricanrana", { family: "throw", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["lucha", "knockdown"] }],
+  ["w-frankensteiner", { family: "throw", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["lucha", "knockdown"] }],
+
+  // --- slams ---------------------------------------------------------------
+  ["w-body-slam", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power"] }],
+  ["w-scoop-slam", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power"] }],
+  ["w-scoop-powerslam", { family: "slam", requires: FROM_CLINCH, result: ATTACKER_KNEELING, tags: ["power", "heavy"] }],
+  ["w-powerslam", { family: "slam", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["power", "heavy"] }],
+  [
+    "w-running-powerslam",
+    {
+      family: "slam",
+      // The only slam allowed to start from a charge — the runner catches him.
+      requires: { attacker: ["standing", "running"], defender: ["standing"], relation: ["close_range", "clinch"] },
+      result: BOTH_DOWN,
+      tags: ["running", "power", "heavy"],
+    },
+  ],
+  ["w-side-slam", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power"] }],
+  ["w-sidewalk-slam", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power"] }],
+  ["w-spinebuster", { family: "slam", requires: FROM_CLINCH, result: ATTACKER_KNEELING, tags: ["power", "heavy"] }],
+  ["w-double-a-spinebuster", { family: "slam", requires: FROM_CLINCH, result: ATTACKER_KNEELING, tags: ["power", "heavy"] }],
+  ["w-military-press-slam", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power", "press"] }],
+  ["w-gorilla-press-slam", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power", "press"] }],
+  ["w-chokeslam", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power", "finisher"] }],
+  ["w-uranage", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power"] }],
+  ["w-rock-bottom", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power", "finisher"] }],
+  ["w-samoan-drop", { family: "slam", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["power"] }],
+  ["w-fireman-s-carry-slam", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power", "carry"] }],
+  ["w-death-valley-driver", { family: "slam", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["power", "finisher"] }],
+  ["w-olympic-slam", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power", "finisher"] }],
+  ["w-angle-slam", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power", "finisher"] }],
+  ["w-cobra-clutch-slam", { family: "slam", requires: FROM_BEHIND, result: DROP_DEFENDER, tags: ["power"] }],
+  ["w-full-nelson-slam", { family: "slam", requires: FROM_BEHIND, result: DROP_DEFENDER, tags: ["power"] }],
+
+  // --- backbreakers / neckbreakers -----------------------------------------
+  ["w-argentine-backbreaker", { family: "slam", requires: FROM_CLINCH, result: DROP_DEFENDER, tags: ["power", "rack"] }],
+  ["w-neckbreaker", { family: "slam", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["neck"] }],
+  ["w-swinging-neckbreaker", { family: "slam", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["neck"] }],
+  ["w-snap-neckbreaker", { family: "slam", requires: FROM_BEHIND, result: BOTH_DOWN, tags: ["neck"] }],
+  [
+    "w-hangman-s-neckbreaker",
+    {
+      family: "slam",
+      requires: { attacker: ["standing"], defender: ["standing", "ropes"], relation: ["close_range", "clinch"] },
+      result: DROP_DEFENDER,
+      tags: ["neck", "ropes"],
+    },
+  ],
+  ["w-reverse-neckbreaker", { family: "slam", requires: FROM_BEHIND, result: BOTH_DOWN, tags: ["neck"] }],
+
+  // --- DDT family: front facelock spots, usually both men end on the mat ----
+  ["w-ddt", { family: "slam", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["ddt"] }],
+  ["w-snap-ddt", { family: "slam", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["ddt"] }],
+  ["w-jumping-ddt", { family: "slam", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["ddt", "airborne"] }],
+  ["w-double-arm-ddt", { family: "slam", requires: FROM_CLINCH, result: ATTACKER_KNEELING, tags: ["ddt"] }],
+  ["w-hammerlock-ddt", { family: "slam", requires: FROM_BEHIND, result: ATTACKER_KNEELING, tags: ["ddt"] }],
+  ["w-reverse-ddt", { family: "slam", requires: FROM_BEHIND, result: BOTH_DOWN, tags: ["ddt"] }],
+  ["w-even-flow-ddt", { family: "slam", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["ddt", "finisher"] }],
+
+  // --- suplex family --------------------------------------------------------
+  ["w-suplex", { family: "suplex", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["suplex"] }],
+  ["w-belly-to-belly-suplex", { family: "suplex", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["suplex"] }],
+  ["w-overhead-belly-to-belly-suplex", { family: "suplex", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["suplex", "throw"] }],
+  ["w-belly-to-back-suplex", { family: "suplex", requires: FROM_BEHIND, result: BOTH_DOWN, tags: ["suplex"] }],
+  ["w-german-suplex", { family: "suplex", requires: FROM_BEHIND, result: BOTH_DOWN, tags: ["suplex", "rear"] }],
+  ["w-release-german-suplex", { family: "suplex", requires: FROM_BEHIND, result: BOTH_DOWN, tags: ["suplex", "rear"] }],
+  ["w-exploder-suplex", { family: "suplex", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["suplex"] }],
+  ["w-saito-suplex", { family: "suplex", requires: FROM_BEHIND, result: BOTH_DOWN, tags: ["suplex"] }],
+  ["w-half-nelson-suplex", { family: "suplex", requires: FROM_BEHIND, result: BOTH_DOWN, tags: ["suplex"] }],
+  ["w-dragon-suplex", { family: "suplex", requires: FROM_BEHIND, result: BOTH_DOWN, tags: ["suplex", "rear"] }],
+  ["w-tiger-suplex", { family: "suplex", requires: FROM_BEHIND, result: ATTACKER_KNEELING, tags: ["suplex", "bridge"] }],
+  ["w-butterfly-suplex", { family: "suplex", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["suplex"] }],
+  ["w-gutwrench-suplex", { family: "suplex", requires: FROM_CLINCH, result: BOTH_DOWN, tags: ["suplex"] }],
+  ["w-deadlift-suplex", { family: "suplex", requires: FROM_BEHIND, result: BOTH_DOWN, tags: ["suplex", "power"] }],
+  [
+    "w-northern-lights-suplex",
+    {
+      family: "suplex",
+      requires: FROM_CLINCH,
+      result: { attacker: "kneeling", defender: "grounded", relation: "pin" },
+      tags: ["suplex", "bridge", "pin"],
+    },
+  ],
+  [
+    "w-fisherman-suplex",
+    {
+      family: "suplex",
+      requires: FROM_CLINCH,
+      result: { attacker: "kneeling", defender: "grounded", relation: "pin" },
+      tags: ["suplex", "bridge", "pin"],
+    },
+  ],
+  ["w-brainbuster", { family: "suplex", requires: FROM_CLINCH, result: ATTACKER_KNEELING, tags: ["suplex", "heavy"] }],
+  ["w-falcon-arrow", { family: "suplex", requires: FROM_CLINCH, result: ATTACKER_KNEELING, tags: ["suplex", "heavy"] }],
+  ["w-jackhammer", { family: "suplex", requires: FROM_CLINCH, result: ATTACKER_KNEELING, tags: ["suplex", "finisher"] }],
+  [
+    "w-superplex",
+    {
+      // Not an ordinary clinch spot: both men must already be up in the corner.
+      family: "suplex",
+      requires: {
+        attacker: ["corner", "top_rope"],
+        defender: ["corner", "top_rope"],
+        relation: ["close_range", "clinch"],
+      },
+      result: BOTH_DOWN,
+      tags: ["suplex", "high-risk", "corner"],
+    },
+  ],
+];
+
 /**
  * Names that read as the same technique as an already migrated move. They are
  * recorded as metadata only — no second MoveDefinition is created for them, so
  * one video window never gets several names ("fake variety").
+ *
+ * Phase 3: the reel builder handed these ids the exact same src + start + end
+ * as the canonical move on the left, so they are aliases, not extra visual
+ * sequences. They stay unmigrated and can never be selected in strict mode.
  */
 export const MOVE_ALIASES: Record<string, string[]> = {
-  // Phase 2: every migrated strike/kick plays its own reel window, so there is
-  // no alias to record yet. Add entries here instead of duplicating footage.
+  "w-snapmare": ["w-alabama-slam", "w-pendulum-backbreaker", "w-implant-ddt", "w-snap-suplex"],
+  "w-biel-throw": [
+    "w-fallaway-slam",
+    "w-tilt-a-whirl-backbreaker",
+    "w-tornado-ddt",
+    "w-delayed-vertical-suplex",
+  ],
+  "w-double-a-spinebuster": ["w-backbreaker", "w-vertical-suplex"],
+  "w-fireman-s-carry-slam": ["w-dragon-suplex"],
 };
 
-const MIGRATED: Array<[sceneId: string, spec: Spec]> = [...SAMPLE, ...STRIKES];
+/** Every alias id, i.e. a name that shares footage with a canonical move. */
+export const ALIAS_IDS: Set<string> = new Set(Object.values(MOVE_ALIASES).flat());
+
+const MIGRATED: Array<[sceneId: string, spec: Spec]> = [...SAMPLE, ...STRIKES, ...GRAPPLES].filter(
+  ([id]) => !ALIAS_IDS.has(id),
+);
+
 
 
 /** id → compound description, only for the scenes migrated so far. */
