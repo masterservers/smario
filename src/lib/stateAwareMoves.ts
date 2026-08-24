@@ -332,7 +332,7 @@ const MIGRATED: Array<[sceneId: string, spec: Spec]> = [...SAMPLE, ...STRIKES];
 
 /** id → compound description, only for the scenes migrated so far. */
 export const STATE_AWARE_MOVES: Map<string, MoveDefinition> = new Map(
-  SAMPLE.flatMap(([id, spec]) => {
+  MIGRATED.flatMap(([id, spec]) => {
     const scene = BY_ID.get(id);
     return scene ? ([[id, defineMove(scene, spec)]] as Array<[string, MoveDefinition]>) : [];
   }),
