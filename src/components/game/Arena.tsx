@@ -1214,6 +1214,7 @@ export function Arena({
                 transitionDuration: `${PHASE_BLEND[phase].fade}ms`,
                 transitionTimingFunction: PHASE_BLEND[phase].ease,
               }}
+              data-active={layer === activeLayer ? "true" : undefined}
               className="arena-video absolute inset-0 size-full object-contain object-center transition-[filter,opacity]"
             />
           ))}
