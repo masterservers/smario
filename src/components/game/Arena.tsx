@@ -39,7 +39,14 @@ import { commitPendingConfig } from "@/lib/pendingConfig";
 import { usePerfMode } from "@/lib/perfMode";
 
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
-import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
+import { fightStateTrace, sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
+import {
+  INITIAL_FIGHT_STATE,
+  chooseStateAwareMove,
+  nextFightState,
+  type FightState,
+} from "@/lib/fightState";
+import { moveDefinitionOf } from "@/lib/stateAwareMoves";
 
 const FIGHT_VIDEO = PRIMARY_REEL;
 /** Two decode slots per master reel, so any reel can be cut to instantly. */
