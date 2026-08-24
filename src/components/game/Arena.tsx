@@ -845,6 +845,7 @@ export function Arena({
             context: stateBefore,
             pool: movesForGift(event.gift, tier),
             globalPool: STATE_AWARE_SCENES,
+            recoveryPool: STATE_AWARE_RECOVERY_SCENES,
             definitionOf: moveDefinitionOf,
             draw: (pool) =>
               drawMove(
@@ -856,6 +857,20 @@ export function Arena({
               ),
           });
       const move = choice.pick;
+      if (!move) {
+        // Strict mode found nothing legal: wait instead of playing an
+        // unmigrated move. The event is kept for the next tick.
+        queue.current.unshift(event);
+        fightStateTrace({
+          from: stateBefore,
+          move: "—",
+          to: stateBefore,
+          source: choice.source,
+          filtered: choice.filtered,
+        });
+        sceneBlocked("no legal move (state engine)");
+        return;
+      }
       if (choice.definition) fightState.current = applyMoveResult(stateBefore, choice.definition);
       fightStateTrace({
         from: stateBefore,
@@ -864,6 +879,7 @@ export function Arena({
         source: choice.source,
         filtered: choice.filtered,
       });
+
 
 
       recentMoves.current = [...recentMoves.current, move.id].slice(
