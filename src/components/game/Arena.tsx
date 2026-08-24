@@ -49,6 +49,8 @@ import {
 } from "@/lib/fightState";
 import {
   moveDefinitionOf,
+  moveFamilyBlocked,
+  noteMoveFamily,
   STATE_AWARE_RECOVERY_SCENES,
   STATE_AWARE_SCENES,
 } from "@/lib/stateAwareMoves";
