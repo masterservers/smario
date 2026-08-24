@@ -43,10 +43,11 @@ import { fightStateTrace, sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
 import {
   INITIAL_FIGHT_STATE,
   chooseStateAwareMove,
-  nextFightState,
-  type FightState,
+  applyMoveResult,
+  INITIAL_FIGHT_CONTEXT,
+  type FightContext,
 } from "@/lib/fightState";
-import { moveDefinitionOf } from "@/lib/stateAwareMoves";
+import { moveDefinitionOf, STATE_AWARE_SCENES } from "@/lib/stateAwareMoves";
 
 const FIGHT_VIDEO = PRIMARY_REEL;
 /** Two decode slots per master reel, so any reel can be cut to instantly. */
@@ -421,7 +422,7 @@ export function Arena({
   /** When the scene on screen started — the minimum-duration rule uses it. */
   const sceneStartedAt = useRef(0);
   /** Physical position of the two fighters, for the state-aware selector. */
-  const fightState = useRef<FightState>(INITIAL_FIGHT_STATE);
+  const fightState = useRef<FightContext>(INITIAL_FIGHT_CONTEXT);
   /** LRU memory of the feeling-out scenes, so none of them repeats early. */
   const idleUsage = useRef<Map<string, number>>(new Map());
   const recentIdle = useRef<string[]>([]);
@@ -834,10 +835,16 @@ export function Arena({
       // not migrated to the state layer stay unconstrained.
       const stateBefore = fightState.current;
       const choice = pendingFollow
-        ? { pick: pendingFollow.move, definition: moveDefinitionOf(pendingFollow.move), filtered: false }
+        ? {
+            pick: pendingFollow.move,
+            definition: moveDefinitionOf(pendingFollow.move),
+            source: "state" as const,
+            filtered: false,
+          }
         : chooseStateAwareMove({
-            currentState: stateBefore,
+            context: stateBefore,
             pool: movesForGift(event.gift, tier),
+            globalPool: STATE_AWARE_SCENES,
             definitionOf: moveDefinitionOf,
             draw: (pool) =>
               drawMove(
@@ -849,11 +856,12 @@ export function Arena({
               ),
           });
       const move = choice.pick;
-      if (choice.definition) fightState.current = nextFightState(choice.definition);
+      if (choice.definition) fightState.current = applyMoveResult(stateBefore, choice.definition);
       fightStateTrace({
         from: stateBefore,
         move: move.label,
         to: fightState.current,
+        source: choice.source,
         filtered: choice.filtered,
       });
 
@@ -870,8 +878,9 @@ export function Arena({
         // Follow-ups are chosen from the position the main move leaves behind,
         // so pins/submissions can only be queued on a downed opponent.
         const next = chooseStateAwareMove({
-          currentState: fightState.current,
+          context: fightState.current,
           pool: FOLLOW_UPS,
+          globalPool: STATE_AWARE_SCENES,
           definitionOf: moveDefinitionOf,
           draw: (pool) =>
             drawMove(
