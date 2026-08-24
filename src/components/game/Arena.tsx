@@ -827,15 +827,34 @@ export function Arena({
 
 
       const tier = ruleForEvent(event.id, event.gift).tier;
-      const move = pendingFollow
-        ? pendingFollow.move
-        : drawMove(
-            movesForGift(event.gift, tier),
-            recentMoves.current,
-            moveUsage.current,
-            moveCooldowns.current,
-            varietyRef.current.cooldownMs,
-          );
+      // State-aware selection: illegal positions are removed FIRST, the existing
+      // LRU / anti-repetition draw then runs on the legal subset. Scenes that are
+      // not migrated to the state layer stay unconstrained.
+      const stateBefore = fightState.current;
+      const choice = pendingFollow
+        ? { pick: pendingFollow.move, definition: moveDefinitionOf(pendingFollow.move), filtered: false }
+        : chooseStateAwareMove({
+            currentState: stateBefore,
+            pool: movesForGift(event.gift, tier),
+            definitionOf: moveDefinitionOf,
+            draw: (pool) =>
+              drawMove(
+                pool,
+                recentMoves.current,
+                moveUsage.current,
+                moveCooldowns.current,
+                varietyRef.current.cooldownMs,
+              ),
+          });
+      const move = choice.pick;
+      if (choice.definition) fightState.current = nextFightState(choice.definition);
+      fightStateTrace({
+        from: stateBefore,
+        move: move.label,
+        to: fightState.current,
+        filtered: choice.filtered,
+      });
+
 
       recentMoves.current = [...recentMoves.current, move.id].slice(
         -Math.max(cfgRef.current.moveMemory, varietyRef.current.rotation),
