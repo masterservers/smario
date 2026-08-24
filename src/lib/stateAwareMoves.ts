@@ -8,6 +8,7 @@
  */
 
 import { FOLLOW_UPS, MOVES, type Move } from "@/lib/scenes";
+import { WRESTLING_FOLLOW_UPS, WRESTLING_MOVES } from "@/lib/wrestlingMoves";
 import { defineMove, type FightState, type MoveDefinition } from "@/lib/fightState";
 
 const BY_ID = new Map<string, Move>();
