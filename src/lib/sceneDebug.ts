@@ -19,10 +19,16 @@ export type SceneDebugState = {
   /** Last rule that refused a transition. */
   blockedBy: string;
   blockedAt: number;
-  /** State machine trace: currentFightState -> selectedMove -> nextFightState */
-  fightStateFrom: string;
+  /** Compound state trace: context before -> selected move -> context after. */
+  fightAttacker: string;
+  fightDefender: string;
+  fightRelation: string;
   fightStateMove: string;
-  fightStateTo: string;
+  fightNextAttacker: string;
+  fightNextDefender: string;
+  fightNextRelation: string;
+  /** How the pick was obtained: state | state-global | legacy-fallback. */
+  fightSource: string;
   /** Whether the state layer actually narrowed the pool for this pick. */
   fightStateFiltered: boolean;
 };
@@ -36,9 +42,14 @@ const initial: SceneDebugState = {
   endedReason: "—",
   blockedBy: "—",
   blockedAt: 0,
-  fightStateFrom: "—",
+  fightAttacker: "—",
+  fightDefender: "—",
+  fightRelation: "—",
   fightStateMove: "—",
-  fightStateTo: "—",
+  fightNextAttacker: "—",
+  fightNextDefender: "—",
+  fightNextRelation: "—",
+  fightSource: "—",
   fightStateFiltered: false,
 };
 
@@ -47,21 +58,31 @@ const initial: SceneDebugState = {
  * unless the existing scene-debug switch is on.
  */
 export function fightStateTrace(entry: {
-  from: string;
+  from: { attacker: string; defender: string; relation: string };
   move: string;
-  to: string;
+  to: { attacker: string; defender: string; relation: string };
+  source: string;
   filtered: boolean;
 }) {
   state = {
     ...state,
-    fightStateFrom: entry.from,
+    fightAttacker: entry.from.attacker,
+    fightDefender: entry.from.defender,
+    fightRelation: entry.from.relation,
     fightStateMove: entry.move,
-    fightStateTo: entry.to,
+    fightNextAttacker: entry.to.attacker,
+    fightNextDefender: entry.to.defender,
+    fightNextRelation: entry.to.relation,
+    fightSource: entry.source,
     fightStateFiltered: entry.filtered,
   };
   emit();
   // Always visible in the browser console so the state engine can be verified live.
-  console.log(`[FIGHT ENGINE] ${entry.from} -> ${entry.move} -> ${entry.to}`);
+  console.log(
+    `[FIGHT ENGINE] attacker=${entry.from.attacker} defender=${entry.from.defender} relation=${entry.from.relation}` +
+      ` -> ${entry.move} [${entry.source}]` +
+      ` -> attacker=${entry.to.attacker} defender=${entry.to.defender} relation=${entry.to.relation}`,
+  );
 }
 
 let state: SceneDebugState = initial;
