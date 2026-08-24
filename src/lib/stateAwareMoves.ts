@@ -8,6 +8,7 @@
  */
 
 import { FOLLOW_UPS, MOVES, type Move } from "@/lib/scenes";
+import { WRESTLING_FOLLOW_UPS, WRESTLING_MOVES } from "@/lib/wrestlingMoves";
 import { defineMove, type FightState, type MoveDefinition } from "@/lib/fightState";
 
 const BY_ID = new Map<string, Move>();
@@ -137,13 +138,148 @@ const SAMPLE: Array<[sceneId: string, spec: Spec]> = [
   ],
 ];
 
-/** id → state description, only for the scenes migrated so far. */
+/**
+ * Automatic migration of the wrestling catalog.
+ *
+ * Every remaining `w-*` scene is classified from its name into a family and a
+ * pair of positions, so the scheduler can constrain it exactly like the hand
+ * written sample above. Explicit entries in SAMPLE always win.
+ */
+function classify(label: string): Spec {
+  const l = label.toUpperCase();
+
+  // Pins — only on a downed opponent (or as a quick roll-up from close range).
+  if (/PIN|CRADLE|PACKAGE|BACKSLIDE|SUNSET FLIP|VICTORY ROLL|ROLL-UP|LA MAGISTRAL|CRUCIFIX PIN|SCHOOLBOY/.test(l)) {
+    return {
+      family: "pin",
+      startState: "opponent_grounded",
+      endState: "pin_position",
+      allowedFromStates: ["opponent_grounded", "both_grounded", "close_range"],
+      followUpStates: ["pin_position", "recovery"],
+      tags: ["pin"],
+    };
+  }
+
+  // Submissions / holds.
+  if (
+    /SHARPSHOOTER|LEGLOCK|CRAB|CLOVERLEAF|WALLS OF|ANKLE LOCK|HEEL HOOK|KNEE BAR|ARMBAR|KIMURA|HAMMERLOCK|WRIST LOCK|CHICKENWING|CROSSFACE|STF|STS|SLEEPER|CHOKE|COBRA CLUTCH|MILLION DOLLAR DREAM|BEAR HUG|NELSON$|FULL NELSON|HALF NELSON|ABDOMINAL STRETCH|OCTOPUS|CAMEL CLUTCH|CLAW|HEADLOCK|FACELOCK|WAIST LOCK|TIE-UP|TEST OF STRENGTH/.test(
+      l,
+    )
+  ) {
+    return {
+      family: "submission",
+      startState: "opponent_grounded",
+      endState: "submission_position",
+      allowedFromStates: ["opponent_grounded", "both_grounded", "clinch", "close_range"],
+      followUpStates: ["submission_position", "opponent_grounded", "recovery"],
+      tags: ["ground"],
+    };
+  }
+
+  // Mat attacks: only make sense on someone already down.
+  if (/STOMP|LEG DROP|ELBOW DROP|FIST DROP|KNEE DROP|CURB STOMP/.test(l)) {
+    return {
+      family: "ground_attack",
+      startState: "opponent_grounded",
+      endState: "opponent_grounded",
+      allowedFromStates: ["opponent_grounded", "both_grounded"],
+      followUpStates: ["opponent_grounded", "pin_position", "submission_position"],
+      tags: ["mat"],
+    };
+  }
+
+  // Aerials and rope spots.
+  if (
+    /DIVING|SPRINGBOARD|MISSILE|FLYING|SPLASH|MOONSAULT|SENTON|SWANTON|PLANCHA|TOPE|SUICIDE DIVE|CROSSBODY|PRESS$|SHOOTING STAR|450|SUPERPLEX|COUP DE GRACE|PHENOMENAL FOREARM|BUCKSHOT|DOOMSDAY/.test(
+      l,
+    )
+  ) {
+    return {
+      family: "aerial",
+      startState: "top_rope",
+      endState: "opponent_grounded",
+      allowedFromStates: ["top_rope", "standing_distance", "opponent_grounded", "ropes"],
+      followUpStates: ["opponent_grounded", "pin_position"],
+      tags: ["high-risk"],
+    };
+  }
+
+  // Corner spots.
+  if (/CORNER|BUCKLE/.test(l)) {
+    return {
+      family: "corner",
+      startState: "corner",
+      endState: "opponent_grounded",
+      allowedFromStates: ["corner", "standing_distance", "close_range", "neutral_standing"],
+      followUpStates: ["opponent_grounded", "close_range", "corner"],
+      tags: ["corner"],
+    };
+  }
+
+  // Running attacks from distance.
+  if (/RUNNING|SPEAR|GORE|CLOTHESLINE|LARIAT|SHOULDER BLOCK|DROPKICK|BIG BOOT|BICYCLE KICK/.test(l)) {
+    return {
+      family: "running_strike",
+      startState: "standing_distance",
+      endState: "opponent_grounded",
+      allowedFromStates: ["standing_distance", "neutral_standing"],
+      followUpStates: ["opponent_grounded", "pin_position"],
+      tags: ["running", "knockdown"],
+    };
+  }
+
+  // Suplexes, drivers, powerbombs, slams, DDTs — all need a grip first.
+  if (
+    /SUPLEX|DRIVER|POWERBOMB|PILEDRIVER|SLAM|BOMB|DDT|BRAINBUSTER|BUSTER|BREAKER|CUTTER|STUNNER|RKO|PEDIGREE|CLASH|DESTROYER|ANGEL|GTS|BURNING HAMMER|F-5|ATTITUDE ADJUSTMENT|TWIST OF FATE|SISTER ABIGAIL|END OF DAYS|CROSS RHODES|FALCON ARROW|JACKHAMMER|HURRICANRANA|FRANKENSTEINER|HEADSCISSORS|ARM DRAG|HIP TOSS|MONKEY FLIP|SNAPMARE|BIEL|THROW|FLATLINER|COMPLETE SHOT|ZIG ZAG|SKULL CRUSHING|3D|SHATTER MACHINE|MAGIC KILLER|HART ATTACK|ELECTRIC CHAIR|X-FACTOR|VERTEBREAKER|CHOKESLAM|URANAGE|ROCK BOTTOM|BOOK END/.test(
+      l,
+    )
+  ) {
+    return {
+      family: "slam",
+      startState: "clinch",
+      endState: "opponent_grounded",
+      allowedFromStates: ["clinch", "close_range"],
+      followUpStates: ["opponent_grounded", "pin_position", "submission_position"],
+      tags: ["power"],
+    };
+  }
+
+  // Kicks and knees at range.
+  if (/KICK|KNEE|ENZUIGIRI|WIZARD|KINSHASA|SWEET CHIN MUSIC/.test(l)) {
+    return {
+      family: "kick",
+      startState: "standing_distance",
+      endState: "close_range",
+      allowedFromStates: ["standing_distance", "neutral_standing", "close_range"],
+      followUpStates: ["close_range", "clinch", "standing_distance"],
+      tags: ["strike"],
+    };
+  }
+
+  // Everything else reads as a standing strike.
+  return {
+    family: "punch",
+    startState: "close_range",
+    endState: "close_range",
+    allowedFromStates: ["neutral_standing", "close_range", "standing_distance", "clinch"],
+    followUpStates: ["close_range", "clinch", "neutral_standing"],
+    tags: ["strike"],
+  };
+}
+
+/** id → state description for every migrated scene. */
 export const STATE_AWARE_MOVES: Map<string, MoveDefinition> = new Map(
   SAMPLE.flatMap(([id, spec]) => {
     const scene = BY_ID.get(id);
     return scene ? ([[id, defineMove(scene, spec)]] as Array<[string, MoveDefinition]>) : [];
   }),
 );
+
+// Auto-classified wrestling catalog (explicit SAMPLE entries are kept as-is).
+for (const scene of [...WRESTLING_MOVES, ...WRESTLING_FOLLOW_UPS]) {
+  if (STATE_AWARE_MOVES.has(scene.id)) continue;
+  STATE_AWARE_MOVES.set(scene.id, defineMove(scene, classify(scene.label)));
+}
 
 export function moveDefinitionOf(item: { id: string }): MoveDefinition | undefined {
   return STATE_AWARE_MOVES.get(item.id);
@@ -156,6 +292,7 @@ export function stateAwareCoverage() {
     totalScenes: MOVES.length + FOLLOW_UPS.length,
   };
 }
+
 
 /** The state the fight is in after a scene, when that scene is described. */
 export function stateAfterScene(item: { id: string }, current: FightState): FightState {
