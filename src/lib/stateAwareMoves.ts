@@ -144,6 +144,19 @@ export const STATE_AWARE_SCENES: Move[] = [...STATE_AWARE_MOVES.keys()].flatMap(
   return scene ? [scene] : [];
 });
 
+/**
+ * Dedicated safe reset scenes. Used as the last legal resort in strict mode
+ * before the engine idles: they bring the fight back to a neutral stance.
+ */
+export const STATE_AWARE_RECOVERY_SCENES: Move[] = [...STATE_AWARE_MOVES.entries()].flatMap(
+  ([id, definition]) => {
+    if (definition.family !== "recovery") return [];
+    const scene = BY_ID.get(id);
+    return scene ? [scene] : [];
+  },
+);
+
+
 export function moveDefinitionOf(item: { id: string }): MoveDefinition | undefined {
   return STATE_AWARE_MOVES.get(item.id);
 }

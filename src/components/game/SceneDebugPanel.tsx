@@ -65,6 +65,12 @@ export function SceneDebugPanel() {
         <div className="uppercase tracking-widest text-foreground">
           state engine: {STATE_ENGINE_STRICT ? "strict active" : "active"}
         </div>
+        {debug.fightSource === "state-idle" || debug.fightSource === "state-recovery" ? (
+          <div className="text-foreground">
+            <div>NO LEGAL MOVE</div>
+            <div>ACTION: {debug.fightSource === "state-idle" ? "IDLE" : "RECOVERY"}</div>
+          </div>
+        ) : null}
         <div>
           ATTACKER: <span className="text-foreground">{debug.fightAttacker}</span>
         </div>
@@ -86,6 +92,7 @@ export function SceneDebugPanel() {
         <div>source: {debug.fightSource}</div>
         <div>{debug.fightStateFiltered ? "pool filtered by state" : "pool unconstrained"}</div>
       </div>
+
       <div className="mt-1 border-t border-border/60 pt-1 text-muted-foreground">
         <div className="uppercase tracking-widest">visual sequences</div>
         <div>

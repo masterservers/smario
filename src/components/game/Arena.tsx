@@ -47,7 +47,12 @@ import {
   INITIAL_FIGHT_CONTEXT,
   type FightContext,
 } from "@/lib/fightState";
-import { moveDefinitionOf, STATE_AWARE_SCENES } from "@/lib/stateAwareMoves";
+import {
+  moveDefinitionOf,
+  STATE_AWARE_RECOVERY_SCENES,
+  STATE_AWARE_SCENES,
+} from "@/lib/stateAwareMoves";
+
 
 const FIGHT_VIDEO = PRIMARY_REEL;
 /** Two decode slots per master reel, so any reel can be cut to instantly. */
@@ -845,6 +850,7 @@ export function Arena({
             context: stateBefore,
             pool: movesForGift(event.gift, tier),
             globalPool: STATE_AWARE_SCENES,
+            recoveryPool: STATE_AWARE_RECOVERY_SCENES,
             definitionOf: moveDefinitionOf,
             draw: (pool) =>
               drawMove(
@@ -856,6 +862,20 @@ export function Arena({
               ),
           });
       const move = choice.pick;
+      if (!move) {
+        // Strict mode found nothing legal: wait instead of playing an
+        // unmigrated move. The event is kept for the next tick.
+        queue.current.unshift(event);
+        fightStateTrace({
+          from: stateBefore,
+          move: "—",
+          to: stateBefore,
+          source: choice.source,
+          filtered: choice.filtered,
+        });
+        sceneBlocked("no legal move (state engine)");
+        return;
+      }
       if (choice.definition) fightState.current = applyMoveResult(stateBefore, choice.definition);
       fightStateTrace({
         from: stateBefore,
@@ -864,6 +884,7 @@ export function Arena({
         source: choice.source,
         filtered: choice.filtered,
       });
+
 
 
       recentMoves.current = [...recentMoves.current, move.id].slice(
@@ -881,6 +902,7 @@ export function Arena({
           context: fightState.current,
           pool: FOLLOW_UPS,
           globalPool: STATE_AWARE_SCENES,
+          recoveryPool: STATE_AWARE_RECOVERY_SCENES,
           definitionOf: moveDefinitionOf,
           draw: (pool) =>
             drawMove(
@@ -891,14 +913,18 @@ export function Arena({
               varietyRef.current.cooldownMs * 0.5,
             ),
         }).pick;
-        recentFollows.current = [...recentFollows.current, next.id].slice(
-          -cfgRef.current.followMemory,
-        );
-        follow.current = {
-          event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` },
-          move: next,
-        };
+        if (next) {
+          recentFollows.current = [...recentFollows.current, next.id].slice(
+            -cfgRef.current.followMemory,
+          );
+
+          follow.current = {
+            event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` },
+            move: next,
+          };
+        }
       }
+
 
       const gift = GIFT_BY_ID[event.gift];
       const giftSetting = getGiftConfig()[event.gift];
