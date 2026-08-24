@@ -30,7 +30,8 @@ export type FightState =
   | "top_rope"
   | "airborne"
   | "pin_position"
-  | "submission_position";
+  | "submission_position"
+  | "recovery";
 
 export type MoveFamily =
   | "punch"
