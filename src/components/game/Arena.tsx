@@ -41,7 +41,7 @@ import { usePerfMode } from "@/lib/perfMode";
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
 import { fightStateTrace, sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
 import {
-  INITIAL_FIGHT_STATE,
+  
   chooseStateAwareMove,
   applyMoveResult,
   INITIAL_FIGHT_CONTEXT,
