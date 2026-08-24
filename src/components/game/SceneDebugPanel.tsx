@@ -107,6 +107,39 @@ export function SceneDebugPanel() {
         <div>{debug.fightStateFiltered ? "pool filtered by state" : "pool unconstrained"}</div>
       </div>
 
+      {/* TEMPORARY — footage audit for the scene currently on screen. */}
+      <div className="mt-1 border-t border-border/60 pt-1 text-muted-foreground">
+        <div className="uppercase tracking-widest text-foreground">footage:</div>
+        <div className="truncate text-foreground">{footage?.reel ?? "—"}</div>
+        <div>
+          WINDOW:{" "}
+          <span className="text-foreground">
+            {footage ? `${footage.start} -> ${footage.end}` : "—"}
+          </span>
+        </div>
+        <div>
+          IMPACT: <span className="text-foreground">{footage?.impact ?? "—"}</span> · rate{" "}
+          {footage?.rate ?? "—"}
+        </div>
+        <div className="truncate">
+          VISUAL SEQUENCE:{" "}
+          <span className="text-foreground">{footage?.visualSequenceId ?? "—"}</span>
+        </div>
+        <div>
+          DUPLICATE WINDOW:{" "}
+          <span className="text-foreground">
+            {footage ? (footage.duplicate ? "YES" : "NO") : "—"}
+          </span>
+        </div>
+        {footage?.duplicate ? (
+          <div className="truncate">
+            USED BY: <span className="text-foreground">{footage.usedBy.join(", ")}</span>
+          </div>
+        ) : null}
+      </div>
+
+
+
       <div className="mt-1 border-t border-border/60 pt-1 text-muted-foreground">
         <div className="uppercase tracking-widest">visual sequences</div>
         <div>
