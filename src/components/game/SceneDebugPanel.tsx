@@ -36,6 +36,9 @@ export function SceneDebugPanel() {
   const clusterTrace = visualClusterTrace(6);
   // Migration progress of the state engine.
   const coverage = stateAwareCoverage();
+  // TEMPORARY footage audit: which real reel window the current scene plays.
+  const footage = footageAuditOf(debug.id);
+
 
 
   return (
