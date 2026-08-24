@@ -157,24 +157,32 @@ export function getEligibleMoves(
   return pool.filter((move) => canPlayMove(move, context));
 }
 
+export type StateAwareSource =
+  | "state"
+  | "state-global"
+  | "state-recovery"
+  | "state-idle"
+  | "legacy-fallback";
+
 export type StateAwareChoice<T> = {
-  pick: T;
+  /** Undefined only for `state-idle`: the engine deliberately plays nothing. */
+  pick?: T;
   definition?: MoveDefinition;
   /** How the pick was obtained, for the debug panel / console trace. */
-  source: "state" | "state-global" | "legacy-fallback";
+  source: StateAwareSource;
   filtered: boolean;
 };
 
 /**
  * State-aware pick.
  *
- * 1. Legal migrated moves inside the caller's pool (LRU draw runs on them).
- * 2. If none: legal migrated moves from the global catalog, so the fight can
- *    always continue while the migration is incomplete.
- * 3. Only if the state engine has nothing at all: the legacy pool, flagged as
- *    `legacy-fallback` so it is visible in the trace.
- *
- * With STATE_ENGINE_STRICT off, unmigrated moves are legal again (old behaviour).
+ * Strict mode (STATE_ENGINE_STRICT = true):
+ * 1. legal migrated moves in the caller's pool           → "state"
+ * 2. legal migrated moves in the global catalog          → "state-global"
+ * 3. a legal dedicated recovery/reset move               → "state-recovery"
+ * 4. nothing legal at all: no-op, the scheduler waits    → "state-idle"
+ * There is NO legacy fallback in strict mode: an unmigrated move can never be
+ * selected. Legacy fallback only exists with strict mode off.
  */
 export function chooseStateAwareMove<T extends { id: string }>(args: {
   context: FightContext;
@@ -183,9 +191,19 @@ export function chooseStateAwareMove<T extends { id: string }>(args: {
   draw: (pool: T[]) => T;
   /** Global migrated catalog used when the caller's pool has no legal move. */
   globalPool?: T[];
+  /** Dedicated recovery/reset scenes used as the last legal resort. */
+  recoveryPool?: T[];
   strict?: boolean;
 }): StateAwareChoice<T> {
-  const { context, pool, definitionOf, draw, globalPool, strict = STATE_ENGINE_STRICT } = args;
+  const {
+    context,
+    pool,
+    definitionOf,
+    draw,
+    globalPool,
+    recoveryPool,
+    strict = STATE_ENGINE_STRICT,
+  } = args;
 
   const legal = (items: T[]) =>
     items.filter((item) => {
@@ -194,36 +212,35 @@ export function chooseStateAwareMove<T extends { id: string }>(args: {
       return canPlayMove(definition, context);
     });
 
-  const inPool = legal(pool);
-  if (inPool.length > 0) {
-    const pick = draw(inPool);
+  const build = (items: T[], source: StateAwareSource, filtered: boolean): StateAwareChoice<T> => {
+    const pick = draw(items);
     const definition = definitionOf(pick);
-    const choice: StateAwareChoice<T> = {
-      pick,
-      source: "state",
-      filtered: inPool.length !== pool.length,
-    };
+    const choice: StateAwareChoice<T> = { pick, source, filtered };
     if (definition) choice.definition = definition;
     return choice;
-  }
+  };
+
+  const inPool = legal(pool);
+  if (inPool.length > 0) return build(inPool, "state", inPool.length !== pool.length);
 
   if (globalPool && globalPool.length > 0) {
     const inGlobal = legal(globalPool);
-    if (inGlobal.length > 0) {
-      const pick = draw(inGlobal);
-      const definition = definitionOf(pick);
-      const choice: StateAwareChoice<T> = { pick, source: "state-global", filtered: true };
-      if (definition) choice.definition = definition;
-      return choice;
-    }
+    if (inGlobal.length > 0) return build(inGlobal, "state-global", true);
   }
 
-  const pick = draw(pool);
-  const definition = definitionOf(pick);
-  const choice: StateAwareChoice<T> = { pick, source: "legacy-fallback", filtered: true };
-  if (definition) choice.definition = definition;
-  return choice;
+  if (recoveryPool && recoveryPool.length > 0) {
+    const inRecovery = legal(recoveryPool);
+    if (inRecovery.length > 0) return build(inRecovery, "state-recovery", true);
+  }
+
+  if (strict) {
+    // No legal migrated move anywhere: wait instead of breaking physics.
+    return { source: "state-idle", filtered: true };
+  }
+
+  return build(pool, "legacy-fallback", true);
 }
+
 
 /** Bridge helper: turn a legacy scene + compound spec into a MoveDefinition. */
 export function defineMove(
