@@ -245,6 +245,14 @@ function drawLRU<T extends { id: string }>(
     (item) => !familyBlocked(item as { label?: string }, recentFamilies, maxFamilyStreak),
   );
   if (varied.length > 0) list = varied;
+  // Same rule one level finer, on the compound families of the state engine
+  // (punch / elbow / chop / kick / knee …): four elbows in a row read as one
+  // move even though the scene family "punch" allows them.
+  const variedMoveFamily = list.filter(
+    (item) => !moveFamilyBlocked(item as { id: string }, Math.max(2, maxFamilyStreak)),
+  );
+  if (variedMoveFamily.length > 0) list = variedMoveFamily;
+
 
   // Continuity: among the eligible scenes, favour the ones that carry on from
   // where the picture is right now, so the cut reads as one continuous action.
