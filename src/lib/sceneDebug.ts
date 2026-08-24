@@ -78,12 +78,22 @@ export function fightStateTrace(entry: {
   };
   emit();
   // Always visible in the browser console so the state engine can be verified live.
+  if (entry.source === "state-idle" || entry.source === "state-recovery") {
+    const action = entry.source === "state-idle" ? "IDLE" : "RECOVERY";
+    console.log(
+      `[FIGHT ENGINE] STATE ENGINE: STRICT ACTIVE | NO LEGAL MOVE | ACTION: ${action}` +
+        ` (attacker=${entry.from.attacker} defender=${entry.from.defender} relation=${entry.from.relation})` +
+        (action === "RECOVERY" ? ` -> ${entry.move}` : ""),
+    );
+    return;
+  }
   console.log(
     `[FIGHT ENGINE] attacker=${entry.from.attacker} defender=${entry.from.defender} relation=${entry.from.relation}` +
       ` -> ${entry.move} [${entry.source}]` +
       ` -> attacker=${entry.to.attacker} defender=${entry.to.defender} relation=${entry.to.relation}`,
   );
 }
+
 
 let state: SceneDebugState = initial;
 const listeners = new Set<(value: SceneDebugState) => void>();
