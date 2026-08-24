@@ -328,8 +328,8 @@ const STRIKES: Array<[sceneId: string, spec: Spec]> = [
  * one video window never gets several names ("fake variety").
  */
 export const MOVE_ALIASES: Record<string, string[]> = {
-  "w-clothesline": ["Running Lariat"],
-  "w-spear": ["Gore (alias kept as its own footage)"],
+  // Phase 2: every migrated strike/kick plays its own reel window, so there is
+  // no alias to record yet. Add entries here instead of duplicating footage.
 };
 
 const MIGRATED: Array<[sceneId: string, spec: Spec]> = [...SAMPLE, ...STRIKES];
