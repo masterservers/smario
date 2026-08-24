@@ -9,7 +9,12 @@
  */
 
 import { FOLLOW_UPS, MOVES, type Move } from "@/lib/scenes";
-import { defineMove, type FightContext, type MoveDefinition } from "@/lib/fightState";
+import {
+  defineMove,
+  type FightContext,
+  type MoveDefinition,
+  type MoveFamily,
+} from "@/lib/fightState";
 
 const BY_ID = new Map<string, Move>();
 for (const move of [...MOVES, ...FOLLOW_UPS]) if (!BY_ID.has(move.id)) BY_ID.set(move.id, move);
