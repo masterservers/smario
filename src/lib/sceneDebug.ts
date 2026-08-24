@@ -60,8 +60,8 @@ export function fightStateTrace(entry: {
     fightStateFiltered: entry.filtered,
   };
   emit();
-  if (typeof window !== "undefined" && (window as { __fightStateTrace?: boolean }).__fightStateTrace)
-    console.debug(`[fight-state] ${entry.from} -> ${entry.move} -> ${entry.to}`);
+  // Always visible in the browser console so the state engine can be verified live.
+  console.log(`[FIGHT ENGINE] ${entry.from} -> ${entry.move} -> ${entry.to}`);
 }
 
 let state: SceneDebugState = initial;
