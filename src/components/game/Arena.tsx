@@ -47,7 +47,12 @@ import {
   INITIAL_FIGHT_CONTEXT,
   type FightContext,
 } from "@/lib/fightState";
-import { moveDefinitionOf, STATE_AWARE_SCENES } from "@/lib/stateAwareMoves";
+import {
+  moveDefinitionOf,
+  STATE_AWARE_RECOVERY_SCENES,
+  STATE_AWARE_SCENES,
+} from "@/lib/stateAwareMoves";
+
 
 const FIGHT_VIDEO = PRIMARY_REEL;
 /** Two decode slots per master reel, so any reel can be cut to instantly. */
