@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSceneConfig } from "@/lib/sceneConfig";
 import { useSceneDebug } from "@/lib/sceneDebug";
 import { STATE_ENGINE_STRICT } from "@/lib/fightState";
+import { stateAwareCoverage } from "@/lib/stateAwareMoves";
 import { visualSequenceStats } from "@/lib/visualSequences";
 import { trueVarietyReport, visualClusterTrace } from "@/lib/visualClusters";
 
@@ -33,6 +34,8 @@ export function SceneDebugPanel() {
   // Perceived variety: overlapping windows collapsed into visual clusters.
   const variety = trueVarietyReport(4);
   const clusterTrace = visualClusterTrace(6);
+  // Migration progress of the state engine.
+  const coverage = stateAwareCoverage();
 
 
   return (
@@ -88,6 +91,13 @@ export function SceneDebugPanel() {
           <span className="text-foreground">
             {debug.fightNextAttacker} / {debug.fightNextDefender} / {debug.fightNextRelation}
           </span>
+        </div>
+        <div>
+          STATE MOVES: <span className="text-foreground">{coverage.migrated}</span> /{" "}
+          {coverage.totalScenes}
+        </div>
+        <div>
+          FAMILY: <span className="text-foreground">{debug.fightFamily}</span>
         </div>
         <div>source: {debug.fightSource}</div>
         <div>{debug.fightStateFiltered ? "pool filtered by state" : "pool unconstrained"}</div>
