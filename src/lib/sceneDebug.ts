@@ -29,6 +29,8 @@ export type SceneDebugState = {
   fightNextRelation: string;
   /** How the pick was obtained: state | state-global | legacy-fallback. */
   fightSource: string;
+  /** Compound family of the selected move (punch / kick / elbow …). */
+  fightFamily: string;
   /** Whether the state layer actually narrowed the pool for this pick. */
   fightStateFiltered: boolean;
 };
@@ -50,6 +52,7 @@ const initial: SceneDebugState = {
   fightNextDefender: "—",
   fightNextRelation: "—",
   fightSource: "—",
+  fightFamily: "—",
   fightStateFiltered: false,
 };
 
@@ -63,6 +66,7 @@ export function fightStateTrace(entry: {
   to: { attacker: string; defender: string; relation: string };
   source: string;
   filtered: boolean;
+  family?: string;
 }) {
   state = {
     ...state,
@@ -74,6 +78,7 @@ export function fightStateTrace(entry: {
     fightNextDefender: entry.to.defender,
     fightNextRelation: entry.to.relation,
     fightSource: entry.source,
+    fightFamily: entry.family ?? "—",
     fightStateFiltered: entry.filtered,
   };
   emit();
