@@ -61,9 +61,15 @@ export function SceneDebugPanel() {
         {transitions.allowGiftInterrupt ? "gift may cut" : "no cuts"}
       </div>
       <div className="mt-1 border-t border-border/60 pt-1 text-muted-foreground">
-        <div className="uppercase tracking-widest">fight state</div>
-        <div className="truncate text-foreground">
-          {debug.fightStateFrom} › {debug.fightStateMove} › {debug.fightStateTo}
+        <div className="uppercase tracking-widest text-foreground">state engine: active</div>
+        <div>
+          FIGHT STATE: <span className="text-foreground">{debug.fightStateFrom}</span>
+        </div>
+        <div className="truncate">
+          SELECTED MOVE: <span className="text-foreground">{debug.fightStateMove}</span>
+        </div>
+        <div>
+          NEXT STATE: <span className="text-foreground">{debug.fightStateTo}</span>
         </div>
         <div>{debug.fightStateFiltered ? "pool filtered by state" : "pool unconstrained"}</div>
       </div>
