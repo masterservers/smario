@@ -3,6 +3,7 @@ import { useSceneConfig } from "@/lib/sceneConfig";
 import { useSceneDebug } from "@/lib/sceneDebug";
 import { STATE_ENGINE_STRICT } from "@/lib/fightState";
 import { stateAwareCoverage } from "@/lib/stateAwareMoves";
+import { footageAuditOf } from "@/lib/footageAudit";
 import { visualSequenceStats } from "@/lib/visualSequences";
 import { trueVarietyReport, visualClusterTrace } from "@/lib/visualClusters";
 
