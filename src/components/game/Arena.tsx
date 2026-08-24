@@ -897,6 +897,7 @@ export function Arena({
           context: fightState.current,
           pool: FOLLOW_UPS,
           globalPool: STATE_AWARE_SCENES,
+          recoveryPool: STATE_AWARE_RECOVERY_SCENES,
           definitionOf: moveDefinitionOf,
           draw: (pool) =>
             drawMove(
@@ -907,9 +908,11 @@ export function Arena({
               varietyRef.current.cooldownMs * 0.5,
             ),
         }).pick;
-        recentFollows.current = [...recentFollows.current, next.id].slice(
-          -cfgRef.current.followMemory,
-        );
+        if (next) {
+          recentFollows.current = [...recentFollows.current, next.id].slice(
+            -cfgRef.current.followMemory,
+          );
+
         follow.current = {
           event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` },
           move: next,
