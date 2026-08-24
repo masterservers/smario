@@ -39,7 +39,14 @@ import { commitPendingConfig } from "@/lib/pendingConfig";
 import { usePerfMode } from "@/lib/perfMode";
 
 import { getSceneConfig, weightOf } from "@/lib/sceneConfig";
-import { sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
+import { fightStateTrace, sceneBlocked, sceneStarted } from "@/lib/sceneDebug";
+import {
+  INITIAL_FIGHT_STATE,
+  chooseStateAwareMove,
+  nextFightState,
+  type FightState,
+} from "@/lib/fightState";
+import { moveDefinitionOf } from "@/lib/stateAwareMoves";
 
 const FIGHT_VIDEO = PRIMARY_REEL;
 /** Two decode slots per master reel, so any reel can be cut to instantly. */
@@ -413,6 +420,8 @@ export function Arena({
   const idleScene = useRef(IDLE_SCENES[0]!);
   /** When the scene on screen started — the minimum-duration rule uses it. */
   const sceneStartedAt = useRef(0);
+  /** Physical position of the two fighters, for the state-aware selector. */
+  const fightState = useRef<FightState>(INITIAL_FIGHT_STATE);
   /** LRU memory of the feeling-out scenes, so none of them repeats early. */
   const idleUsage = useRef<Map<string, number>>(new Map());
   const recentIdle = useRef<string[]>([]);
@@ -820,15 +829,34 @@ export function Arena({
 
 
       const tier = ruleForEvent(event.id, event.gift).tier;
-      const move = pendingFollow
-        ? pendingFollow.move
-        : drawMove(
-            movesForGift(event.gift, tier),
-            recentMoves.current,
-            moveUsage.current,
-            moveCooldowns.current,
-            varietyRef.current.cooldownMs,
-          );
+      // State-aware selection: illegal positions are removed FIRST, the existing
+      // LRU / anti-repetition draw then runs on the legal subset. Scenes that are
+      // not migrated to the state layer stay unconstrained.
+      const stateBefore = fightState.current;
+      const choice = pendingFollow
+        ? { pick: pendingFollow.move, definition: moveDefinitionOf(pendingFollow.move), filtered: false }
+        : chooseStateAwareMove({
+            currentState: stateBefore,
+            pool: movesForGift(event.gift, tier),
+            definitionOf: moveDefinitionOf,
+            draw: (pool) =>
+              drawMove(
+                pool,
+                recentMoves.current,
+                moveUsage.current,
+                moveCooldowns.current,
+                varietyRef.current.cooldownMs,
+              ),
+          });
+      const move = choice.pick;
+      if (choice.definition) fightState.current = nextFightState(choice.definition);
+      fightStateTrace({
+        from: stateBefore,
+        move: move.label,
+        to: fightState.current,
+        filtered: choice.filtered,
+      });
+
 
       recentMoves.current = [...recentMoves.current, move.id].slice(
         -Math.max(cfgRef.current.moveMemory, varietyRef.current.rotation),
@@ -839,13 +867,21 @@ export function Arena({
       const base = pendingFollow ? 0.4 : tier >= 4 ? 0.85 : tier === 3 ? 0.55 : 0.15;
       const chance = Math.min(0.95, base * cfgRef.current.followChance);
       if (Math.random() < chance) {
-        const next = drawMove(
-          FOLLOW_UPS,
-          recentFollows.current,
-          followUsage.current,
-          followCooldowns.current,
-          varietyRef.current.cooldownMs * 0.5,
-        );
+        // Follow-ups are chosen from the position the main move leaves behind,
+        // so pins/submissions can only be queued on a downed opponent.
+        const next = chooseStateAwareMove({
+          currentState: fightState.current,
+          pool: FOLLOW_UPS,
+          definitionOf: moveDefinitionOf,
+          draw: (pool) =>
+            drawMove(
+              pool,
+              recentFollows.current,
+              followUsage.current,
+              followCooldowns.current,
+              varietyRef.current.cooldownMs * 0.5,
+            ),
+        }).pick;
         recentFollows.current = [...recentFollows.current, next.id].slice(
           -cfgRef.current.followMemory,
         );

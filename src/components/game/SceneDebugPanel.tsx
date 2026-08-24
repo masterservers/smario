@@ -61,6 +61,13 @@ export function SceneDebugPanel() {
         {transitions.allowGiftInterrupt ? "gift may cut" : "no cuts"}
       </div>
       <div className="mt-1 border-t border-border/60 pt-1 text-muted-foreground">
+        <div className="uppercase tracking-widest">fight state</div>
+        <div className="truncate text-foreground">
+          {debug.fightStateFrom} › {debug.fightStateMove} › {debug.fightStateTo}
+        </div>
+        <div>{debug.fightStateFiltered ? "pool filtered by state" : "pool unconstrained"}</div>
+      </div>
+      <div className="mt-1 border-t border-border/60 pt-1 text-muted-foreground">
         <div className="uppercase tracking-widest">visual sequences</div>
         <div>
           names {stats.totalMoveNames} · unique footage {stats.uniqueVisualSequences} · dup{" "}

@@ -19,6 +19,12 @@ export type SceneDebugState = {
   /** Last rule that refused a transition. */
   blockedBy: string;
   blockedAt: number;
+  /** State machine trace: currentFightState -> selectedMove -> nextFightState */
+  fightStateFrom: string;
+  fightStateMove: string;
+  fightStateTo: string;
+  /** Whether the state layer actually narrowed the pool for this pick. */
+  fightStateFiltered: boolean;
 };
 
 const initial: SceneDebugState = {
@@ -30,7 +36,33 @@ const initial: SceneDebugState = {
   endedReason: "—",
   blockedBy: "—",
   blockedAt: 0,
+  fightStateFrom: "—",
+  fightStateMove: "—",
+  fightStateTo: "—",
+  fightStateFiltered: false,
 };
+
+/**
+ * Publish one hop of the fight-state machine. Debug only: the panel is hidden
+ * unless the existing scene-debug switch is on.
+ */
+export function fightStateTrace(entry: {
+  from: string;
+  move: string;
+  to: string;
+  filtered: boolean;
+}) {
+  state = {
+    ...state,
+    fightStateFrom: entry.from,
+    fightStateMove: entry.move,
+    fightStateTo: entry.to,
+    fightStateFiltered: entry.filtered,
+  };
+  emit();
+  if (typeof window !== "undefined" && (window as { __fightStateTrace?: boolean }).__fightStateTrace)
+    console.debug(`[fight-state] ${entry.from} -> ${entry.move} -> ${entry.to}`);
+}
 
 let state: SceneDebugState = initial;
 const listeners = new Set<(value: SceneDebugState) => void>();
