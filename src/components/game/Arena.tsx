@@ -867,13 +867,21 @@ export function Arena({
       const base = pendingFollow ? 0.4 : tier >= 4 ? 0.85 : tier === 3 ? 0.55 : 0.15;
       const chance = Math.min(0.95, base * cfgRef.current.followChance);
       if (Math.random() < chance) {
-        const next = drawMove(
-          FOLLOW_UPS,
-          recentFollows.current,
-          followUsage.current,
-          followCooldowns.current,
-          varietyRef.current.cooldownMs * 0.5,
-        );
+        // Follow-ups are chosen from the position the main move leaves behind,
+        // so pins/submissions can only be queued on a downed opponent.
+        const next = chooseStateAwareMove({
+          currentState: fightState.current,
+          pool: FOLLOW_UPS,
+          definitionOf: moveDefinitionOf,
+          draw: (pool) =>
+            drawMove(
+              pool,
+              recentFollows.current,
+              followUsage.current,
+              followCooldowns.current,
+              varietyRef.current.cooldownMs * 0.5,
+            ),
+        }).pick;
         recentFollows.current = [...recentFollows.current, next.id].slice(
           -cfgRef.current.followMemory,
         );
