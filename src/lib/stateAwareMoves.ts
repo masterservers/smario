@@ -369,6 +369,54 @@ export function stateAwareCoverage() {
   };
 }
 
+/* ------------------------------------------------------------------ *
+ * Fine-grained anti-repetition on the *move family* (punch / elbow / chop /
+ * kick / knee …). The scene-level guard in `scenes.ts` only knows "punch" vs
+ * "kick", so four different elbows in a row still slipped through. This is the
+ * same rule (streak + share of the recent window), applied to the compound
+ * families — no second scheduler: the arena runs it inside the existing draw.
+ * ------------------------------------------------------------------ */
+
+const recentMoveFamilies: MoveFamily[] = [];
+
+/** The compound family of a scene, when it is migrated. */
+export function moveFamilyOf(item: { id: string }): MoveFamily | undefined {
+  return STATE_AWARE_MOVES.get(item.id)?.family;
+}
+
+/** True when playing this scene now would over-use its family. */
+export function moveFamilyBlocked(item: { id: string }, maxStreak = 2, window = 6): boolean {
+  if (maxStreak <= 0) return false;
+  const family = moveFamilyOf(item);
+  if (!family) return false;
+  let streak = 0;
+  for (let i = recentMoveFamilies.length - 1; i >= 0 && recentMoveFamilies[i] === family; i--) {
+    streak++;
+  }
+  if (streak >= maxStreak) return true;
+  const slice = recentMoveFamilies.slice(-window);
+  const share = slice.filter((f) => f === family).length;
+  return slice.length >= window && share > Math.ceil(window / 2);
+}
+
+/** Record the family that was just played. */
+export function noteMoveFamily(item: { id: string }) {
+  const family = moveFamilyOf(item);
+  if (!family) return;
+  recentMoveFamilies.push(family);
+  if (recentMoveFamilies.length > 12) recentMoveFamilies.shift();
+}
+
+/** Family of the last state-aware pick, for the debug panel. */
+export function currentMoveFamily(): MoveFamily | "—" {
+  return recentMoveFamilies[recentMoveFamilies.length - 1] ?? "—";
+}
+
+/** Test hook: forget the recent families. */
+export function resetMoveFamilyTrace() {
+  recentMoveFamilies.length = 0;
+}
+
 /** The context the fight is in after a scene, when that scene is described. */
 export function contextAfterScene(item: { id: string }, current: FightContext): FightContext {
   const definition = STATE_AWARE_MOVES.get(item.id);
