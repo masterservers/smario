@@ -1,37 +1,58 @@
 /**
- * Typed fight-state layer (additive).
+ * Compound fight-state layer.
  *
- * The arena historically picked scenes purely by tier / family / LRU, so a
- * pin could follow a jab and a submission could appear out of neutral. This
- * module introduces the vocabulary needed to make selection *positional*:
- * where the two fighters physically are, which moves may legally start from
- * there, and which state a move leaves behind.
+ * A single enum could not express situations that involve BOTH fighters at the
+ * same time ("attacker on the top rope AND defender already down"), so the
+ * position of each fighter and the relation between them are now tracked
+ * separately:
  *
- * Nothing here plays video and nothing here replaces the existing scheduler.
- * Moves that are not described yet are simply "unconstrained" and keep
- * behaving exactly as before, so the migration can proceed a few moves at a
- * time without ever starving the arena.
+ *   FightContext { attacker, defender, relation }
+ *
+ * A move declares `requires` (AND across the three axes, OR inside each axis)
+ * and `result` (the partial context it leaves behind). Nothing here plays
+ * video; the scheduler in the arena keeps its LRU / anti-repetition draw and
+ * only runs it on the subset this module says is legal.
  */
 
 import type { Move } from "@/lib/scenes";
 
-export type FightState =
-  | "neutral_standing"
-  | "standing_distance"
+export type FighterPosition =
+  | "standing"
+  | "running"
+  | "grounded"
+  | "kneeling"
+  | "corner"
+  | "ropes"
+  | "top_rope"
+  | "airborne"
+  | "recovering";
+
+export type FightRelation =
+  | "distance"
   | "close_range"
   | "clinch"
   | "attacker_behind"
   | "defender_behind"
-  | "ropes"
-  | "corner"
-  | "opponent_grounded"
-  | "attacker_grounded"
-  | "both_grounded"
-  | "top_rope"
-  | "airborne"
-  | "pin_position"
-  | "submission_position"
-  | "recovery";
+  | "pin"
+  | "submission";
+
+export type FightContext = {
+  attacker: FighterPosition;
+  defender: FighterPosition;
+  relation: FightRelation;
+};
+
+export type MoveRequirements = {
+  attacker?: FighterPosition[];
+  defender?: FighterPosition[];
+  relation?: FightRelation[];
+};
+
+export type MoveResult = {
+  attacker?: FighterPosition;
+  defender?: FighterPosition;
+  relation?: FightRelation;
+};
 
 export type MoveFamily =
   | "punch"
@@ -69,13 +90,10 @@ export type MoveDefinition = {
   family: MoveFamily;
   tier: number;
 
-  /** Position the move is performed from and the one it leaves behind. */
-  startState: FightState;
-  endState: FightState;
-  /** Every state the move may legally be launched from. */
-  allowedFromStates: FightState[];
-  /** States the engine may reasonably move into after this move. */
-  followUpStates: FightState[];
+  /** Compound pre-conditions (all provided axes must match). */
+  requires: MoveRequirements;
+  /** Context changes applied once the move has played out. */
+  result: MoveResult;
 
   /** Playback (seconds), kept identical to the legacy reel window. */
   src?: string;
@@ -89,82 +107,141 @@ export type MoveDefinition = {
   tags: string[];
 };
 
-export const INITIAL_FIGHT_STATE: FightState = "neutral_standing";
+/**
+ * Strict mode: only moves that have been migrated to the compound model take
+ * part in state-aware selection. Legacy moves stay in the catalog (nothing is
+ * deleted) but they no longer bypass the state filter.
+ */
+export const STATE_ENGINE_STRICT = true;
 
-/** Positions in which the defender is down on the mat. */
-export const GROUNDED_FIGHT_STATES: FightState[] = [
-  "opponent_grounded",
-  "both_grounded",
-  "pin_position",
-  "submission_position",
-];
+export const INITIAL_FIGHT_CONTEXT: FightContext = {
+  attacker: "standing",
+  defender: "standing",
+  relation: "distance",
+};
 
-export function isOpponentGrounded(state: FightState): boolean {
-  return GROUNDED_FIGHT_STATES.includes(state);
+export function formatContext(context: FightContext): string {
+  return `attacker=${context.attacker} defender=${context.defender} relation=${context.relation}`;
 }
 
-/** Can this move legally start from the current position? */
-export function canPlayMove(move: MoveDefinition, currentState: FightState): boolean {
-  return move.allowedFromStates.includes(currentState);
+export function isDefenderGrounded(context: FightContext): boolean {
+  return context.defender === "grounded" || context.defender === "kneeling";
 }
 
-/** Position the fight is in once the move has played out. */
-export function nextFightState(move: MoveDefinition): FightState {
-  return move.endState;
+/**
+ * Compound check: every axis present in `requires` must contain the current
+ * value (AND across axes, OR inside one axis). Missing axes are wildcards.
+ */
+export function canPlayMove(move: MoveDefinition, context: FightContext): boolean {
+  const { attacker, defender, relation } = move.requires;
+  if (attacker && !attacker.includes(context.attacker)) return false;
+  if (defender && !defender.includes(context.defender)) return false;
+  if (relation && !relation.includes(context.relation)) return false;
+  return true;
+}
+
+/** Context after the move: the result overrides only the axes it declares. */
+export function applyMoveResult(context: FightContext, move: MoveDefinition): FightContext {
+  return {
+    attacker: move.result.attacker ?? context.attacker,
+    defender: move.result.defender ?? context.defender,
+    relation: move.result.relation ?? context.relation,
+  };
 }
 
 /** Every move in a pool that is legal right now. */
 export function getEligibleMoves(
-  currentState: FightState,
+  context: FightContext,
   pool: MoveDefinition[],
 ): MoveDefinition[] {
-  return pool.filter((move) => canPlayMove(move, currentState));
+  return pool.filter((move) => canPlayMove(move, context));
 }
+
+export type StateAwareChoice<T> = {
+  pick: T;
+  definition?: MoveDefinition;
+  /** How the pick was obtained, for the debug panel / console trace. */
+  source: "state" | "state-global" | "legacy-fallback";
+  filtered: boolean;
+};
 
 /**
- * State-aware pick. `draw` is the caller's existing anti-repetition/LRU
- * chooser: state filtering happens FIRST, the LRU cycle then runs on the legal
- * subset, exactly as required. When nothing is legal the caller's untouched
- * pool is used, so the scheduler can never starve.
+ * State-aware pick.
+ *
+ * 1. Legal migrated moves inside the caller's pool (LRU draw runs on them).
+ * 2. If none: legal migrated moves from the global catalog, so the fight can
+ *    always continue while the migration is incomplete.
+ * 3. Only if the state engine has nothing at all: the legacy pool, flagged as
+ *    `legacy-fallback` so it is visible in the trace.
+ *
+ * With STATE_ENGINE_STRICT off, unmigrated moves are legal again (old behaviour).
  */
 export function chooseStateAwareMove<T extends { id: string }>(args: {
-  currentState: FightState;
+  context: FightContext;
   pool: T[];
-  /** State description for a pool entry, or undefined when not migrated yet. */
   definitionOf: (item: T) => MoveDefinition | undefined;
   draw: (pool: T[]) => T;
-}): { pick: T; definition?: MoveDefinition; filtered: boolean } {
-  const { currentState, pool, definitionOf, draw } = args;
-  const legal = pool.filter((item) => {
-    const definition = definitionOf(item);
-    // Not migrated yet → unconstrained, keeps the legacy behaviour.
-    return !definition || canPlayMove(definition, currentState);
-  });
-  const usable = legal.length > 0 ? legal : pool;
-  const pick = draw(usable);
+  /** Global migrated catalog used when the caller's pool has no legal move. */
+  globalPool?: T[];
+  strict?: boolean;
+}): StateAwareChoice<T> {
+  const { context, pool, definitionOf, draw, globalPool, strict = STATE_ENGINE_STRICT } = args;
+
+  const legal = (items: T[]) =>
+    items.filter((item) => {
+      const definition = definitionOf(item);
+      if (!definition) return !strict; // unmigrated: blocked in strict mode
+      return canPlayMove(definition, context);
+    });
+
+  const inPool = legal(pool);
+  if (inPool.length > 0) {
+    const pick = draw(inPool);
+    const definition = definitionOf(pick);
+    const choice: StateAwareChoice<T> = {
+      pick,
+      source: "state",
+      filtered: inPool.length !== pool.length,
+    };
+    if (definition) choice.definition = definition;
+    return choice;
+  }
+
+  if (globalPool && globalPool.length > 0) {
+    const inGlobal = legal(globalPool);
+    if (inGlobal.length > 0) {
+      const pick = draw(inGlobal);
+      const definition = definitionOf(pick);
+      const choice: StateAwareChoice<T> = { pick, source: "state-global", filtered: true };
+      if (definition) choice.definition = definition;
+      return choice;
+    }
+  }
+
+  const pick = draw(pool);
   const definition = definitionOf(pick);
-  return definition
-    ? { pick, definition, filtered: legal.length !== pool.length }
-    : { pick, filtered: legal.length !== pool.length };
+  const choice: StateAwareChoice<T> = { pick, source: "legacy-fallback", filtered: true };
+  if (definition) choice.definition = definition;
+  return choice;
 }
 
-/** Bridge helper: turn a legacy scene + state data into a MoveDefinition. */
+/** Bridge helper: turn a legacy scene + compound spec into a MoveDefinition. */
 export function defineMove(
   move: Move,
-  spec: Pick<
-    MoveDefinition,
-    "family" | "startState" | "endState" | "allowedFromStates" | "followUpStates"
-  > & { tags?: string[] },
+  spec: {
+    family: MoveFamily;
+    requires: MoveRequirements;
+    result: MoveResult;
+    tags?: string[];
+  },
 ): MoveDefinition {
   const definition: MoveDefinition = {
     id: move.id,
     label: move.label,
     family: spec.family,
     tier: move.tier,
-    startState: spec.startState,
-    endState: spec.endState,
-    allowedFromStates: spec.allowedFromStates,
-    followUpStates: spec.followUpStates,
+    requires: spec.requires,
+    result: spec.result,
     start: move.start,
     end: move.end,
     duration: Number((move.end - move.start).toFixed(2)),
