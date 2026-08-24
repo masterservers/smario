@@ -894,6 +894,7 @@ export function Arena({
         to: fightState.current,
         source: choice.source,
         filtered: choice.filtered,
+        family: choice.definition?.family ?? "—",
       });
 
 
