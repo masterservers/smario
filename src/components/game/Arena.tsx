@@ -913,11 +913,13 @@ export function Arena({
             -cfgRef.current.followMemory,
           );
 
-        follow.current = {
-          event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` },
-          move: next,
-        };
+          follow.current = {
+            event: { ...event, id: `${event.id}-fu${Math.random().toString(36).slice(2, 6)}` },
+            move: next,
+          };
+        }
       }
+
 
       const gift = GIFT_BY_ID[event.gift];
       const giftSetting = getGiftConfig()[event.gift];
