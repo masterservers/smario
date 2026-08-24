@@ -10,6 +10,10 @@ import { createRefTracker, type RefSpot } from "@/lib/refTracker";
  * face swap on the existing official, anchored to the painted video rectangle
  * so it stays on his shoulders in every orientation.
  */
+const activeVideo = () =>
+  document.querySelector<HTMLVideoElement>('video.arena-video[data-active="true"]') ??
+  document.querySelector<HTMLVideoElement>("video.arena-video");
+
 export function BeanRefHead() {
   const config = useBeanConfig();
   const debug = useDebugView();
@@ -26,7 +30,7 @@ export function BeanRefHead() {
       frame = 0;
       const host = el.getBoundingClientRect();
       if (!host.width || !host.height) return;
-      const video = document.querySelector<HTMLVideoElement>("video.arena-video");
+      const video = activeVideo();
       const box = video?.getBoundingClientRect();
       const ar =
         video && video.videoWidth && video.videoHeight
@@ -74,12 +78,20 @@ export function BeanRefHead() {
     let raf = 0;
     let last = 0;
     let smooth: RefSpot | null = null;
+    let lastVideo: HTMLVideoElement | null = null;
     const loop = (now: number) => {
       raf = window.requestAnimationFrame(loop);
       if (document.hidden || now - last < 110) return;
       last = now;
-      const video = document.querySelector<HTMLVideoElement>("video.arena-video");
+      const video = activeVideo();
       if (!video) return;
+      if (video !== lastVideo) {
+        // The arena cut to another reel: re-measure the painted rectangle and
+        // drop the smoothing history so the face does not slide across.
+        lastVideo = video;
+        smooth = null;
+        window.dispatchEvent(new Event("resize"));
+      }
       const found = track(video);
       if (!found) {
         // Referee hidden behind the wrestlers: drop the face rather than
@@ -109,11 +121,13 @@ export function BeanRefHead() {
 
   // Re-measure once the reel reports its real size (metadata can land late).
   useEffect(() => {
-    const video = document.querySelector<HTMLVideoElement>("video.arena-video");
-    if (!video) return;
+    const videos = Array.from(
+      document.querySelectorAll<HTMLVideoElement>("video.arena-video"),
+    );
+    if (!videos.length) return;
     const fire = () => window.dispatchEvent(new Event("resize"));
-    video.addEventListener("loadedmetadata", fire);
-    return () => video.removeEventListener("loadedmetadata", fire);
+    videos.forEach((v) => v.addEventListener("loadedmetadata", fire));
+    return () => videos.forEach((v) => v.removeEventListener("loadedmetadata", fire));
   }, []);
 
   if (!config.headEnabled) return null;
