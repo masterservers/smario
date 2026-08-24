@@ -19,6 +19,12 @@ export type SceneDebugState = {
   /** Last rule that refused a transition. */
   blockedBy: string;
   blockedAt: number;
+  /** State machine trace: currentFightState -> selectedMove -> nextFightState */
+  fightStateFrom: string;
+  fightStateMove: string;
+  fightStateTo: string;
+  /** Whether the state layer actually narrowed the pool for this pick. */
+  fightStateFiltered: boolean;
 };
 
 const initial: SceneDebugState = {
