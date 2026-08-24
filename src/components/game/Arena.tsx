@@ -420,6 +420,8 @@ export function Arena({
   const idleScene = useRef(IDLE_SCENES[0]!);
   /** When the scene on screen started — the minimum-duration rule uses it. */
   const sceneStartedAt = useRef(0);
+  /** Physical position of the two fighters, for the state-aware selector. */
+  const fightState = useRef<FightState>(INITIAL_FIGHT_STATE);
   /** LRU memory of the feeling-out scenes, so none of them repeats early. */
   const idleUsage = useRef<Map<string, number>>(new Map());
   const recentIdle = useRef<string[]>([]);
