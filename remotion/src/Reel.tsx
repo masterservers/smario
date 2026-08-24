@@ -11,8 +11,8 @@ import {
   type Technique,
 } from "./moves";
 
-const PUTIN = { color: "#b21b28", trunk: "#7d1119", head: "putin" as const, scale: 0.9 };
-const TRUMP = { color: "#1d3f80", trunk: "#122a56", head: "trump" as const, scale: 1 };
+const PUTIN = { color: "#b21b28", trunk: "#7d1119", head: "putin" as const, scale: 1.02 };
+const TRUMP = { color: "#1d3f80", trunk: "#122a56", head: "trump" as const, scale: 1.14 };
 
 const Mat: React.FC = () => (
   <AbsoluteFill>
